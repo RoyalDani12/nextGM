@@ -1,6 +1,7 @@
 import { Response, Request, NextFunction } from "express";
 import { AppError } from "./appError.js";
 
+const isDev = process.env.NODE_ENV === "development";
 export const errHandler = (
   err: Error | AppError,
   req: Request,
@@ -13,6 +14,7 @@ export const errHandler = (
       status: "error",
       statusCode: err.statusCode,
       message: err.message,
+  ...(isDev && { stack: err.stack }),
     });
     return;
   }

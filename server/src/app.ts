@@ -7,6 +7,7 @@ import { corsConfig } from "./config/cors.js"
 import morgan from "morgan"
 import { errHandler } from "./middleware/errorHandler.middleware.js"
 import { notFound } from "./middleware/notFound.js"
+import { generalLimiter } from "./middleware/rateLimiter.middleware.js"
 
 
 
@@ -19,6 +20,8 @@ app.use(morgan("dev"))
 
 //parse JSON bodies
 app.use(express.json())
+
+app.use(generalLimiter)   //  apply before routes
 
 app.get('/',(req ,res)=>{
   res.json({message:"server running successfully"})
