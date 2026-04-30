@@ -1,8 +1,10 @@
-import express from "express"
-const app = express()
+import app from "./app.js";
 
+let PORT: number = Number(process.env.PORT) || 3000
 
-let PORT:number = 5000
-app.listen(PORT,()=>{
-  console.log(`server connected and running on port ${PORT}`)
-})
+if (!process.env.PORT) {
+  throw new Error("PORT is not defined");
+}
+app.listen(PORT, () => {
+  console.log(`server connected and running on port ${PORT}`);
+});
