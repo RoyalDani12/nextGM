@@ -1,8 +1,8 @@
-import { asyncHandle } from "../../utils/asyncHandler.js";
+import { asyncHandler } from "../../utils/asyncHandler.js";
 import { Request, Response } from "express";
 import { registerService } from "./auth.services.js";
 
-export const registerController = asyncHandle(async (req: Request, res: Response) => {
+export const registerController = asyncHandler(async (req: Request, res: Response) => {
 
   const response = await registerService(req.body);
 
