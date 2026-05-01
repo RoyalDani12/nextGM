@@ -10,12 +10,12 @@ export const findUserByEmail = async(email:string)=>{
 
 // create user
 
-export const createUser = async(data:RegisterDto & { password :string })=>{
+export const createUser = async(data:RegisterDto & { hashedPassword:string })=>{
   return prisma.user.create({
     data:{
       name:data.name,
       email:data.email,
-      password:data.password
+      password:data.hashedPassword
     },
     select:{
       id:true,
