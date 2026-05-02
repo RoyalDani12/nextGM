@@ -8,7 +8,7 @@ import morgan from "morgan"
 import { errHandler } from "./middleware/errorHandler.middleware.js"
 import { notFound } from "./middleware/notFound.js"
 import { generalLimiter } from "./middleware/rateLimiter.middleware.js"
-
+import authRoute from "./features/auth/auth.routes.js"
 
 
 // security first
@@ -22,6 +22,8 @@ app.use(morgan("dev"))
 app.use(express.json())
 
 app.use(generalLimiter)   //  apply before routes
+
+app.use('/api/auth',authRoute)
 
 app.get('/',(req ,res)=>{
   res.json({message:"server running successfully"})
