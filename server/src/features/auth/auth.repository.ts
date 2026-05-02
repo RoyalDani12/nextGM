@@ -16,6 +16,7 @@ export const createUser = async(data:RegisterDto & { hashedPassword:string })=>{
       name:data.name,
       email:data.email,
       password:data.hashedPassword
+      // role, status, isEmailVerified → DB defaults handle these
     },
     select:{
       id:true,
