@@ -6,11 +6,678 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  SHOP_OWNER
+  SHOP_EMPLOYEE
+  CUSTOMER
+}
+
+enum AccountStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+enum ShopStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+enum EmployeeRole {
+  MANAGER
+  STAFF
+}
+
+enum ProductType {
+  PHYSICAL
+  DIGITAL
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentProvider {
+  STRIPE
+  PAYPAL
+}
+
+enum NotificationType {
+  ORDER_PLACED
+  ORDER_SHIPPED
+  ORDER_DELIVERED
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  REVIEW_RECEIVED
+  COUPON_EXPIRING
+  MEMBERSHIP_EXPIRING
+}
+
+enum MembershipPlanType {
+  USER
+  SHOP
+}
+
+enum CouponType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  FREE_SHIPPING
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+}
+
+// ─────────────────────────────────────────
+// IDENTITY & AUTH
+// ─────────────────────────────────────────
+
 model User {
+  id              String        @id @default(cuid())
+  name            String
+  email           String        @unique
+  password        String
+  role            Role          @default(CUSTOMER)
+  status          AccountStatus @default(PENDING)
+  isEmailVerified Boolean       @default(false)
+  deletedAt       DateTime?
+  lastLoginAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  profile              UserProfile?
+  refreshTokens        RefreshToken[]
+  emailVerifications   EmailVerification[]
+  passwordResets       PasswordReset[]
+  ownedShops           Shop[]               @relation("ShopOwner")
+  employeeOf           ShopEmployee[]
+  orders               Order[]
+  reviews              Review[]
+  notifications        Notification[]
+  notificationPref     NotificationPreference?
+  membership           UserMembership?
+  auditLogs            AuditLog[]
+  activityLogs         ActivityLog[]
+  couponUsages         CouponUsage[]
+  paymentMethods       PaymentMethod[]
+
+  @@index([email])
+  @@index([status])
+  @@index([role])
+}
+
+model UserProfile {
   id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  role      String   @default("user")
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  phone     String?
+  avatar    String?
+  address   String?
+  city      String?
+  country   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+model EmailVerification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([token])
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([token])
+}
+
+// ─────────────────────────────────────────
+// TENANT / SHOP
+// ─────────────────────────────────────────
+
+model Shop {
+  id        String     @id @default(cuid())
+  ownerId   String
+  owner     User       @relation("ShopOwner", fields: [ownerId], references: [id])
+  slug      String     @unique
+  status    ShopStatus @default(PENDING)
+  deletedAt DateTime?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  profile       ShopProfile?
+  employees     ShopEmployee[]
+  products      Product[]
+  orders        Order[]
+  coupons       Coupon[]
+  membership    ShopMembership?
+  analytics     ShopAnalytics[]
+  reviews       Review[]
+  notifications Notification[]
+
+  @@index([ownerId])
+  @@index([slug])
+  @@index([status])
+}
+
+model ShopProfile {
+  id          String   @id @default(cuid())
+  shopId      String   @unique
+  shop        Shop     @relation(fields: [shopId], references: [id])
+  name        String
+  description String?
+  logo        String?
+  banner      String?
+  phone       String?
+  email       String?
+  address     String?
+  city        String?
+  country     String?
+  website     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ShopEmployee {
+  id        String       @id @default(cuid())
+  shopId    String
+  shop      Shop         @relation(fields: [shopId], references: [id])
+  userId    String
+  user      User         @relation(fields: [userId], references: [id])
+  role      EmployeeRole @default(STAFF)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  permissions ShopEmployeeRole[]
+
+  @@unique([shopId, userId])
+  @@index([shopId])
+  @@index([userId])
+}
+
+model ShopEmployeeRole {
+  id         String       @id @default(cuid())
+  employeeId String
+  employee   ShopEmployee @relation(fields: [employeeId], references: [id])
+  permission String
+  createdAt  DateTime     @default(now())
+
+  @@unique([employeeId, permission])
+}
+
+// ─────────────────────────────────────────
+// PRODUCT
+// ─────────────────────────────────────────
+
+model ProductCategory {
+  id        String            @id @default(cuid())
+  shopId    String
+  name      String
+  slug      String
+  parentId  String?
+  parent    ProductCategory?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children  ProductCategory[] @relation("CategoryTree")
+  products  Product[]
+  createdAt DateTime          @default(now())
+
+  @@unique([shopId, slug])
+  @@index([shopId])
+}
+
+model Product {
+  id         String           @id @default(cuid())
+  shopId     String
+  shop       Shop             @relation(fields: [shopId], references: [id])
+  categoryId String?
+  category   ProductCategory? @relation(fields: [categoryId], references: [id])
+  type       ProductType      @default(PHYSICAL)
+  status     ProductStatus    @default(DRAFT)
+  basePrice  Decimal
+  stock      Int              @default(0)
+  deletedAt  DateTime?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  variants     ProductVariant[]
+  images       ProductImage[]
+  digitalAsset DigitalAsset?
+  orderItems   OrderItem[]
+  reviews      Review[]
+  analytics    ProductAnalytics[]
+
+  @@index([shopId])
+  @@index([status])
+  @@index([type])
+  @@index([categoryId])
+}
+
+model ProductVariant {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  name      String
+  price     Decimal
+  stock     Int      @default(0)
+  sku       String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderItems OrderItem[]
+
+  @@index([productId])
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  url       String
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+}
+
+model DigitalAsset {
+  id            String   @id @default(cuid())
+  productId     String   @unique
+  product       Product  @relation(fields: [productId], references: [id])
+  fileUrl       String
+  fileSize      Int
+  mimeType      String
+  downloadLimit Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────
+// ORDER
+// ─────────────────────────────────────────
+
+model Order {
+  id             String      @id @default(cuid())
+  shopId         String
+  shop           Shop        @relation(fields: [shopId], references: [id])
+  customerId     String
+  customer       User        @relation(fields: [customerId], references: [id])
+  status         OrderStatus @default(PENDING)
+  totalAmount    Decimal
+  couponId       String?
+  coupon         Coupon?     @relation(fields: [couponId], references: [id])
+  discountAmount Decimal     @default(0)
+  idempotencyKey String      @unique
+  notes          String?
+  deletedAt      DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  items           OrderItem[]
+  statusHistory   OrderStatusHistory[]
+  shippingAddress ShippingAddress?
+  payment         Payment?
+
+  @@index([shopId])
+  @@index([customerId])
+  @@index([status])
+  @@index([idempotencyKey])
+}
+
+model OrderItem {
+  id        String          @id @default(cuid())
+  orderId   String
+  order     Order           @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product         @relation(fields: [productId], references: [id])
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+  quantity  Int
+  unitPrice Decimal
+  createdAt DateTime        @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model OrderStatusHistory {
+  id        String      @id @default(cuid())
+  orderId   String
+  order     Order       @relation(fields: [orderId], references: [id])
+  status    OrderStatus
+  note      String?
+  createdAt DateTime    @default(now())
+
+  @@index([orderId])
+}
+
+model ShippingAddress {
+  id         String   @id @default(cuid())
+  orderId    String   @unique
+  order      Order    @relation(fields: [orderId], references: [id])
+  fullName   String
+  phone      String
+  address    String
+  city       String
+  country    String
+  postalCode String?
+  createdAt  DateTime @default(now())
+}
+
+// ─────────────────────────────────────────
+// PAYMENT
+// ─────────────────────────────────────────
+
+model Payment {
+  id                String          @id @default(cuid())
+  orderId           String          @unique
+  order             Order           @relation(fields: [orderId], references: [id])
+  amount            Decimal
+  currency          String          @default("USD")
+  status            PaymentStatus   @default(PENDING)
+  provider          PaymentProvider
+  providerPaymentId String?         @unique
+  idempotencyKey    String          @unique
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([status])
+  @@index([providerPaymentId])
+}
+
+model PaymentMethod {
+  id               String          @id @default(cuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id])
+  provider         PaymentProvider
+  providerMethodId String
+  last4            String?
+  brand            String?
+  isDefault        Boolean         @default(false)
+  createdAt        DateTime        @default(now())
+
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────
+// COUPON
+// ─────────────────────────────────────────
+
+model Coupon {
+  id             String     @id @default(cuid())
+  shopId         String
+  shop           Shop       @relation(fields: [shopId], references: [id])
+  code           String
+  type           CouponType
+  value          Decimal
+  minOrderAmount Decimal?
+  maxUses        Int?
+  usedCount      Int        @default(0)
+  expiresAt      DateTime?
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  usages CouponUsage[]
+  orders Order[]
+
+  @@unique([shopId, code])
+  @@index([shopId])
+  @@index([code])
+}
+
+model CouponUsage {
+  id        String   @id @default(cuid())
+  couponId  String
+  coupon    Coupon   @relation(fields: [couponId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([couponId, userId])
+  @@index([couponId])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────
+// REVIEW
+// ─────────────────────────────────────────
+
+model Review {
+  id        String   @id @default(cuid())
+  shopId    String
+  shop      Shop     @relation(fields: [shopId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  rating    Int
+  comment   String?
+  isVisible Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reply ReviewReply?
+
+  @@unique([productId, userId])
+  @@index([shopId])
+  @@index([productId])
+  @@index([userId])
+}
+
+model ReviewReply {
+  id        String   @id @default(cuid())
+  reviewId  String   @unique
+  review    Review   @relation(fields: [reviewId], references: [id])
+  comment   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────
+// NOTIFICATION
+// ─────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  shopId    String?
+  shop      Shop?            @relation(fields: [shopId], references: [id])
+  type      NotificationType
+  title     String
+  body      String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([shopId])
+}
+
+model NotificationPreference {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id])
+  emailEnabled Boolean  @default(true)
+  pushEnabled  Boolean  @default(true)
+  orderUpdates Boolean  @default(true)
+  promotions   Boolean  @default(true)
+  reviews      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────
+// MEMBERSHIP
+// ─────────────────────────────────────────
+
+model MembershipPlan {
+  id           String             @id @default(cuid())
+  type         MembershipPlanType
+  name         String
+  price        Decimal
+  billingCycle String
+  features     Json
+  isActive     Boolean            @default(true)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  shopMemberships ShopMembership[]
+  userMemberships UserMembership[]
+}
+
+model ShopMembership {
+  id        String         @id @default(cuid())
+  shopId    String         @unique
+  shop      Shop           @relation(fields: [shopId], references: [id])
+  planId    String
+  plan      MembershipPlan @relation(fields: [planId], references: [id])
+  status    String         @default("active")
+  startedAt DateTime       @default(now())
+  expiresAt DateTime
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([shopId])
+  @@index([status])
+}
+
+model UserMembership {
+  id        String         @id @default(cuid())
+  userId    String         @unique
+  user      User           @relation(fields: [userId], references: [id])
+  planId    String
+  plan      MembershipPlan @relation(fields: [planId], references: [id])
+  status    String         @default("active")
+  startedAt DateTime       @default(now())
+  expiresAt DateTime
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ─────────────────────────────────────────
+// ANALYTICS
+// ─────────────────────────────────────────
+
+model ShopAnalytics {
+  id           String   @id @default(cuid())
+  shopId       String
+  shop         Shop     @relation(fields: [shopId], references: [id])
+  date         DateTime
+  totalOrders  Int      @default(0)
+  totalRevenue Decimal  @default(0)
+  totalVisits  Int      @default(0)
+  newCustomers Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@unique([shopId, date])
+  @@index([shopId])
+  @@index([date])
+}
+
+model ProductAnalytics {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  date      DateTime
+  views     Int      @default(0)
+  clicks    Int      @default(0)
+  purchases Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([productId, date])
+  @@index([productId])
+  @@index([date])
+}
+
+// ─────────────────────────────────────────
+// AUDIT & ACTIVITY
+// ─────────────────────────────────────────
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id])
+  action    AuditAction
+  entity    String
+  entityId  String
+  oldValue  Json?
+  newValue  Json?
+  ip        String?
+  createdAt DateTime    @default(now())
+
+  @@index([userId])
+  @@index([entity])
+  @@index([entityId])
+  @@index([createdAt])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  metadata  Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
 }
