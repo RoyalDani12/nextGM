@@ -2,11 +2,16 @@ import  express  from "express";
 
 const router = express.Router()
 import { registerController } from "./auth.controller.js";
+import { registerSchema } from "./auth.schema.js";
+import { validate } from "../../middleware/validate.middleware.js";
 
 
 
 
-router.post('/register',registerController
+
+router.post('/register',
+  registerController,
+  validate(registerSchema)
   //  plan
 
   // validator
