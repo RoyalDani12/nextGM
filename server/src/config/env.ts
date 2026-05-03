@@ -1,18 +1,29 @@
 import dotenv from "dotenv";
+import { z } from "zod";
 dotenv.config();
 
-const requiredEnvVars = ["JWT_SECRET", "DATABASE_URL", "NODE_ENV"] as const;
+const envSchema = z.object({
+  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  PORT: z.string().default("5000").transform(Number),
+  DATABASE_URL: z.string().url(),
+  JWT_SECRET: z.string().min(8),
+  
+  // Redis
+  REDIS_URL: z.string().url(),
 
-//  validate all env vars exist at start
-for (const envVar of requiredEnvVars) {
-  if (!process.env[envVar]) {
-    throw new Error(`Missing required environment variable: ${envVar}`);
-  }
+  // SMTP
+  SMTP_HOST: z.string(),
+  SMTP_PORT: z.string().transform(Number), // Automatically turns string "587" into number 587
+
+  SMTP_USER: z.string(),
+  SMTP_PASS: z.string(),
+});
+
+const _env = envSchema.safeParse(process.env)
+
+if(!_env.success){
+  console.error("Invalid environmental variable",_env.error.format())
+  process.exit(1)
 }
 
-export const env = {
-  JWT_SECRET: process.env.JWT_SECRET as string,
-  DATABASE_URL: process.env.DATABASE_URL as string,
-  NODE_ENV: process.env.NODE_ENV as string,
-  PORT: process.env.PORT || "5000",
-} as const;
+export const env = _env.data
