@@ -1,7 +1,7 @@
 import { RegisterDto } from "./auth.types.js";
 import { AppError } from "../../middleware/appError.js";
 import { findUserByEmail, createUser } from "./auth.repository.js";
-import { hashPassword, generateToken } from "../../utils/auth.utils.js";
+import { hashPassword } from "../../utils/auth.utils.js";
 
 
 export const registerService = async (userData: RegisterDto) => {
@@ -21,7 +21,7 @@ export const registerService = async (userData: RegisterDto) => {
   });
 
   // generate token
-  const token = generateToken({ id: user.id, email: user.email });
+  // const token = generateToken({ id: user.id, email: user.email });
 
-  return { user, token };
+  return { user };
 };

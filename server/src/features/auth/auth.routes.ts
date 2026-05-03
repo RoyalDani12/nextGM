@@ -10,8 +10,9 @@ import { validate } from "../../middleware/validate.middleware.js";
 
 
 router.post('/register',
+    validate(registerSchema),
   registerController,
-  validate(registerSchema)
+
   //  plan
 
   // validator

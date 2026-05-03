@@ -1,10 +1,3 @@
-/*
-  Warnings:
-
-  - You are about to drop the column `name` on the `User` table. All the data in the column will be lost.
-  - The `role` column on the `User` table would be dropped and recreated. This will lead to data loss if there is data in the column.
-
-*/
 -- CreateEnum
 CREATE TYPE "Role" AS ENUM ('SUPER_ADMIN', 'SHOP_OWNER', 'SHOP_EMPLOYEE', 'CUSTOMER');
 
@@ -44,20 +37,27 @@ CREATE TYPE "CouponType" AS ENUM ('PERCENTAGE', 'FIXED_AMOUNT', 'FREE_SHIPPING')
 -- CreateEnum
 CREATE TYPE "AuditAction" AS ENUM ('CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT');
 
--- AlterTable
-ALTER TABLE "User" DROP COLUMN "name",
-ADD COLUMN     "deletedAt" TIMESTAMP(3),
-ADD COLUMN     "isEmailVerified" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "lastLoginAt" TIMESTAMP(3),
-ADD COLUMN     "status" "AccountStatus" NOT NULL DEFAULT 'PENDING',
-DROP COLUMN "role",
-ADD COLUMN     "role" "Role" NOT NULL DEFAULT 'CUSTOMER';
+-- CreateTable
+CREATE TABLE "User" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "password" TEXT NOT NULL,
+    "role" "Role" NOT NULL DEFAULT 'CUSTOMER',
+    "status" "AccountStatus" NOT NULL DEFAULT 'PENDING',
+    "isEmailVerified" BOOLEAN NOT NULL DEFAULT false,
+    "deletedAt" TIMESTAMP(3),
+    "lastLoginAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "UserProfile" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
     "phone" TEXT,
     "avatar" TEXT,
     "address" TEXT,
@@ -494,6 +494,18 @@ CREATE TABLE "ActivityLog" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE INDEX "User_email_idx" ON "User"("email");
+
+-- CreateIndex
+CREATE INDEX "User_status_idx" ON "User"("status");
+
+-- CreateIndex
+CREATE INDEX "User_role_idx" ON "User"("role");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "UserProfile_userId_key" ON "UserProfile"("userId");
 
 -- CreateIndex
@@ -718,15 +730,6 @@ CREATE INDEX "ActivityLog_userId_idx" ON "ActivityLog"("userId");
 -- CreateIndex
 CREATE INDEX "ActivityLog_createdAt_idx" ON "ActivityLog"("createdAt");
 
--- CreateIndex
-CREATE INDEX "User_email_idx" ON "User"("email");
-
--- CreateIndex
-CREATE INDEX "User_status_idx" ON "User"("status");
-
--- CreateIndex
-CREATE INDEX "User_role_idx" ON "User"("role");
-
 -- AddForeignKey
 ALTER TABLE "UserProfile" ADD CONSTRAINT "UserProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -798,6 +801,9 @@ ALTER TABLE "ShippingAddress" ADD CONSTRAINT "ShippingAddress_orderId_fkey" FORE
 
 -- AddForeignKey
 ALTER TABLE "Payment" ADD CONSTRAINT "Payment_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PaymentMethod" ADD CONSTRAINT "PaymentMethod_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Coupon" ADD CONSTRAINT "Coupon_shopId_fkey" FOREIGN KEY ("shopId") REFERENCES "Shop"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
