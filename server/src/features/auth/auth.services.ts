@@ -1,8 +1,9 @@
 import { RegisterDto } from "./auth.types.js";
 import { AppError } from "../../middleware/appError.js";
-import { findUserByEmail, createUser } from "./auth.repository.js";
+import { findUserByEmail, createUserWithVerification } from "./auth.repository.js";
 import { hashPassword } from "../../utils/auth.utils.js";
-
+import { emailQueue } from "../../infrastructure/queue/queue.client.js";
+import { verificationEmailTemplate } from "../../services/email.templates.js";
 
 export const registerService = async (userData: RegisterDto) => {
   // check if the user is already exists
@@ -14,14 +15,22 @@ export const registerService = async (userData: RegisterDto) => {
   // hash password
   const hashedPassword: string = await hashPassword(userData.password);
 
-  // create user via repository
-  const user = await createUser({
+  // create user + verification token
+  const { user,rawToken }= await createUserWithVerification({
     ...userData,
     hashedPassword,
   });
 
-  // generate token
-  // const token = generateToken({ id: user.id, email: user.email });
+     // get email templates
+     const { subject ,html }  = verificationEmailTemplate(user.name,rawToken)
+
+     // push  email  to job queue
+
+     await emailQueue.add("verify-email",{
+      to:user.email,
+      subject,
+      html
+     })
 
   return { user };
 };

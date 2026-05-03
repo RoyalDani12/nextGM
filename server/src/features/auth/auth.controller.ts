@@ -6,13 +6,13 @@ export const registerController = asyncHandler(async (req: Request, res: Respons
 
    const { name, email, password } = req.body; 
 
-  const response = await registerService({ name, email, password });
+  const { user } = await registerService({ name, email, password });
 
   res.status(201).json({
     success: true,
     statusCode: 201,
-    message: "User registered successfully. please verify you email.",
-    data: response                         
+    message: "Registration successful. Please check your email to verify your account.",
+    data: { user }                        
   });
 
 });
