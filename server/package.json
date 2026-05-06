@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon --exec tsx  src/server.ts",
-    "test": "vitest"
+    "test": "vitest",
+    "worker":"nodemon --exec tsx src/worker.ts"
   },
   "keywords": [],
   "author": "",
