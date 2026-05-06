@@ -34,9 +34,8 @@ export const emailWorker = new Worker("emails",
   emailWorker.on("completed",(job)=>{
     console.log(`Email job ${job.id}  completed`);
     
+  })    
     // log failed jobs
-
-    emailWorker.on("failed",(job,error)=>{
+  emailWorker.on("failed",(job,error)=>{
       console.error(`Email job ${job?.id} failed`,error.message)
     })
-  })
