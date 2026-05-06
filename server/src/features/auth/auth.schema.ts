@@ -15,3 +15,13 @@ export const registerSchema = z.object({
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>["body"];
+
+
+
+// verify email schema
+export const verifyEmailSchema = z.object({
+  query:z.object({
+    token:z.string().min(1,"Token required")
+  })
+
+})
