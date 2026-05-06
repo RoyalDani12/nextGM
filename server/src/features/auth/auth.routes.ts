@@ -1,16 +1,19 @@
-import  express  from "express";
+import express from "express";
 
-const router = express.Router()
-import { registerController } from "./auth.controller.js";
-import { registerSchema } from "./auth.schema.js";
+const router = express.Router();
+import {
+  registerController,
+  verifyEmailController,
+} from "./auth.controller.js";
+import { registerSchema,verifyEmailSchema } from "./auth.schema.js";
 import { validate } from "../../middleware/validate.middleware.js";
+import { authLimiter } from "../../middleware/rateLimiter.middleware.js";
 
-
-
-
-
-router.post('/register',
-    validate(registerSchema),
+router.post(
+  "/register",
+   authLimiter,
+  validate(registerSchema),
+ 
   registerController,
 
   //  plan
@@ -19,9 +22,15 @@ router.post('/register',
   // controller
   // middleware
   // rateLimiter
-)
+);
+router.get(
+  "/verify-email",
+  authLimiter,
+  validate(verifyEmailSchema),
+  verifyEmailController,
+);
+
 // router.post('/login')
 // router.post('/rotation-token')
 
-
-export default router
+export default router;
