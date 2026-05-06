@@ -1,6 +1,6 @@
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { Request, Response } from "express";
-import { registerService } from "./auth.services.js";
+import { registerService ,verifyEmailService} from "./auth.services.js";
 
 export const registerController = asyncHandler(async (req: Request, res: Response) => {
 
@@ -16,3 +16,19 @@ export const registerController = asyncHandler(async (req: Request, res: Respons
   });
 
 });
+
+
+// verify email controller
+export const verifyEmailController = asyncHandler(async(req:Request,res:Response)=>{
+
+   const { token } = req.query as { token :string}
+  const response = await verifyEmailService(token)
+
+  res.status(200).json({
+    success:true,
+    statusCode:200,
+    message:"Email verify Successfully",
+    response
+  })
+
+})
