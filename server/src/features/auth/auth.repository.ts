@@ -1,7 +1,11 @@
+
+
 import { prisma } from "../../config/db.js";
 import { RegisterDto } from "./auth.types.js";
 import crypto from "crypto";
 import { Prisma } from "@prisma/client/extension";
+import { env } from '../../config/env.js'
+
 
 //  find user by email
 export const findUserByEmail = async (email: string) => {
@@ -84,4 +88,50 @@ export const markEmailVerified = async (
         });
     });
 };
+
+
+// save refresh token and last login at
+
+export const saveRefreshTokenAndUpdateLastLogin =async(userId:string,token:string)=>{
+    return prisma.$transaction(async (tx)=>{
+
+    // step 1 count existing sessions  to limit the number of  device his is login
+      const sessionCount = await tx.refreshToken.count({
+        where: { userId }
+      })  
+    
+        if(sessionCount >= env.DEVICE_LIMIT){
+
+            const oldest = await tx.refreshToken.findFirst({
+                where:{ userId },
+                orderBy: { createdAt :"asc"} // oldest first
+            })
+
+
+            if( oldest) { 
+                await tx.refreshToken.delete({
+                 where: {id:oldest.id },
+              })  
+            }
+        }
+        // save refresh token
+        const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
+        await tx.refreshToken.create({
+            data:{
+                userId,
+                token,
+                expiresAt: new Date( Date.now() + SEVEN_DAYS_MS)
+            }
+        })
+      
+        // save last login
+        await tx.user.update({
+             where: { id : userId },
+             data: {
+                lastLoginAt: new Date()
+             }
+        })
+    })
+  
+}
  
