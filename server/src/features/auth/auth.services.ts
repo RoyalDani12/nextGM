@@ -1,15 +1,18 @@
-import { RegisterDto } from "./auth.types.js";
+import { LoginDto, RegisterDto } from "./auth.types.js";
 import { AppError } from "../../middleware/appError.js";
 import {
     findUserByEmail,
     createUserWithVerification,
     findEmailVerification,
     markEmailVerified,
+    saveRefreshTokenAndUpdateLastLogin,
 } from "./auth.repository.js";
-import { hashPassword } from "../../utils/auth.utils.js";
+import { hashPassword, verifyPassword } from "../../utils/auth.utils.js";
 import { emailQueue } from "../../infrastructure/queue/queue.client.js";
 import { verificationEmailTemplate } from "../../services/email.templates.js";
+import { generateAccessToken,generateRefreshToken } from "./token.service.js";
 import crypto from "crypto";
+import { cacheUserSession } from "../../infrastructure/cache/session.cache.js";
 
 
 
@@ -77,3 +80,70 @@ export const verifyEmailService = async (token: string) => {
         message: "Email verified successfully. You can now log in.",
     };
 };
+
+
+
+// login service
+export const loginService = async(userData:LoginDto)=>{
+    // check the email is register and verified
+    const user= await  findUserByEmail(userData.email)
+
+    if(!user){
+        throw new AppError("Invalid password or Email",401)
+    }
+
+    // check the email is verified or not 
+
+if(!user.isEmailVerified){
+    throw new AppError ("Please verify your email before logging in.", 403)
+}
+  
+if (user.status !=="ACTIVE"){
+    throw new AppError ("Your account has been Suspended",403)
+}   
+  // compare password
+
+  const isPasswordValid = await verifyPassword(userData.password,user.password)
+
+  if(!isPasswordValid){
+    throw new AppError ("Invalid Email or Password",401)
+  }
+
+  // generate token
+  const accessToken = generateAccessToken(user.id,user.role)
+
+  const refreshToken = generateRefreshToken(user.id)
+
+  // hash the refresh token
+   const refreshHashedToken = crypto
+   .createHash("sha256")
+   .update(refreshToken)
+   .digest("hex")
+
+
+// save to the refresh token  and last login at
+await saveRefreshTokenAndUpdateLastLogin(user.id,refreshHashedToken)
+
+
+   // cache session in redis
+
+   await cacheUserSession({
+    id:user.id,
+    name:user.name,
+    email:user.email,
+    role:user.role,
+    status:user.status
+   })
+
+return {
+    accessToken,
+    refreshToken,
+    user:{
+        id:user.id,
+        name:user.name,
+        email:user.email,
+        role:user.role
+    }
+}
+
+}
