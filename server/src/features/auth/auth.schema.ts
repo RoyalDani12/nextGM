@@ -4,7 +4,7 @@ import { z } from "zod";
 export const registerSchema = z.object({
   body: z.object({
     name: z.string().min(2, "Name must be at least 2 characters"),
-    email: z.string().email("Invalid email address"),
+    email: z.string().email("Invalid email address").toLowerCase(),
     password: z
       .string()
       .min(8, "Password must be at least 8 characters")
@@ -24,4 +24,16 @@ export const verifyEmailSchema = z.object({
     token:z.string().min(1,"Token required")
   })
 
+})
+
+
+// login schema
+export const loginSchema = z.object({
+     body:z.object({
+      email:z.string().trim().email("Invalid Email or Password").toLowerCase(),
+
+      password:z.string()
+      .trim()
+      .min(1,"The password is too short (Min 8 characters ).")
+     })
 })
