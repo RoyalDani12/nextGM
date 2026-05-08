@@ -3,6 +3,7 @@ dotenv.config()
 import express from "express"
 const app = express()
 import helmet from "helmet"
+import cookieParser from "cookie-parser"
 import { corsConfig } from "./config/cors.js"
 import morgan from "morgan"
 import { errHandler } from "./middleware/errorHandler.middleware.js"
@@ -20,6 +21,7 @@ app.use(morgan("dev"))
 
 //parse JSON bodies
 app.use(express.json())
+app.use(cookieParser())
 
 app.use(generalLimiter)   //  apply before routes
 
