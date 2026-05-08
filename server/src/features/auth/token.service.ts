@@ -22,3 +22,14 @@ export const generateRefreshToken =(userId:string):string=>{
     )
   )
 }
+
+
+// verify token
+
+export const verifyAccessToken =( token:string)=>{
+   try {
+    return Jwt.verify(token,env.JWT_SECRET) as { userId :string,role:string }
+   } catch (error) {
+    return null
+   }
+}
