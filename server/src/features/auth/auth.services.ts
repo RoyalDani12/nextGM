@@ -142,7 +142,7 @@ export const refreshTokenService = async (token: string) => {
     const existingToken = await findRefreshToken(hashRefresh);
 
     if (!existingToken) {
-        throw new AppError("Invalid or expired Token.", 4001);
+        throw new AppError("Invalid or expired Token.", 401);
     }
 
     if (existingToken.expiresAt < new Date()) {
