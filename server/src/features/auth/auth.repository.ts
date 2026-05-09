@@ -135,3 +135,51 @@ export const saveRefreshTokenAndUpdateLastLogin =async(userId:string,token:strin
   
 }
  
+
+
+// find refresh token
+export const findRefreshToken=async(hashedToken:string)=>{
+      return prisma.refreshToken.findFirst({
+         where: { token:hashedToken},
+        //  include: { user : true } 
+      })
+}
+
+
+// find user by id
+export const findUserById=async(id:string)=>{
+    return prisma.user.findUnique({
+        where: { id },
+        select :{
+            id:true,
+            name:true,
+            email:true,
+            role:true,
+            status:true
+        }
+    })
+}
+
+// delete the old token and  create new one
+export const rotateRefreshToken = async(
+    oldToken:string,
+    userId:string,
+    newHashedToken:string
+)=>{
+    return prisma.$transaction( async (tx)=>{
+          const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
+        // delete old one
+        await tx.refreshToken.delete({
+            where: { id : oldToken }
+        })
+
+        // create new one
+        await tx.refreshToken.create({
+            data:{ 
+                userId,
+                token:newHashedToken,
+                expiresAt: new Date( Date.now() + SEVEN_DAYS_MS )
+            }
+        })
+    })
+}
