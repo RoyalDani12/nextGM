@@ -1,7 +1,14 @@
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { Request, Response } from "express";
-import { loginService, registerService ,verifyEmailService} from "./auth.services.js";
+
+import { loginService,
+        registerService,
+        verifyEmailService, 
+        refreshTokenService
+  } from "./auth.services.js";
+
 import { env } from "../../config/env.js";
+import { AppError } from "../../middleware/appError.js";
 
 export const registerController = asyncHandler(async (req: Request, res: Response) => {
 
@@ -59,4 +66,31 @@ export const loginController = asyncHandler( async(req:Request,res:Response)=>{
           user:response.user
         }
       })
+})
+
+//  refresh token controller
+
+export const refreshTokenController = asyncHandler( async (req:Request,res:Response)=>{
+    
+  const SEVEN_DAYS =7 * 24 * 60 * 60 * 1000
+  const token   = req.cookies.refreshToken
+    if(!token){
+      throw new AppError("No refresh token provided.",401)
+    }
+   const { refreshToken,accessToken} = await refreshTokenService(token)
+
+   // again put the token in the cookie
+   res.cookie("refreshToken",refreshToken,{
+    httpOnly:true,
+    secure:env.NODE_ENV ==="production",
+    sameSite:"strict",
+    maxAge:SEVEN_DAYS
+   })
+
+   res.status(200).json({
+    success:true,
+    statusCode:200,
+    message:"Token refreshed successfully",
+    data: { accessToken }
+   })
 })
