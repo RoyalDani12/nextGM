@@ -4,7 +4,8 @@ import { Request, Response } from "express";
 import { loginService,
         registerService,
         verifyEmailService, 
-        refreshTokenService
+        refreshTokenService,
+        logoutService
   } from "./auth.services.js";
 
 import { env } from "../../config/env.js";
@@ -93,4 +94,33 @@ export const refreshTokenController = asyncHandler( async (req:Request,res:Respo
     message:"Token refreshed successfully",
     data: { accessToken }
    })
+})
+
+
+
+// logout controller
+export const logoutController = asyncHandler( async(req:Request,res:Response)=>{
+     
+  // extract refresh token and  userId from the req
+  const token = req.cookies.refreshToken
+  const userId  = req.user!.id
+
+  // if no cookie user is already logout still return 200
+  if( token ){
+     await logoutService(userId,token)
+  }
+    
+  // clear cookie 
+  res.clearCookie("refreshToken",{
+    httpOnly:true,
+    secure:env.NODE_ENV ==="production",
+    sameSite:"strict"
+  })
+
+  res.status(200).json({
+    success:true,
+    statusCode:200,
+    message:"Logged out successfully."
+  })
+
 })
