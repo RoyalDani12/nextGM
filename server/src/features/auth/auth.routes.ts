@@ -4,7 +4,8 @@ const router = express.Router();
 import {
   registerController,
   verifyEmailController,
-  loginController
+  loginController,
+  refreshTokenController,
 } from "./auth.controller.js";
 
 import { registerSchema,verifyEmailSchema,loginSchema } from "./auth.schema.js";
@@ -33,6 +34,10 @@ router.post('/login',
   loginController
 )
 
-// router.post('/rotation-token')
+
+router.post('/refresh-token',
+   authLimiter,
+   refreshTokenController
+  )
 
 export default router;
