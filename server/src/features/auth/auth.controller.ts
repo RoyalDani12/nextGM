@@ -5,7 +5,8 @@ import { loginService,
         registerService,
         verifyEmailService, 
         refreshTokenService,
-        logoutService
+        logoutService,
+        resendVerificationService
   } from "./auth.services.js";
 
 import { env } from "../../config/env.js";
@@ -101,7 +102,7 @@ export const refreshTokenController = asyncHandler( async (req:Request,res:Respo
 // logout controller
 export const logoutController = asyncHandler( async(req:Request,res:Response)=>{
      
-  // extract refresh token and  userId from the req
+  
   const token = req.cookies.refreshToken
   const userId  = req.user!.id
 
@@ -123,4 +124,22 @@ export const logoutController = asyncHandler( async(req:Request,res:Response)=>{
     message:"Logged out successfully."
   })
 
+})
+
+
+// resend verification controller
+export const resendVerificationController= asyncHandler( async(req:Request,res:Response)=>{
+  const { email } = req.body
+  if(!email){
+    throw new AppError("No email provided.",400)
+  }
+
+   const result = await resendVerificationService(email) 
+
+
+  res.status(200).json({
+    success:true,
+    statusCode:200,
+    message:result.message
+  })
 })
