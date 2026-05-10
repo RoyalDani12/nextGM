@@ -6,11 +6,13 @@ import {
   verifyEmailController,
   loginController,
   refreshTokenController,
+  logoutController,
 } from "./auth.controller.js";
 
 import { registerSchema,verifyEmailSchema,loginSchema } from "./auth.schema.js";
 import { validate } from "../../middleware/validate.middleware.js";
 import { authLimiter } from "../../middleware/rateLimiter.middleware.js";
+import { authenticate } from "../../middleware/auth.middleware.js";
 
 
 
@@ -37,7 +39,14 @@ router.post('/login',
 
 router.post('/refresh-token',
    authLimiter,
+   authenticate,
    refreshTokenController
   )
+
+router.post('/logout',
+   authLimiter,
+   authenticate,
+   logoutController
+)
 
 export default router;
