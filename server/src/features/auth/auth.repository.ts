@@ -183,3 +183,10 @@ export const rotateRefreshToken = async(
         })
     })
 }
+
+
+export const deleteRefreshToken=async( hashedToken:string)=>{
+   return prisma.refreshToken.deleteMany({
+    where: { token:hashedToken }
+   })
+}
