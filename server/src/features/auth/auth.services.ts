@@ -8,13 +8,14 @@ import {
     saveRefreshTokenAndUpdateLastLogin,
     findRefreshToken,
     rotateRefreshToken,
+    deleteRefreshToken,
 } from "./auth.repository.js";
 import { hashPassword, verifyPassword } from "../../utils/auth.utils.js";
 import { emailQueue } from "../../infrastructure/queue/queue.client.js";
 import { verificationEmailTemplate } from "../../services/email.templates.js";
 import { generateAccessToken, generateRefreshToken } from "./token.service.js";
 import crypto from "crypto";
-import { cacheUserSession, getUserSession } from "../../infrastructure/cache/session.cache.js";
+import { cacheUserSession, deleteUserSession, getUserSession } from "../../infrastructure/cache/session.cache.js";
 
 export const registerService = async (userData: RegisterDto) => {
     const existingUser = await findUserByEmail(userData.email);
@@ -187,3 +188,22 @@ export const refreshTokenService = async (token: string) => {
         refreshToken: newRefreshToken,
     };
 };
+
+
+
+// logout service
+
+export const logoutService =async(userId:string,token:string)=>{
+    
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
+
+    await deleteRefreshToken(hashedToken)
+      
+    
+    await deleteUserSession(userId)
+     
+    
+    return {
+        message:"Logged out successfully."
+    }
+}
