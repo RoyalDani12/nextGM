@@ -9,6 +9,8 @@ import {
     findRefreshToken,
     rotateRefreshToken,
     deleteRefreshToken,
+    deleteOldVerificationTokens,
+    saveNewResendVerificationToken,
 } from "./auth.repository.js";
 import { hashPassword, verifyPassword } from "../../utils/auth.utils.js";
 import { emailQueue } from "../../infrastructure/queue/queue.client.js";
@@ -206,4 +208,48 @@ export const logoutService =async(userId:string,token:string)=>{
     return {
         message:"Logged out successfully."
     }
+}
+
+//new verification email service
+
+export const resendVerificationService = async(email:string):Promise<{ message:string }>=>{
+     
+    // find email in the data base
+  const RESEND_MESSAGE = "If this email is registered, you will receive a verification link.";
+    const user = await findUserByEmail(email)
+    if (!user)
+        return {
+          message:RESEND_MESSAGE
+        }
+
+    if (user.isEmailVerified) {
+        return { 
+            message: RESEND_MESSAGE }
+        }
+    if(user.status == "SUSPENDED"){
+        throw new AppError("Account suspended.",403)
+    }
+
+    // delete old verification
+    await deleteOldVerificationTokens(user.id)
+
+    // generate new token
+
+    let newToken = crypto.randomBytes(32).toString("hex")
+    const hashedToken = crypto.createHash('sha256').update(newToken).digest('hex')
+
+    await  saveNewResendVerificationToken(user.id,hashedToken)
+
+    // push email to queue
+    const  { html,subject }= verificationEmailTemplate(user.name,newToken)
+    await emailQueue.add('verify-email',{
+        to:user.email,
+        subject,
+        html,
+    })
+
+    return {
+        message:RESEND_MESSAGE
+    }
+   
 }

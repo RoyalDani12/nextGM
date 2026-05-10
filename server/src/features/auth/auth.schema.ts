@@ -37,3 +37,11 @@ export const loginSchema = z.object({
       .min(1,"The password is too short (Min 8 characters ).")
      })
 })
+
+
+// resend verification schema
+export const resendVerificationSchema = z.object({
+  body: z.object({
+    email: z.string().trim().email("Invalid email address"),
+  })
+});

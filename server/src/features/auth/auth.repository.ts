@@ -190,3 +190,30 @@ export const deleteRefreshToken=async( hashedToken:string)=>{
     where: { token:hashedToken }
    })
 }
+
+
+// delete old verification tokens 
+export const deleteOldVerificationTokens = async(userId:string)=>{
+    return prisma.emailVerification.deleteMany({
+        where: { userId }
+    })
+}
+
+
+// save new token to the database
+
+export const saveNewResendVerificationToken = async(userId:string,hashedToken:string)=>{
+    const TWENTY_FOUR_HOUR = 1 * 24 * 60 * 60 * 1000
+   return prisma.emailVerification.create({
+        data:{
+            token:hashedToken,
+            userId:userId,
+            expiresAt: new Date( Date.now() + TWENTY_FOUR_HOUR) // FOR 24
+        },
+        select:{
+          token:true,
+          userId:true,
+          expiresAt:true
+        }
+   })
+}
