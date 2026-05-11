@@ -11,13 +11,26 @@ import {
     deleteRefreshToken,
     deleteOldVerificationTokens,
     saveNewResendVerificationToken,
+    deletePasswordResetTokens ,
+    createPasswordResetToken,
+    findResetPasswordToken,
+    resetPasswordAndRevoke,
 } from "./auth.repository.js";
 import { hashPassword, verifyPassword } from "../../utils/auth.utils.js";
 import { emailQueue } from "../../infrastructure/queue/queue.client.js";
-import { verificationEmailTemplate } from "../../services/email.templates.js";
+import {
+    passwordResetSuccessTemplate,
+    resetPasswordEmailTemplate,
+    verificationEmailTemplate,
+    welcomeEmailTemplate,
+} from "../../services/email.templates.js";
 import { generateAccessToken, generateRefreshToken } from "./token.service.js";
 import crypto from "crypto";
-import { cacheUserSession, deleteUserSession, getUserSession } from "../../infrastructure/cache/session.cache.js";
+import {
+    cacheUserSession,
+    deleteUserSession,
+    getUserSession,
+} from "../../infrastructure/cache/session.cache.js";
 
 export const registerService = async (userData: RegisterDto) => {
     const existingUser = await findUserByEmail(userData.email);
@@ -70,6 +83,12 @@ export const verifyEmailService = async (token: string) => {
 
     // mark verified and burn the token
     await markEmailVerified(verification.userId, verification.id);
+     const { subject ,html }  = welcomeEmailTemplate(verification.user.email)
+    await  emailQueue.add('Welcome-email',{
+        to:verification.user.email,
+        subject,
+        html
+    })
 
     return {
         message: "Email verified successfully. You can now log in.",
@@ -78,7 +97,6 @@ export const verifyEmailService = async (token: string) => {
 
 // login service
 export const loginService = async (userData: LoginDto) => {
-
     const user = await findUserByEmail(userData.email);
 
     if (!user) {
@@ -102,12 +120,10 @@ export const loginService = async (userData: LoginDto) => {
         throw new AppError("Invalid Email or Password", 401);
     }
 
-    
     const accessToken = generateAccessToken(user.id, user.role);
 
     const refreshToken = generateRefreshToken(user.id);
 
-    
     const refreshHashedToken = crypto.createHash("sha256").update(refreshToken).digest("hex");
 
     // save to the refresh token  and last login at
@@ -122,6 +138,7 @@ export const loginService = async (userData: LoginDto) => {
         role: user.role,
         status: user.status,
     });
+    
 
     return {
         accessToken,
@@ -138,7 +155,6 @@ export const loginService = async (userData: LoginDto) => {
 // refresh token service
 
 export const refreshTokenService = async (token: string) => {
-    
     const hashRefresh = crypto.createHash("sha256").update(token).digest("hex");
 
     // check the database
@@ -164,7 +180,6 @@ export const refreshTokenService = async (token: string) => {
         user = dbUser;
     }
 
-    
     if (user.status !== "ACTIVE") {
         throw new AppError("Account suspended", 403);
     }
@@ -175,7 +190,6 @@ export const refreshTokenService = async (token: string) => {
 
     const newHashedToken = crypto.createHash("sha256").update(newRefreshToken).digest("hex");
 
-    
     await rotateRefreshToken(existingToken.id, existingToken.userId, newHashedToken);
 
     await cacheUserSession({
@@ -191,65 +205,137 @@ export const refreshTokenService = async (token: string) => {
     };
 };
 
-
-
 // logout service
 
-export const logoutService =async(userId:string,token:string)=>{
-    
-    const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
+export const logoutService = async (userId: string, token: string) => {
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-    await deleteRefreshToken(hashedToken)
-      
-    
-    await deleteUserSession(userId)
-     
-    
+    await deleteRefreshToken(hashedToken);
+
+    await deleteUserSession(userId);
+
     return {
-        message:"Logged out successfully."
-    }
-}
+        message: "Logged out successfully.",
+    };
+};
 
 //new verification email service
 
-export const resendVerificationService = async(email:string):Promise<{ message:string }>=>{
-     
+export const resendVerificationService = async (email: string): Promise<{ message: string }> => {
     // find email in the data base
-  const RESEND_MESSAGE = "If this email is registered, you will receive a verification link.";
-    const user = await findUserByEmail(email)
+    const RESEND_MESSAGE = "If this email is registered, you will receive a verification link.";
+    const user = await findUserByEmail(email);
     if (!user)
         return {
-          message:RESEND_MESSAGE
-        }
+            message: RESEND_MESSAGE,
+        };
 
     if (user.isEmailVerified) {
-        return { 
-            message: RESEND_MESSAGE }
-        }
-    if(user.status == "SUSPENDED"){
-        throw new AppError("Account suspended.",403)
+        return {
+            message: RESEND_MESSAGE,
+        };
+    }
+    if (user.status == "SUSPENDED") {
+        throw new AppError("Account suspended.", 403);
     }
 
     // delete old verification
-    await deleteOldVerificationTokens(user.id)
+    await deleteOldVerificationTokens(user.id);
 
     // generate new token
 
-    let newToken = crypto.randomBytes(32).toString("hex")
-    const hashedToken = crypto.createHash('sha256').update(newToken).digest('hex')
+    let newToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(newToken).digest("hex");
 
-    await  saveNewResendVerificationToken(user.id,hashedToken)
+    await saveNewResendVerificationToken(user.id, hashedToken);
 
     // push email to queue
-    const  { html,subject }= verificationEmailTemplate(user.name,newToken)
-    await emailQueue.add('verify-email',{
-        to:user.email,
+    const { html, subject } = verificationEmailTemplate(user.name, newToken);
+    await emailQueue.add("verify-email", {
+        to: user.email,
+        subject,
+        html,
+    });
+
+    return {
+        message: RESEND_MESSAGE,
+    };
+};
+
+// forget service
+
+export const forgotPasswordService   = async (email: string) => {
+    
+    const user = await findUserByEmail(email);
+
+    const RESEND_MESSAGE = "If this email is registered, you will receive a verification link.";
+
+    if (!user || !user.isEmailVerified) {
+        return { message: RESEND_MESSAGE };
+    }
+
+    if (user.status == "SUSPENDED") {
+        throw new AppError("Account Suspended .", 403);
+    }
+
+    await deletePasswordResetTokens(user.id);
+
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+    await createPasswordResetToken(user.id, hashedToken);
+
+    const { html, subject } = resetPasswordEmailTemplate(user.name, rawToken);
+    await emailQueue.add("reset-password", {
+        to: user.email,
+        html,
+        subject,
+    });
+
+    return {
+        message: RESEND_MESSAGE,
+    };
+};
+
+
+// reset password service
+
+export const resetPasswordService = async(token:string,password:string)=>{
+   
+    
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex")
+
+    const resetToken = await findResetPasswordToken(hashedToken)
+
+    if(!resetToken){
+        throw new AppError("Invalid or expired reset link. ",403)
+    }
+    
+    if( resetToken.expiresAt <= new Date()){
+        throw new AppError("Reset link has expired",400)
+    }
+
+    if(resetToken.used === true){
+        throw new AppError("Reset Link already used.",400)
+    }
+
+   const hashedPassword = await  hashPassword(password)
+
+    await resetPasswordAndRevoke(resetToken.id,resetToken.userId,hashedPassword)
+
+    await deleteUserSession(resetToken.userId)
+
+    const { subject, html } = passwordResetSuccessTemplate(resetToken.user.name)
+     
+    await emailQueue.add('password-reset-success',{
+        to:resetToken.user.email,
         subject,
         html,
     })
 
     return {
-        message:RESEND_MESSAGE
+        message:"Password reset successful. Please log in with your new password."
     }
-   
+
 }
