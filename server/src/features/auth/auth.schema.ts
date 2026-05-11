@@ -45,3 +45,24 @@ export const resendVerificationSchema = z.object({
     email: z.string().trim().email("Invalid email address"),
   })
 });
+
+
+// forgot password
+export const forgotPasswordSchema = z.object({
+  body: z.object({
+    email: z.string().trim().email("Invalid email address"),
+  })
+});
+
+// reset password schema
+export const resetPasswordSchema = z.object({
+  body: z.object({
+    token: z.string().min(1, "Token is required"),
+    newPassword: z.string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Z]/, "Must contain uppercase letter")
+      .regex(/[0-9]/, "Must contain a number")
+      .regex(/[^a-zA-Z0-9]/, "Must contain a special character"),
+  })
+});
+
