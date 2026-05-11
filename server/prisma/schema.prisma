@@ -183,6 +183,7 @@ model PasswordReset {
   createdAt DateTime @default(now())
 
   @@index([token])
+  @@index([userId])
 }
 
 // ─────────────────────────────────────────

@@ -217,3 +217,58 @@ export const saveNewResendVerificationToken = async(userId:string,hashedToken:st
         }
    })
 }
+
+
+// delete reset  token
+
+export const deletePasswordResetTokens  = async(userId:string)=>{
+     return prisma.passwordReset.deleteMany({
+        where:{ userId }
+     })
+}
+
+
+export const createPasswordResetToken = async(userId:string,hashedToken:string)=>{
+    return prisma.passwordReset.create({
+        data:{
+            userId,
+            token:hashedToken,
+            expiresAt:new Date( Date.now() + 1 * 60 * 60 * 1000),
+            used:false
+
+        }
+    })
+}
+
+export const findResetPasswordToken = async(hashedToken:string)=>{
+    return prisma.passwordReset.findUnique({
+        where: { token:hashedToken },
+        include: { user:true }
+    })
+}
+
+export const resetPasswordAndRevoke = async (
+  resetTokenId: string,
+  userId: string,
+  hashedPassword: string,
+) => {
+  return prisma.$transaction(async (tx) => {
+
+    // update password
+    await tx.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
+    // mark token as used
+    await tx.passwordReset.update({
+      where: { id: resetTokenId },
+      data: { used: true },
+    });
+
+    // kill all refresh tokens — force logout all devices
+    await tx.refreshToken.deleteMany({
+      where: { userId },
+    });
+  });
+};

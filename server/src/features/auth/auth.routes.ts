@@ -8,9 +8,18 @@ import {
   refreshTokenController,
   logoutController,
   resendVerificationController,
+  forgotPasswordController,
+  resetPasswordController,
 } from "./auth.controller.js";
 
-import { registerSchema,verifyEmailSchema,loginSchema, resendVerificationSchema } from "./auth.schema.js";
+import { 
+  registerSchema,
+  verifyEmailSchema,
+  loginSchema,
+  resendVerificationSchema, 
+  forgotPasswordSchema, 
+  resetPasswordSchema} 
+  from "./auth.schema.js";
 import { validate } from "../../middleware/validate.middleware.js";
 import { authLimiter } from "../../middleware/rateLimiter.middleware.js";
 import { authenticate } from "../../middleware/auth.middleware.js";
@@ -55,6 +64,18 @@ router.post('/resend-verification',
   authLimiter,
   validate(resendVerificationSchema),
   resendVerificationController
+)
+
+router.post('/forgot-password',
+  authLimiter,
+  validate(forgotPasswordSchema),
+  forgotPasswordController
+)
+
+router.post('/reset-password',
+  authLimiter,
+  validate(resetPasswordSchema),
+  resetPasswordController
 )
 
 export default router;
