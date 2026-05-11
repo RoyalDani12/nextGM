@@ -6,7 +6,9 @@ import { loginService,
         verifyEmailService, 
         refreshTokenService,
         logoutService,
-        resendVerificationService
+        resendVerificationService,
+        forgotPasswordService,  
+        resetPasswordService
   } from "./auth.services.js";
 
 import { env } from "../../config/env.js";
@@ -142,4 +144,43 @@ export const resendVerificationController= asyncHandler( async(req:Request,res:R
     statusCode:200,
     message:result.message
   })
+})
+
+
+// forget password  controller
+
+export const forgotPasswordController = asyncHandler(  async(req:Request,res:Response)=>{
+
+  // extract email form the request
+
+  const { email }  = req.body
+
+   const result = await  forgotPasswordService(email)
+
+   res.status(200).json({
+    success:true,
+    statusCode:200,
+    message:result.message
+   })
+
+})
+
+// reset password controller
+
+export const resetPasswordController = asyncHandler( async(req:Request,res:Response)=>{
+   const { newPassword ,token } = req.body
+   
+   const result = await resetPasswordService(token,newPassword)
+
+   res.clearCookie("refreshToken",{
+    httpOnly:true,
+    sameSite:"strict",
+    secure:env.NODE_ENV === "production"
+   })
+
+   res.status(200).json({
+    success:true,
+    statusCode:200,
+    message:result.message
+   })
 })
