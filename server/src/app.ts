@@ -10,6 +10,7 @@ import { errHandler } from "./middleware/errorHandler.middleware.js"
 import { notFound } from "./middleware/notFound.js"
 import { generalLimiter } from "./middleware/rateLimiter.middleware.js"
 import authRoute from "./features/auth/auth.routes.js"
+import userRoute from './features/users/user.routes.js'
 
 
 // security first
@@ -26,6 +27,7 @@ app.use(cookieParser())
 app.use(generalLimiter)   //  apply before routes
 
 app.use('/api/auth',authRoute)
+app.use('/api/users',userRoute)
 
 app.get('/',(req ,res)=>{
   res.json({message:"server running successfully"})
