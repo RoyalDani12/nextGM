@@ -34,6 +34,13 @@ export const updateProfileSchema = z.object({
     avatar: z.string()
       .url("Avatar must be a valid URL string")
       .max(2048, "URL is too long")
+      .refine((url)=>{
+        if(!url)
+          return true
+        return url.includes('res.cloudinary.com/nexions')
+      },{
+        message:"Avatar must be a valid Cloudinary URL from the authorized account."
+      })
       .optional()
   }).strict() // Rejects any unexpected fields (e.g., body.role = "admin")
 });
