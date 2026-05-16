@@ -24,48 +24,87 @@ export const getUserProfile = async (userId: string) => {
     });
 };
 
-
-// find user by id 
-
-export const findUserById = async(userId:string)=>{
+// for profile update no password
+export const findUserById = async (userId: string) => {
     return prisma.user.findUnique({
-        where:{ id:userId},
-        include:{
-            profile:true
-        }
-    })
-}
-
-export const  updateUserProfileRepository = async(userId:string,data:UpdateProfileDto)=>{
-    const { name,city,address,country,avatar,phone } = data
-    return prisma.user.update({
-        where: {id:userId },
-        data:{
-            name:name,
-            profile:{
-                upsert:{
-                    create:{
-                        phone,
-                        avatar,
-                        address,
-                        city,
-                        country
-                    },
-                    update:{
-                        phone,
-                        avatar,
-                        address,
-                        city,
-                        country
-                    }
-                }
-            }
+        where: { id: userId },
+        select: {
+            id: true,
+            status: true,
+            profile: {
+                select: { avatar: true },
+            },
         },
-        select:{
-            id:true,
-            name:true,
-            email:true,
-            profile:true
-        }
-    })
-}
+    });
+};
+
+// for password change -only what is needed
+export const findUserWithPassword = async (userId: string) => {
+    return prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            password: true,
+            id: true,
+        },
+    });
+};
+
+export const updateUserProfileRepository = async (userId: string, data: UpdateProfileDto) => {
+    const { name, city, address, country, avatar, phone } = data;
+    return prisma.user.update({
+        where: { id: userId },
+        data: {
+            // only included if name is provided
+            ...(name !== undefined && { name }),
+            profile: {
+                upsert: {
+                    create: {
+                        phone,
+                        avatar,
+                        address,
+                        city,
+                        country,
+                    },
+                    update: {
+                        phone,
+                        avatar,
+                        address,
+                        city,
+                        country,
+                    },
+                },
+            },
+        },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            profile: true,
+        },
+    });
+};
+
+export const updatePasswordAndDeleteRefreshToken = async (
+    userId: string,
+    hashedPassword: string,
+) => {
+    return prisma.$transaction(async (tx) => {
+        // update password
+        await tx.user.update({
+            where: { id: userId },
+            data: {
+                password: hashedPassword,
+            },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+            },
+        });
+
+        // delete Refresh token
+        await tx.refreshToken.deleteMany({
+            where: { userId },
+        });
+    });
+};
