@@ -8,6 +8,7 @@ interface User {
   role:string
   email:string
   status:string
+  passwordChangedAt:Date | null
 }
 export const cacheUserSession = async(user:User) =>{
 

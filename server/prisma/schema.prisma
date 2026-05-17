@@ -115,6 +115,7 @@ model User {
   lastLoginAt     DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+  passwordChangedAt  DateTime?
 
   profile              UserProfile?
   refreshTokens        RefreshToken[]
