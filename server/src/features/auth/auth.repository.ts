@@ -1,16 +1,23 @@
-
-
 import { prisma } from "../../config/db.js";
 import { RegisterDto } from "./auth.types.js";
 import crypto from "crypto";
 import { Prisma } from "@prisma/client/extension";
-import { env } from '../../config/env.js'
-
+import { env } from "../../config/env.js";
 
 //  find user by email
 export const findUserByEmail = async (email: string) => {
     return prisma.user.findUnique({
         where: { email },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            password: true,
+            role: true,
+            status: true,
+            passwordChangedAt: true,
+            isEmailVerified:true ,// ← MUST be here
+        },
     });
 };
 
@@ -24,12 +31,9 @@ export const createUserWithVerification = async (
 
     // hash it before storing
 
-    const hashedToken = crypto
-        .createHash("sha256")
-        .update(rawToken)
-        .digest("hex");
+    const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
 
-    const user = await prisma.$transaction(async (tx:Prisma.TransactionClient) => {
+    const user = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         // create user
 
         const newUser = await tx.user.create({
@@ -68,11 +72,8 @@ export const findEmailVerification = async (hashedToken: string) => {
     });
 };
 
-export const markEmailVerified = async (
-    userId: string,
-    verificationId: string,
-) => {
-    return prisma.$transaction(async (tx:Prisma.TransactionClient) => {
+export const markEmailVerified = async (userId: string, verificationId: string) => {
+    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         // flip user to active
         await tx.user.update({
             where: { id: userId },
@@ -89,186 +90,172 @@ export const markEmailVerified = async (
     });
 };
 
-
 // save refresh token and last login at
 
-export const saveRefreshTokenAndUpdateLastLogin =async(userId:string,token:string)=>{
-    return prisma.$transaction(async (tx)=>{
+export const saveRefreshTokenAndUpdateLastLogin = async (userId: string, token: string) => {
+    return prisma.$transaction(async (tx) => {
+        // step 1 count existing sessions  to limit the number of  device his is login
+        const sessionCount = await tx.refreshToken.count({
+            where: { userId },
+        });
 
-    // step 1 count existing sessions  to limit the number of  device his is login
-      const sessionCount = await tx.refreshToken.count({
-        where: { userId }
-      })  
-    
-        if(sessionCount >= env.DEVICE_LIMIT){
-
+        if (sessionCount >= env.DEVICE_LIMIT) {
             const oldest = await tx.refreshToken.findFirst({
-                where:{ userId },
-                orderBy: { createdAt :"asc"} // oldest first
-            })
+                where: { userId },
+                orderBy: { createdAt: "asc" }, // oldest first
+            });
 
-
-            if( oldest) { 
+            if (oldest) {
                 await tx.refreshToken.delete({
-                 where: {id:oldest.id },
-              })  
+                    where: { id: oldest.id },
+                });
             }
         }
         // save refresh token
-        const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
+        const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
         await tx.refreshToken.create({
-            data:{
+            data: {
                 userId,
                 token,
-                expiresAt: new Date( Date.now() + SEVEN_DAYS_MS)
-            }
-        })
-      
+                expiresAt: new Date(Date.now() + SEVEN_DAYS_MS),
+            },
+        });
+
         // save last login
         await tx.user.update({
-             where: { id : userId },
-             data: {
-                lastLoginAt: new Date()
-             }
-        })
-    })
-  
-}
- 
-
+            where: { id: userId },
+            data: {
+                lastLoginAt: new Date(),
+            },
+        });
+    });
+};
 
 // find refresh token
-export const findRefreshToken=async(hashedToken:string)=>{
-      return prisma.refreshToken.findFirst({
-         where: { token:hashedToken},
-        //  include: { user : true } 
-      })
-}
-
+export const findRefreshToken = async (hashedToken: string) => {
+    return prisma.refreshToken.findFirst({
+        where: { token: hashedToken },
+        //  include: { user : true }
+    });
+};
 
 // find user by id
-export const findUserById=async(id:string)=>{
+export const findUserById = async (id: string) => {
     return prisma.user.findUnique({
         where: { id },
-        select :{
-            id:true,
-            name:true,
-            email:true,
-            role:true,
-            status:true
-        }
-    })
-}
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            status: true,
+            passwordChangedAt: true,
+        },
+    });
+};
 
 // delete the old token and  create new one
-export const rotateRefreshToken = async(
-    oldToken:string,
-    userId:string,
-    newHashedToken:string
-)=>{
-    return prisma.$transaction( async (tx)=>{
-          const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
+export const rotateRefreshToken = async (
+    oldToken: string,
+    userId: string,
+    newHashedToken: string,
+) => {
+    return prisma.$transaction(async (tx) => {
+        const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
         // delete old one
         await tx.refreshToken.delete({
-            where: { id : oldToken }
-        })
+            where: { id: oldToken },
+        });
 
         // create new one
         await tx.refreshToken.create({
-            data:{ 
+            data: {
                 userId,
-                token:newHashedToken,
-                expiresAt: new Date( Date.now() + SEVEN_DAYS_MS )
-            }
-        })
-    })
-}
+                token: newHashedToken,
+                expiresAt: new Date(Date.now() + SEVEN_DAYS_MS),
+            },
+        });
+    });
+};
 
+export const deleteRefreshToken = async (hashedToken: string) => {
+    return prisma.refreshToken.deleteMany({
+        where: { token: hashedToken },
+    });
+};
 
-export const deleteRefreshToken=async( hashedToken:string)=>{
-   return prisma.refreshToken.deleteMany({
-    where: { token:hashedToken }
-   })
-}
-
-
-// delete old verification tokens 
-export const deleteOldVerificationTokens = async(userId:string)=>{
+// delete old verification tokens
+export const deleteOldVerificationTokens = async (userId: string) => {
     return prisma.emailVerification.deleteMany({
-        where: { userId }
-    })
-}
-
+        where: { userId },
+    });
+};
 
 // save new token to the database
 
-export const saveNewResendVerificationToken = async(userId:string,hashedToken:string)=>{
-    const TWENTY_FOUR_HOUR = 1 * 24 * 60 * 60 * 1000
-   return prisma.emailVerification.create({
-        data:{
-            token:hashedToken,
-            userId:userId,
-            expiresAt: new Date( Date.now() + TWENTY_FOUR_HOUR) // FOR 24
+export const saveNewResendVerificationToken = async (userId: string, hashedToken: string) => {
+    const TWENTY_FOUR_HOUR = 1 * 24 * 60 * 60 * 1000;
+    return prisma.emailVerification.create({
+        data: {
+            token: hashedToken,
+            userId: userId,
+            expiresAt: new Date(Date.now() + TWENTY_FOUR_HOUR), // FOR 24
         },
-        select:{
-          token:true,
-          userId:true,
-          expiresAt:true
-        }
-   })
-}
-
+        select: {
+            token: true,
+            userId: true,
+            expiresAt: true,
+        },
+    });
+};
 
 // delete reset  token
 
-export const deletePasswordResetTokens  = async(userId:string)=>{
-     return prisma.passwordReset.deleteMany({
-        where:{ userId }
-     })
-}
+export const deletePasswordResetTokens = async (userId: string) => {
+    return prisma.passwordReset.deleteMany({
+        where: { userId },
+    });
+};
 
-
-export const createPasswordResetToken = async(userId:string,hashedToken:string)=>{
+export const createPasswordResetToken = async (userId: string, hashedToken: string) => {
     return prisma.passwordReset.create({
-        data:{
+        data: {
             userId,
-            token:hashedToken,
-            expiresAt:new Date( Date.now() + 1 * 60 * 60 * 1000),
-            used:false
+            token: hashedToken,
+            expiresAt: new Date(Date.now() + 1 * 60 * 60 * 1000),
+            used: false,
+        },
+    });
+};
 
-        }
-    })
-}
-
-export const findResetPasswordToken = async(hashedToken:string)=>{
+export const findResetPasswordToken = async (hashedToken: string) => {
     return prisma.passwordReset.findUnique({
-        where: { token:hashedToken },
-        include: { user:true }
-    })
-}
+        where: { token: hashedToken },
+        include: { user: true },
+    });
+};
 
 export const resetPasswordAndRevoke = async (
-  resetTokenId: string,
-  userId: string,
-  hashedPassword: string,
+    resetTokenId: string,
+    userId: string,
+    hashedPassword: string,
 ) => {
-  return prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx) => {
+        // update password
+        await tx.user.update({
+            where: { id: userId },
+            data: { password: hashedPassword },
+        });
 
-    // update password
-    await tx.user.update({
-      where: { id: userId },
-      data: { password: hashedPassword },
-    });
+        // mark token as used
+        await tx.passwordReset.update({
+            where: { id: resetTokenId },
+            data: { used: true },
+        });
 
-    // mark token as used
-    await tx.passwordReset.update({
-      where: { id: resetTokenId },
-      data: { used: true },
+        // kill all refresh tokens — force logout all devices
+        await tx.refreshToken.deleteMany({
+            where: { userId },
+        });
     });
-
-    // kill all refresh tokens — force logout all devices
-    await tx.refreshToken.deleteMany({
-      where: { userId },
-    });
-  });
 };

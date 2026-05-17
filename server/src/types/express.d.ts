@@ -7,6 +7,7 @@ declare global {
         email: string;
         role: string;
         status: string;
+        passwordChangedAt: Date | string | null
       };
     }
   }

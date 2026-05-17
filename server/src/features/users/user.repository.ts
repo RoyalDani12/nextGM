@@ -94,6 +94,7 @@ export const updatePasswordAndDeleteRefreshToken = async (
             where: { id: userId },
             data: {
                 password: hashedPassword,
+                passwordChangedAt:new Date()
             },
             select: {
                 id: true,

@@ -137,6 +137,7 @@ export const loginService = async (userData: LoginDto) => {
         email: user.email,
         role: user.role,
         status: user.status,
+        passwordChangedAt:user.passwordChangedAt
     });
     
 
@@ -198,6 +199,7 @@ export const refreshTokenService = async (token: string) => {
         email: user.email,
         role: user.role,
         status: user.status,
+        passwordChangedAt:user.passwordChangedAt
     });
     return {
         accessToken: newAccessToken,
