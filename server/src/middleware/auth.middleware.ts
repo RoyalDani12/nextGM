@@ -55,8 +55,15 @@ export const authenticate = asyncHandler(
             }
         }
 
+        if (user.status === "SUSPENDED") {
+            throw new AppError("Account suspended.Contact support.", 403);
+        }
+
+        if (user.status === "DEACTIVATED") {
+            throw new AppError("Account deactivated.reactivate to continue.", 403);
+        }
         if (user.status !== "ACTIVE") {
-            throw new AppError("Account suspended", 403);
+            throw new AppError("Pending Verification.", 401);
         }
 
         req.user = user;
