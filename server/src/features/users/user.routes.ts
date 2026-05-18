@@ -2,12 +2,13 @@ import express from "express";
 import { authenticate } from "../../middleware/auth.middleware.js";
 import {
     changePasswordController,
+    deactivateAccountController,
     getMeController,
     getUploadSignatureController,
     updateUserProfileController,
 } from "./user.controller.js";
 import { validate } from "../../middleware/validate.middleware.js";
-import { changePasswordSchema, updateProfileSchema } from "./user.schema.js";
+import { changePasswordSchema, deactivateSchema, updateProfileSchema } from "./user.schema.js";
 const router = express.Router();
 
 router.get(
@@ -36,5 +37,10 @@ router.patch(
     validate(changePasswordSchema),
     changePasswordController,
 );
+router.post('/me/deactivate',
+    authenticate,
+    validate(deactivateSchema),
+    deactivateAccountController
+)
 
 export default router;
