@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import {
     changePasswordService,
+    deactivateAccountService,
     generateAvatarUploadSignatureService,
     getMeService,
     updateUserProfileService,
@@ -71,3 +72,24 @@ export const changePasswordController = asyncHandler(async (req: Request, res: R
         message: result.message,
     });
 });
+
+// deactivate Account Controller
+export const deactivateAccountController = asyncHandler( async(req:Request,res:Response)=>{
+    
+    const userId = req.user!.id
+    const password = req.body.password
+
+ const result = await deactivateAccountService(userId,password)
+    
+   // clear cookie and force logout
+   res.clearCookie("refreshToken",{
+    httpOnly:true,
+    sameSite:"strict",
+    secure:env.NODE_ENV ==="production"
+   })
+   res.status(200).json({
+    success:true,
+    statusCode:200,
+    message:result.message
+   })
+})
