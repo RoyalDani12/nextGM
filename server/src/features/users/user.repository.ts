@@ -94,7 +94,7 @@ export const updatePasswordAndDeleteRefreshToken = async (
             where: { id: userId },
             data: {
                 password: hashedPassword,
-                passwordChangedAt:new Date()
+                passwordChangedAt: new Date(),
             },
             select: {
                 id: true,
@@ -104,6 +104,23 @@ export const updatePasswordAndDeleteRefreshToken = async (
         });
 
         // delete Refresh token
+        await tx.refreshToken.deleteMany({
+            where: { userId },
+        });
+    });
+};
+
+// deactivate user repository
+
+export const deactivateAccountRepository = async (userId: string) => {
+    return prisma.$transaction(async (tx) => {
+        await tx.user.update({
+            where: { id: userId },
+            data: {
+                status: "DEACTIVATED",
+            },
+        });
+
         await tx.refreshToken.deleteMany({
             where: { userId },
         });
