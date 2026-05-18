@@ -7,6 +7,7 @@ import {
     updateUserProfileRepository,
     updatePasswordAndDeleteRefreshToken,
     findUserWithPassword,
+    deactivateAccountRepository,
 } from "./user.repository.js";
 import { changePasswordDto, UpdateProfileDto } from "./user.types.js";
 import { env } from "../../config/env.js";
@@ -23,14 +24,13 @@ export const getMeService = async (userId: string) => {
     }
 
     // return  profile data
-    return user
-
+    return user;
 };
 
 // cloudinary service
 export const generateAvatarUploadSignatureService = async (userId: string) => {
     const timestamp = Math.round(new Date().getTime() / 1000);
-   const folder = `user_avatars/${userId}`
+    const folder = `user_avatars/${userId}`;
 
     const signature = cloudinary.utils.api_sign_request(
         {
@@ -52,7 +52,7 @@ export const generateAvatarUploadSignatureService = async (userId: string) => {
 };
 
 // update profile service
-export const updateUserProfileService = async (userId: string, body:UpdateProfileDto) => {
+export const updateUserProfileService = async (userId: string, body: UpdateProfileDto) => {
     const userExists = await findUserById(userId);
 
     if (!userExists) {
@@ -106,5 +106,25 @@ export const changePasswordService = async (userId: string, body: changePassword
 
     return {
         message: "Password updated. Please login again.",
+    };
+};
+
+// deactivate service
+export const deactivateAccountService = async (userId: string, password: string) => {
+    const user = await findUserWithPassword(userId);
+    if (!user) {
+        throw new AppError("User is not found.", 404);
+    }
+    const isMatchPassword = await verifyPassword(password, user.password);
+
+    if (!isMatchPassword) {
+        throw new AppError("Incorrect password", 401);
+    }
+
+    await deactivateAccountRepository(userId);
+    await deleteUserSession(userId);
+
+    return {
+        message: "Account deactivated successfully.To activate Contact support via email.",
     };
 };

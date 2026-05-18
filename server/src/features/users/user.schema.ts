@@ -83,15 +83,25 @@ export const changePasswordSchema = z.object({
             confirmPassword: z.string().min(1, "Confirm password is required"),
         })
 
-        
         .refine((data) => data.newPassword === data.confirmPassword, {
             message: "Passwords do not match",
             path: ["confirmPassword"],
         })
 
-        
         .refine((data) => data.oldPassword !== data.newPassword, {
             message: "New password must be different from old password",
             path: ["newPassword"],
         }),
+});
+
+//deactivate account validation
+
+export const deactivateSchema = z.object({
+    body: z.object({
+        password: z
+            .string()
+            .trim()
+            .min(8, "Password must be at least 8 characters.")
+            .max(128, "Password cannot exceed 128 characters."),
+    }),
 });
