@@ -11,7 +11,7 @@ import {
     deleteRefreshToken,
     deleteOldVerificationTokens,
     saveNewResendVerificationToken,
-    deletePasswordResetTokens ,
+    deletePasswordResetTokens,
     createPasswordResetToken,
     findResetPasswordToken,
     resetPasswordAndRevoke,
@@ -83,12 +83,12 @@ export const verifyEmailService = async (token: string) => {
 
     // mark verified and burn the token
     await markEmailVerified(verification.userId, verification.id);
-     const { subject ,html }  = welcomeEmailTemplate(verification.user.email)
-    await  emailQueue.add('Welcome-email',{
-        to:verification.user.email,
+    const { subject, html } = welcomeEmailTemplate(verification.user.email);
+    await emailQueue.add("Welcome-email", {
+        to: verification.user.email,
         subject,
-        html
-    })
+        html,
+    });
 
     return {
         message: "Email verified successfully. You can now log in.",
@@ -109,8 +109,12 @@ export const loginService = async (userData: LoginDto) => {
         throw new AppError("Please verify your email before logging in.", 403);
     }
 
+    if (user.status === "DEACTIVATED") {
+        throw new AppError("Account deactivated.Please contact support.", 401);
+    }
+
     if (user.status !== "ACTIVE") {
-        throw new AppError("Your account has been Suspended", 403);
+        throw new AppError("Your account has been Suspended.Please contact support", 403);
     }
     // compare password
 
@@ -137,9 +141,8 @@ export const loginService = async (userData: LoginDto) => {
         email: user.email,
         role: user.role,
         status: user.status,
-        passwordChangedAt:user.passwordChangedAt
+        passwordChangedAt: user.passwordChangedAt,
     });
-    
 
     return {
         accessToken,
@@ -199,7 +202,7 @@ export const refreshTokenService = async (token: string) => {
         email: user.email,
         role: user.role,
         status: user.status,
-        passwordChangedAt:user.passwordChangedAt
+        passwordChangedAt: user.passwordChangedAt,
     });
     return {
         accessToken: newAccessToken,
@@ -238,7 +241,7 @@ export const resendVerificationService = async (email: string): Promise<{ messag
         };
     }
     if (user.status == "SUSPENDED") {
-        throw new AppError("Account suspended.", 403);
+        throw new AppError("Account suspended. Please contact support.", 403);
     }
 
     // delete old verification
@@ -266,8 +269,7 @@ export const resendVerificationService = async (email: string): Promise<{ messag
 
 // forget service
 
-export const forgotPasswordService   = async (email: string) => {
-    
+export const forgotPasswordService = async (email: string) => {
     const user = await findUserByEmail(email);
 
     const RESEND_MESSAGE = "If this email is registered, you will receive a verification link.";
@@ -281,7 +283,6 @@ export const forgotPasswordService   = async (email: string) => {
     }
 
     await deletePasswordResetTokens(user.id);
-
 
     const rawToken = crypto.randomBytes(32).toString("hex");
     const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
@@ -300,44 +301,40 @@ export const forgotPasswordService   = async (email: string) => {
     };
 };
 
-
 // reset password service
 
-export const resetPasswordService = async(token:string,password:string)=>{
-   
-    
-    const hashedToken = crypto.createHash("sha256").update(token).digest("hex")
+export const resetPasswordService = async (token: string, password: string) => {
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-    const resetToken = await findResetPasswordToken(hashedToken)
+    const resetToken = await findResetPasswordToken(hashedToken);
 
-    if(!resetToken){
-        throw new AppError("Invalid or expired reset link. ",403)
-    }
-    
-    if( resetToken.expiresAt <= new Date()){
-        throw new AppError("Reset link has expired",400)
+    if (!resetToken) {
+        throw new AppError("Invalid or expired reset link. ", 403);
     }
 
-    if(resetToken.used === true){
-        throw new AppError("Reset Link already used.",400)
+    if (resetToken.expiresAt <= new Date()) {
+        throw new AppError("Reset link has expired", 400);
     }
 
-   const hashedPassword = await  hashPassword(password)
+    if (resetToken.used === true) {
+        throw new AppError("Reset Link already used.", 400);
+    }
 
-    await resetPasswordAndRevoke(resetToken.id,resetToken.userId,hashedPassword)
+    const hashedPassword = await hashPassword(password);
 
-    await deleteUserSession(resetToken.userId)
+    await resetPasswordAndRevoke(resetToken.id, resetToken.userId, hashedPassword);
 
-    const { subject, html } = passwordResetSuccessTemplate(resetToken.user.name)
-     
-    await emailQueue.add('password-reset-success',{
-        to:resetToken.user.email,
+    await deleteUserSession(resetToken.userId);
+
+    const { subject, html } = passwordResetSuccessTemplate(resetToken.user.name);
+
+    await emailQueue.add("password-reset-success", {
+        to: resetToken.user.email,
         subject,
         html,
-    })
+    });
 
     return {
-        message:"Password reset successful. Please log in with your new password."
-    }
-
-}
+        message: "Password reset successful. Please log in with your new password.",
+    };
+};
