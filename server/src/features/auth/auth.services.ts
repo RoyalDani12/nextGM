@@ -25,12 +25,13 @@ import {
     welcomeEmailTemplate,
 } from "../../services/email.templates.js";
 import { generateAccessToken, generateRefreshToken } from "./token.service.js";
-import crypto from "crypto";
+import crypto, { randomBytes } from "crypto";
 import {
     cacheUserSession,
     deleteUserSession,
     getUserSession,
 } from "../../infrastructure/cache/session.cache.js";
+import { redis } from "../../infrastructure/cache/redis.client.js";
 
 export const registerService = async (userData: RegisterDto) => {
     const existingUser = await findUserByEmail(userData.email);
@@ -108,13 +109,29 @@ export const loginService = async (userData: LoginDto) => {
     if (!user.isEmailVerified) {
         throw new AppError("Please verify your email before logging in.", 403);
     }
-
-    if (user.status === "DEACTIVATED") {
-        throw new AppError("Account deactivated.Please contact support.", 401);
+   if (user.status === "DELETED") {
+        throw new AppError("Account no longer exists.", 403)
     }
 
-    if (user.status !== "ACTIVE") {
+    if (user.status === "SUSPENDED") {
         throw new AppError("Your account has been Suspended.Please contact support", 403);
+    }
+
+    if (user.status === "DEACTIVATED") {
+
+        const reactivationKey = randomBytes(32).toString('hex')
+        await redis.set(
+            `reactivation:${reactivationKey}`,
+            user.id,
+            "EX",
+            60 * 10 // 10 minutes
+        )
+
+        return {
+            code:"ACCOUNT_DEACTIVATED",
+            message:"Your account is deactivated",
+            reactivationKey
+        }
     }
     // compare password
 
