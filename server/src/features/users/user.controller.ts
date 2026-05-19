@@ -6,6 +6,7 @@ import {
     generateAvatarUploadSignatureService,
     getMeService,
     updateUserProfileService,
+    reactivateAccountService,
 } from "./user.service.js";
 import { AppError } from "../../middleware/appError.js";
 import { env } from "../../config/env.js";
@@ -74,22 +75,47 @@ export const changePasswordController = asyncHandler(async (req: Request, res: R
 });
 
 // deactivate Account Controller
-export const deactivateAccountController = asyncHandler( async(req:Request,res:Response)=>{
-    
-    const userId = req.user!.id
-    const password = req.body.password
+export const deactivateAccountController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.id;
+    const password = req.body.password;
 
- const result = await deactivateAccountService(userId,password)
-    
-   // clear cookie and force logout
-   res.clearCookie("refreshToken",{
-    httpOnly:true,
-    sameSite:"strict",
-    secure:env.NODE_ENV ==="production"
-   })
-   res.status(200).json({
-    success:true,
-    statusCode:200,
-    message:result.message
-   })
-})
+    const result = await deactivateAccountService(userId, password);
+
+    // clear cookie and force logout
+    res.clearCookie("refreshToken", {
+        httpOnly: true,
+        sameSite: "strict",
+        secure: env.NODE_ENV === "production",
+    });
+    res.status(200).json({
+        success: true,
+        statusCode: 200,
+        message: result.message,
+    });
+});
+
+// reactivate controller
+export const reactivateAccountController = asyncHandler(async (req: Request, res: Response) => {
+
+    const { reactivationKey } = req.body;
+
+    const result = await reactivateAccountService(reactivationKey);
+
+    res.cookie("refreshToken", result.refreshToken, {
+        httpOnly: true,
+        sameSite: "strict",
+        secure: env.NODE_ENV === "production",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+
+    res.status(200).json({
+        success: true,
+        statusCode: 200,
+        message: result.message,
+        data: {
+            accessToken: result.accessToken,
+            user: result.user,
+        },
+    });
+});
