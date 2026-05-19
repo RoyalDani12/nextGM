@@ -5,10 +5,12 @@ import {
     deactivateAccountController,
     getMeController,
     getUploadSignatureController,
+    reactivateAccountController,
     updateUserProfileController,
 } from "./user.controller.js";
 import { validate } from "../../middleware/validate.middleware.js";
-import { changePasswordSchema, deactivateSchema, updateProfileSchema } from "./user.schema.js";
+import { changePasswordSchema, deactivateSchema, reactivationSchema, updateProfileSchema } from "./user.schema.js";
+import { authLimiter } from "../../middleware/rateLimiter.middleware.js";
 const router = express.Router();
 
 router.get(
@@ -43,4 +45,10 @@ router.post('/me/deactivate',
     deactivateAccountController
 )
 
+router.post(
+    '/me/reactivate',
+    authLimiter,
+    validate(reactivationSchema),
+    reactivateAccountController
+)
 export default router;
