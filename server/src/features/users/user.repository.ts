@@ -31,6 +31,10 @@ export const findUserById = async (userId: string) => {
         select: {
             id: true,
             status: true,
+            role: true,
+            name: true,
+            email: true,
+            passwordChangedAt: true,
             profile: {
                 select: { avatar: true },
             },
@@ -123,6 +127,41 @@ export const deactivateAccountRepository = async (userId: string) => {
 
         await tx.refreshToken.deleteMany({
             where: { userId },
+        });
+    });
+};
+
+// reactivate account repository
+export const reactivateAccountRepository = async (userId: string) => {
+    return prisma.user.update({
+        where: { id: userId },
+        data: { status: "ACTIVE" },
+        select: {
+            id: true,
+            name: true,
+            role: true,
+            email: true,
+            passwordChangedAt: true,
+        },
+    });
+};
+export const saveRefreshTokenAndUpdateLastLogin = async (
+    userId: string,
+    hashedRefresh: string,
+    expiresAt: Date
+) => {
+    return prisma.$transaction(async (tx) => {
+        await tx.refreshToken.create({
+            data: {
+                userId,
+                token: hashedRefresh,
+                expiresAt,
+            },
+        });
+
+        await tx.user.update({
+            where: { id: userId },
+            data: { lastLoginAt: new Date() },
         });
     });
 };

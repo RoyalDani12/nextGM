@@ -105,3 +105,13 @@ export const deactivateSchema = z.object({
             .max(128, "Password cannot exceed 128 characters."),
     }),
 });
+
+// reactivate schema
+export const reactivationSchema =z.object({
+    body:z.object({
+        reactivationKey:z
+        .string()
+        .min(64,"Invalid reactivation key")
+        .max(64,"Invalid reactivation key")
+    })
+})
