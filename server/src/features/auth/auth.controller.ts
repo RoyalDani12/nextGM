@@ -50,11 +50,23 @@ export const verifyEmailController = asyncHandler(async(req:Request,res:Response
 
 export const loginController = asyncHandler( async(req:Request,res:Response)=>{
       const { password,email } = req.body
-      const response = await loginService({ password,email})
+      const result = await loginService({ password,email})
       
       const SEVEN_DAYS =7 * 24 * 60 * 60 * 1000
+
+      // detect deactivation response
+      if("code" in result && result.code ==="ACCOUNT_DEACTIVATED"){
+        res.status(200).json({
+          success:true,
+          statusCode:200,
+          message:result.message,
+          reactivationKey:result.reactivationKey
+        })
+
+        return
+      }
       // save refresh token to cookie
-      res.cookie("refreshToken",response.refreshToken,{
+      res.cookie("refreshToken",result.refreshToken,{
         httpOnly:true,
         secure:env.NODE_ENV === "production",
         sameSite:"strict",
@@ -66,8 +78,8 @@ export const loginController = asyncHandler( async(req:Request,res:Response)=>{
         success:true,
         message:"User Login Successfully",
         data:{
-          accessToken:response.accessToken,
-          user:response.user
+          accessToken:result.accessToken,
+          user:result.user
         }
       })
 })
