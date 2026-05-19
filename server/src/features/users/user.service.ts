@@ -8,13 +8,18 @@ import {
     updatePasswordAndDeleteRefreshToken,
     findUserWithPassword,
     deactivateAccountRepository,
+    reactivateAccountRepository,
+    saveRefreshTokenAndUpdateLastLogin,
 } from "./user.repository.js";
 import { changePasswordDto, UpdateProfileDto } from "./user.types.js";
 import { env } from "../../config/env.js";
 import { extractPublicIdFromUrl } from "../../utils/cloudinaryHelper.js";
 import { imageCleanupQueue } from "../../infrastructure/queue/queue.client.js";
 import { hashPassword, verifyPassword } from "../../services/token.service.js";
-import { deleteUserSession } from "../../infrastructure/cache/session.cache.js";
+import { cacheUserSession, deleteUserSession } from "../../infrastructure/cache/session.cache.js";
+import { redis } from "../../infrastructure/cache/redis.client.js";
+import { generateAccessToken, generateRefreshToken } from "../auth/token.service.js";
+import crypto from "crypto";
 
 export const getMeService = async (userId: string) => {
     const user = await getUserProfile(userId);
@@ -126,5 +131,56 @@ export const deactivateAccountService = async (userId: string, password: string)
 
     return {
         message: "Account deactivated successfully.To activate Contact support via email.",
+    };
+};
+
+// reactivate account services
+
+export const reactivateAccountService = async (reactivationKey: string) => {
+    const userId = await redis.get(`reactivation:${reactivationKey}`);
+    if (!userId) {
+        throw new AppError("Invalid or expired link.please login again.", 401);
+    }
+    // for one time use
+    await redis.del(`reactivate:${reactivationKey}`);
+
+    const user = await findUserById(userId);
+
+    if (!user) {
+        throw new AppError("User not found", 404);
+    }
+    if (user.status !== "DEACTIVATED") {
+        throw new AppError("Account is not deactivated.", 400);
+    }
+
+    await reactivateAccountRepository(userId);
+
+    const accessToken = generateAccessToken(userId, user.role);
+    const refreshToken = generateRefreshToken(userId);
+
+    const hashedRefresh = crypto.createHash("sha256").update(refreshToken).digest("hex");
+  
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    await saveRefreshTokenAndUpdateLastLogin(userId, hashedRefresh,expiresAt);
+
+    await cacheUserSession({
+        id: userId,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: "ACTIVE",
+        passwordChangedAt: user.passwordChangedAt,
+    });
+
+    return {
+        accessToken,
+        refreshToken,
+        message: "Account reactivated successfully.",
+        user: {
+            id: userId,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+        },
     };
 };
