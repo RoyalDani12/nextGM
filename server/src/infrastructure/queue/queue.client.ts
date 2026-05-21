@@ -37,3 +37,20 @@ export const imageCleanupQueue = new Queue("image-cleanup", {
         },
     },
 });
+
+
+
+export const accountPurgeQueue= new Queue('accountPurgeQueue',
+    {
+        connection:redis,
+        defaultJobOptions:{
+            attempts:3,
+            backoff:{
+                type:"exponential",
+                delay:500,
+            },
+            removeOnComplete:true,
+            removeOnFail:false
+        }
+    }
+)
