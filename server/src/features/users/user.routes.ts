@@ -3,13 +3,14 @@ import { authenticate } from "../../middleware/auth.middleware.js";
 import {
     changePasswordController,
     deactivateAccountController,
+    deleteAccountController,
     getMeController,
     getUploadSignatureController,
     reactivateAccountController,
     updateUserProfileController,
 } from "./user.controller.js";
 import { validate } from "../../middleware/validate.middleware.js";
-import { changePasswordSchema, deactivateSchema, reactivationSchema, updateProfileSchema } from "./user.schema.js";
+import { changePasswordSchema, deactivateSchema, deleteAccountSchema, reactivationSchema, updateProfileSchema } from "./user.schema.js";
 import { authLimiter } from "../../middleware/rateLimiter.middleware.js";
 const router = express.Router();
 
@@ -50,5 +51,12 @@ router.post(
     authLimiter,
     validate(reactivationSchema),
     reactivateAccountController
+)
+router.delete(
+    '/me/delete-account',
+    authenticate,
+    authLimiter,
+    validate(deleteAccountSchema),
+    deleteAccountController
 )
 export default router;
