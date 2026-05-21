@@ -7,6 +7,7 @@ import {
     getMeService,
     updateUserProfileService,
     reactivateAccountService,
+    deleteAccountService,
 } from "./user.service.js";
 import { AppError } from "../../middleware/appError.js";
 import { env } from "../../config/env.js";
@@ -96,7 +97,6 @@ export const deactivateAccountController = asyncHandler(async (req: Request, res
 
 // reactivate controller
 export const reactivateAccountController = asyncHandler(async (req: Request, res: Response) => {
-
     const { reactivationKey } = req.body;
 
     const result = await reactivateAccountService(reactivationKey);
@@ -108,7 +108,6 @@ export const reactivateAccountController = asyncHandler(async (req: Request, res
         maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-
     res.status(200).json({
         success: true,
         statusCode: 200,
@@ -117,5 +116,26 @@ export const reactivateAccountController = asyncHandler(async (req: Request, res
             accessToken: result.accessToken,
             user: result.user,
         },
+    });
+});
+
+// delete  account controller
+
+export const deleteAccountController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.id;
+    const { password } = req.body;
+
+    const result = await deleteAccountService(userId, password);
+
+    res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: env.NODE_ENV === "production",
+        sameSite: "strict",
+    });
+
+    res.status(200).json({
+        success: true,
+        statusCode: 200,
+        message: result.message,
     });
 });
