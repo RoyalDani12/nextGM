@@ -113,3 +113,47 @@ export const passwordResetSuccessTemplate = (name: string) => {
     `,
   };
 };
+
+export const accountDeletionScheduledTemplate = (name: string, reactivationToken: string) => {
+  const cancelUrl = `${env.CLIENT_URL}/reactivate-account?token=${reactivationToken}`;
+  
+  return {
+    subject: "Your Nexio account is scheduled for deletion",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E5E7EB; border-radius: 8px;">
+        <h2 style="color: #DC2626;">Account Deletion Scheduled</h2>
+        <p>Hi ${name},</p>
+        <p>We received a request to permanently delete your Nexio account. Your account has been deactivated and scheduled for deletion.</p>
+        
+        <div style="background-color: #FEF2F2; border-left: 4px solid #DC2626; padding: 12px; margin: 16px 0;">
+          <p style="margin: 0; color: #991B1B; font-weight: bold;">What happens next?</p>
+          <p style="margin: 4px 0 0 0; color: #7F1D1D; font-size: 14px;">
+            Your data will be permanently anonymized in <strong>30 days</strong>. After this period, your profile, active listings, and settings cannot be recovered.
+          </p>
+        </div>
+
+        <p><strong>Did you make this request?</strong></p>
+        <p>If yes, no further action is needed. If this was a mistake or your account was compromised, you can cancel this request within 30 days by clicking the button below:</p>
+        
+        <a href="${cancelUrl}" 
+           style="
+             display: inline-block;
+             padding: 12px 24px;
+             background-color: #4F46E5;
+             color: white;
+             text-decoration: none;
+             border-radius: 6px;
+             margin: 16px 0;
+             font-weight: bold;
+           ">
+          Cancel Deletion Request
+        </a>
+        
+        <p style="color: #6B7280; font-size: 13px;">
+          If the button does not work, copy and paste this link into your browser:<br>
+          <a href="${cancelUrl}" style="color: #4F46E5;">${cancelUrl}</a>
+        </p>
+      </div>
+    `,
+  };
+};
