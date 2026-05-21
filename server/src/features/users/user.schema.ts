@@ -115,3 +115,18 @@ export const reactivationSchema =z.object({
         .max(64,"Invalid reactivation key")
     })
 })
+
+
+export const deleteAccountSchema = z.object({
+    body:z.object({
+        password:z
+        .string()
+        .min(1,"Password required."),
+        confirmText:z
+        .string()
+        .refine(
+            (val)=>val==="DELETE MY ACCOUNT",
+            {message:"Type DELETE MY ACCOUNT to confirm."}
+        )
+    }).strict()
+})
