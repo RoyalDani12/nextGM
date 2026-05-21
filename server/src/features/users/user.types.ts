@@ -11,3 +11,7 @@ export interface changePasswordDto {
   oldPassword:string,
   newPassword:string,
 }
+
+export interface PurgeJobData {
+    userId: string;
+}

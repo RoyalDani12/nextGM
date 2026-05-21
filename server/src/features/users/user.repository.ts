@@ -49,6 +49,9 @@ export const findUserWithPassword = async (userId: string) => {
         select: {
             password: true,
             id: true,
+            name: true,
+            email: true,
+            status:true,
         },
     });
 };
@@ -148,7 +151,7 @@ export const reactivateAccountRepository = async (userId: string) => {
 export const saveRefreshTokenAndUpdateLastLogin = async (
     userId: string,
     hashedRefresh: string,
-    expiresAt: Date
+    expiresAt: Date,
 ) => {
     return prisma.$transaction(async (tx) => {
         await tx.refreshToken.create({
@@ -163,5 +166,35 @@ export const saveRefreshTokenAndUpdateLastLogin = async (
             where: { id: userId },
             data: { lastLoginAt: new Date() },
         });
+    });
+};
+
+export const deleteAccountRepositoryAndClearToken = async (userId: string) => {
+    return prisma.$transaction(async (tx) => {
+        await tx.user.update({
+            where: { id: userId },
+            data: {
+                status: "DELETED",
+                deletedAt: new Date(),
+            },
+        });
+
+        await tx.refreshToken.deleteMany({
+            where: { userId: userId },
+        });
+    });
+};
+
+export const anonymizeUserRecord = async (userId: string) => {
+    await prisma.user.update({
+        where: { id: userId },
+        data: {
+            name: "Deleted User",
+            email: `deleted_${userId}@deleted.com`,
+            phone: null,
+            address: null,
+            avatar: null,
+            status: "PERMANENTLY_ANONYMIZED",
+        },
     });
 };

@@ -10,16 +10,19 @@ import {
     deactivateAccountRepository,
     reactivateAccountRepository,
     saveRefreshTokenAndUpdateLastLogin,
+    deleteAccountRepositoryAndClearToken,
 } from "./user.repository.js";
 import { changePasswordDto, UpdateProfileDto } from "./user.types.js";
 import { env } from "../../config/env.js";
 import { extractPublicIdFromUrl } from "../../utils/cloudinaryHelper.js";
-import { imageCleanupQueue } from "../../infrastructure/queue/queue.client.js";
+import { emailQueue, imageCleanupQueue } from "../../infrastructure/queue/queue.client.js";
 import { hashPassword, verifyPassword } from "../../services/token.service.js";
 import { cacheUserSession, deleteUserSession } from "../../infrastructure/cache/session.cache.js";
 import { redis } from "../../infrastructure/cache/redis.client.js";
 import { generateAccessToken, generateRefreshToken } from "../auth/token.service.js";
 import crypto from "crypto";
+import { accountDeletionScheduledTemplate } from "../../services/email.templates.js";
+import { accountPurgeQueue } from "../../infrastructure/queue/queue.client.js";
 
 export const getMeService = async (userId: string) => {
     const user = await getUserProfile(userId);
@@ -159,9 +162,9 @@ export const reactivateAccountService = async (reactivationKey: string) => {
     const refreshToken = generateRefreshToken(userId);
 
     const hashedRefresh = crypto.createHash("sha256").update(refreshToken).digest("hex");
-  
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-    await saveRefreshTokenAndUpdateLastLogin(userId, hashedRefresh,expiresAt);
+
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    await saveRefreshTokenAndUpdateLastLogin(userId, hashedRefresh, expiresAt);
 
     await cacheUserSession({
         id: userId,
@@ -182,5 +185,48 @@ export const reactivateAccountService = async (reactivationKey: string) => {
             email: user.email,
             role: user.role,
         },
+    };
+};
+
+// delete account service
+export const deleteAccountService = async (userId: string, password: string) => {
+    const user = await findUserWithPassword(userId);
+
+    if (!user) {
+        throw new AppError("User not  found.", 404);
+    }
+
+    if (user.status === "DELETED" || user.status === "PERMANENTLY_ANONYMIZED") {
+        throw new AppError("Account is already deleted or scheduled for deletion.", 400);
+    }
+    const isMatch = await verifyPassword(password, user.password);
+
+    if (!isMatch) {
+        throw new AppError("Incorrect Password!.", 401);
+    }
+    await deleteAccountRepositoryAndClearToken(userId);
+    await deleteUserSession(userId);
+
+    const reactivationKeyToken = crypto.randomBytes(32).toString('hex')
+    const { html, subject } = accountDeletionScheduledTemplate(user.name, reactivationKeyToken);
+    await emailQueue.add("send-scheduled-deletion-email", {
+        to: user.email,
+        html,
+        subject,
+    });
+
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    await accountPurgeQueue.add(
+        "anonymize-user",
+        { userId: user.id },
+        {
+            delay: THIRTY_DAYS_MS,
+            jobId: `purge-${user.id}`,
+            removeOnComplete: true,
+        },
+    );
+
+    return {
+        message: "Your account has been deactivated and scheduled for permanent deletion.",
     };
 };
