@@ -23,6 +23,7 @@ enum AccountStatus {
   SUSPENDED
   DEACTIVATED
   DELETED
+  PERMANENTLY_ANONYMIZED
 }
 
 enum ShopStatus {
