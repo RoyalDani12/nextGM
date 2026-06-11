@@ -3,7 +3,7 @@ import { RegisterDto } from "./auth.types.js";
 import crypto from "crypto";
 import { Prisma } from "@prisma/client/extension";
 import { env } from "../../config/env.js";
-
+import { DeviceInfo } from "./auth.types.js";
 //  find user by email
 export const findUserByEmail = async (email: string) => {
     return prisma.user.findUnique({
@@ -21,7 +21,6 @@ export const findUserByEmail = async (email: string) => {
     });
 };
 
-//  add transaction function that creates user +  verification token together
 
 export const createUserWithVerification = async (
     data: RegisterDto & { hashedPassword: string },
@@ -92,7 +91,7 @@ export const markEmailVerified = async (userId: string, verificationId: string) 
 
 // save refresh token and last login at
 
-export const saveRefreshTokenAndUpdateLastLogin = async (userId: string, token: string) => {
+export const saveRefreshTokenAndUpdateLastLogin = async (userId: string, token: string,deviceInfo:DeviceInfo) => {
     return prisma.$transaction(async (tx) => {
         // step 1 count existing sessions  to limit the number of  device his is login
         const sessionCount = await tx.refreshToken.count({
@@ -118,6 +117,9 @@ export const saveRefreshTokenAndUpdateLastLogin = async (userId: string, token: 
                 userId,
                 token,
                 expiresAt: new Date(Date.now() + SEVEN_DAYS_MS),
+                ipAddress:deviceInfo.ipAddress,
+                usersAgent: deviceInfo.userAgent,
+                deviceName: deviceInfo.deviceName,
             },
         });
 
