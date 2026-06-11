@@ -15,3 +15,9 @@ export interface changePasswordDto {
 export interface PurgeJobData {
     userId: string;
 }
+
+export interface RevokeSessionInput {
+    userId: string;
+    sessionId: string;
+    currentToken: string;
+}
