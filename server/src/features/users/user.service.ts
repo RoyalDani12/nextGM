@@ -11,8 +11,11 @@ import {
     reactivateAccountRepository,
     saveRefreshTokenAndUpdateLastLogin,
     deleteAccountRepositoryAndClearToken,
+    getUserSessions,
+    getSessionById,
+    deleteSessionById,
 } from "./user.repository.js";
-import { changePasswordDto, UpdateProfileDto } from "./user.types.js";
+import { changePasswordDto, UpdateProfileDto, RevokeSessionInput } from "./user.types.js";
 import { env } from "../../config/env.js";
 import { extractPublicIdFromUrl } from "../../utils/cloudinaryHelper.js";
 import { emailQueue, imageCleanupQueue } from "../../infrastructure/queue/queue.client.js";
@@ -140,7 +143,7 @@ export const deactivateAccountService = async (userId: string, password: string)
 // reactivate account services
 
 export const reactivateAccountService = async (reactivationKey: string) => {
-    const userId = await redis.get(`reactivation:${reactivationKey}`);
+    const userId = await redis.get(`reactivate:${reactivationKey}`);
     if (!userId) {
         throw new AppError("Invalid or expired link.please login again.", 401);
     }
@@ -207,7 +210,7 @@ export const deleteAccountService = async (userId: string, password: string) => 
     await deleteAccountRepositoryAndClearToken(userId);
     await deleteUserSession(userId);
 
-    const reactivationKeyToken = crypto.randomBytes(32).toString('hex')
+    const reactivationKeyToken = crypto.randomBytes(32).toString("hex");
     const { html, subject } = accountDeletionScheduledTemplate(user.name, reactivationKeyToken);
     await emailQueue.add("send-scheduled-deletion-email", {
         to: user.email,
@@ -230,3 +233,60 @@ export const deleteAccountService = async (userId: string, password: string) => 
         message: "Your account has been deactivated and scheduled for permanent deletion.",
     };
 };
+
+// session service
+export const getSessionsService = async (userId: string, currentToken: string) => {
+    const sessions = await getUserSessions(userId);
+
+    const hashedCurrentToken = currentToken
+        ? crypto.createHash("sha256").update(currentToken).digest("hex")
+        : "";
+    return sessions.map((session) => ({
+        id: session.id,
+        deviceName: session.deviceName ?? "Unknown device",
+        ipAddress: session.ipAddress ?? "Unknown IP",
+        createdAt: session.createdAt,
+        isCurrentSession: session.token === hashedCurrentToken,
+        expiresAt: session.expiresAt,
+    }));
+};
+
+// revoke session service
+export const revokeSessionService = async ({
+    userId,
+    sessionId,
+    currentToken,
+}: RevokeSessionInput) => {
+    const session = await getSessionById(sessionId);
+
+    if (!session) {
+        throw new AppError("session not found", 404);
+    }
+    if (session.userId !== userId) {
+        throw new AppError("Unauthorized to revoke this session", 403);
+    }
+    const hashedCurrentToken = currentToken
+        ? crypto.createHash("sha256").update(currentToken).digest("hex")
+        : "";
+    const isCurrentSession = session.token === hashedCurrentToken;
+    if (isCurrentSession) {
+        throw new AppError("Cannot delete your current session. Use logout instead.", 400);
+    }
+    await deleteSessionById(sessionId);
+
+    return { 
+        isCurrentSession,
+        message: "Session revoked successfully."
+     };
+};
+
+// upcoming  feature
+/* 
+ 
+ GET    /api/users/me/sessions
+ DELETE /api/users/me/sessions/:id
+ DELETE /api/users/me/sessions
+
+THEN move to Shop module.
+Admin restore goes in Admin module later.
+ */
