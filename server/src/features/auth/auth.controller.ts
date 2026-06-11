@@ -1,6 +1,6 @@
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { Request, Response } from "express";
-
+import { parseDeviceName } from "../../utils/parseDevice.js";
 import { loginService,
         registerService,
         verifyEmailService, 
@@ -49,8 +49,20 @@ export const verifyEmailController = asyncHandler(async(req:Request,res:Response
 // login controller
 
 export const loginController = asyncHandler( async(req:Request,res:Response)=>{
+
       const { password,email } = req.body
-      const result = await loginService({ password,email})
+      const ip = req.ip ?? req.socket.remoteAddress ?? 'unknown'
+      const userAgent = req.headers['user-agent'] ??''
+      const device    = parseDeviceName(userAgent)
+
+   const result = await loginService(
+            { password, email },
+            {
+                ipAddress:  ip,
+                userAgent:  userAgent,
+                deviceName: device,
+            }
+        )
       
       const SEVEN_DAYS =7 * 24 * 60 * 60 * 1000
 
