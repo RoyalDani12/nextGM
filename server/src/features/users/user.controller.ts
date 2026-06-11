@@ -8,6 +8,8 @@ import {
     updateUserProfileService,
     reactivateAccountService,
     deleteAccountService,
+    getSessionsService,
+    revokeSessionService,
 } from "./user.service.js";
 import { AppError } from "../../middleware/appError.js";
 import { env } from "../../config/env.js";
@@ -139,3 +141,50 @@ export const deleteAccountController = asyncHandler(async (req: Request, res: Re
         message: result.message,
     });
 });
+
+export const getSessionsController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.id;
+    const currentToken = req.cookies?.refreshToken || ""
+    const sessions = await getSessionsService(userId,currentToken);
+
+    res.status(200).json({
+        success: true,
+        statusCode: 200,
+        message: "Sessions fetched successfully.",
+        data: sessions,
+    });
+});
+
+export const revokeSessionController = asyncHandler(async (req: Request, res: Response) => {
+
+    const userId = req.user!.id;
+   const sessionId = req.params.id as string;
+    const currentToken = req.cookies?.refreshToken || "";
+
+    const result = await revokeSessionService({ userId, sessionId, currentToken });
+
+    if (result.isCurrentSession) {
+        res.clearCookie("refreshToken", {
+            httpOnly: true,
+            secure: env.NODE_ENV === "production",
+            sameSite: "strict",
+        });
+        
+        res.status(200).json({
+            success: true,
+            statusCode: 200,
+            message: "Current session revoked successfully. You have been logged out.",
+            data: null
+        });
+        return;
+    }
+
+    res.status(200).json({
+        success: true,
+        statusCode: 200,
+        message: "Device session revoked successfully.",
+        data: null
+    });
+});
+
+
