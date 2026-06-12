@@ -9,3 +9,9 @@ export interface LoginDto {
   password:string,
   email:string
 }
+
+export interface DeviceInfo {
+    ipAddress:  string
+    userAgent:  string
+    deviceName: string
+}

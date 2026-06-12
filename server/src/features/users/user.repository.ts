@@ -1,5 +1,6 @@
 import { prisma } from "../../config/db.js";
 import { UpdateProfileDto } from "./user.types.js";
+import crypto from "crypto";
 
 export const getUserProfile = async (userId: string) => {
     return prisma.user.findUnique({
@@ -51,7 +52,7 @@ export const findUserWithPassword = async (userId: string) => {
             id: true,
             name: true,
             email: true,
-            status:true,
+            status: true,
         },
     });
 };
@@ -186,15 +187,58 @@ export const deleteAccountRepositoryAndClearToken = async (userId: string) => {
 };
 
 export const anonymizeUserRecord = async (userId: string) => {
-    await prisma.user.update({
-        where: { id: userId },
-        data: {
-            name: "Deleted User",
-            email: `deleted_${userId}@deleted.com`,
-            phone: null,
-            address: null,
-            avatar: null,
-            status: "PERMANENTLY_ANONYMIZED",
-        },
+    await prisma.$transaction(async (tx) => {
+        await tx.user.update({
+            where: { id: userId },
+            data: {
+                name: "Deleted User",
+                email: `deleted_${userId}@deleted.com`,
+                password: crypto.randomBytes(32).toString("hex"),
+            },
+        });
+
+        await tx.userProfile.updateMany({
+            where: { userId },
+            data: {
+                phone: null,
+                address: null,
+                city: null,
+                country: null,
+                avatar: null,
+            },
+        });
     });
 };
+
+//get user session
+
+export const getUserSessions = async(userId:string)=>{
+    return prisma.refreshToken.findMany({
+        where:{ userId,
+            expiresAt: {  gt:new Date() }
+        },
+        select:{
+            id:true,
+            token:true,
+            deviceName:true,
+            ipAddress:true,
+            createdAt:true,
+            expiresAt:true
+        },
+        orderBy:{ createdAt:'desc' } // new first
+    })
+}
+
+// get session by id
+export const getSessionById = async(id:string)=>{
+    return prisma.refreshToken.findUnique({
+        where : { id },
+    })
+}
+
+// deleteSession By id
+export const deleteSessionById =(id:string)=>{
+    return prisma.refreshToken.delete({
+        where:{ id },
+    })
+}

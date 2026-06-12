@@ -8,6 +8,8 @@ import {
     getUploadSignatureController,
     reactivateAccountController,
     updateUserProfileController,
+    getSessionsController,
+    revokeSessionController,
 } from "./user.controller.js";
 import { validate } from "../../middleware/validate.middleware.js";
 import { changePasswordSchema, deactivateSchema, deleteAccountSchema, reactivationSchema, updateProfileSchema } from "./user.schema.js";
@@ -53,10 +55,22 @@ router.post(
     reactivateAccountController
 )
 router.delete(
-    '/me/delete-account',
-    authenticate,
-    authLimiter,
-    validate(deleteAccountSchema),
-    deleteAccountController
+    '/me',
+     authLimiter,
+     authenticate,
+     validate(deleteAccountSchema),
+     deleteAccountController
 )
+
+router.get(
+    "/me/sessions",
+    authenticate,
+    getSessionsController
+)
+
+router.delete(
+    "/me/sessions/:id",
+    authenticate,
+    revokeSessionController
+);
 export default router;

@@ -1,4 +1,4 @@
-import { LoginDto, RegisterDto } from "./auth.types.js";
+import { LoginDto, RegisterDto,DeviceInfo } from "./auth.types.js";
 import { AppError } from "../../middleware/appError.js";
 import {
     findUserByEmail,
@@ -97,7 +97,7 @@ export const verifyEmailService = async (token: string) => {
 };
 
 // login service
-export const loginService = async (userData: LoginDto) => {
+export const loginService = async (userData: LoginDto,deviceInfo:DeviceInfo) => {
     const user = await findUserByEmail(userData.email);
 
     if (!user) {
@@ -148,7 +148,7 @@ export const loginService = async (userData: LoginDto) => {
     const refreshHashedToken = crypto.createHash("sha256").update(refreshToken).digest("hex");
 
     // save to the refresh token  and last login at
-    await saveRefreshTokenAndUpdateLastLogin(user.id, refreshHashedToken);
+    await saveRefreshTokenAndUpdateLastLogin(user.id, refreshHashedToken,deviceInfo);
 
     // cache session in redis
 
