@@ -10,6 +10,7 @@ import {
     updateUserProfileController,
     getSessionsController,
     revokeSessionController,
+    revokeAllSessionsController,
 } from "./user.controller.js";
 import { validate } from "../../middleware/validate.middleware.js";
 import { changePasswordSchema, deactivateSchema, deleteAccountSchema, reactivationSchema, updateProfileSchema } from "./user.schema.js";
@@ -73,4 +74,10 @@ router.delete(
     authenticate,
     revokeSessionController
 );
+
+router.delete(
+    "/me/sessions",
+    authenticate,
+    revokeAllSessionsController
+)
 export default router;
