@@ -12,6 +12,7 @@ import { generalLimiter } from "./middleware/rateLimiter.middleware.js"
 import authRoute from "./features/auth/auth.routes.js"
 import userRoute from './features/users/user.routes.js'
 import { httpLogger } from "./middleware/httpLogger.middleware.js"
+import shopRoute from "./features/shop/shop.routes.js"
 
 
 // security first
@@ -30,6 +31,7 @@ app.use(generalLimiter)
 
 app.use('/api/auth',authRoute)
 app.use('/api/users',userRoute)
+app.use('/api/shops',shopRoute)
 
 app.get('/',(req ,res)=>{
   res.json({message:"server running successfully"})
