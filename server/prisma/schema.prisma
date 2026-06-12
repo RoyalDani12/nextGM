@@ -159,7 +159,7 @@ model RefreshToken {
   user      User     @relation(fields: [userId], references: [id])
   token     String   @unique
   ipAddress String?
-  usersAgent String?
+  userAgent String?
   deviceName String?
   expiresAt DateTime
   createdAt DateTime @default(now())
