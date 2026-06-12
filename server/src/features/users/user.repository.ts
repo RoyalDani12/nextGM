@@ -229,16 +229,24 @@ export const getUserSessions = async(userId:string)=>{
     })
 }
 
-// get session by id
+
 export const getSessionById = async(id:string)=>{
     return prisma.refreshToken.findUnique({
         where : { id },
     })
 }
 
-// deleteSession By id
 export const deleteSessionById =(id:string)=>{
     return prisma.refreshToken.delete({
         where:{ id },
+    })
+}
+
+export const deleteAllOtherSessions = async(userId:string,currentHashedToken:string)=>{
+    return prisma.refreshToken.deleteMany({
+        where:{
+            userId,
+            token:{ not:currentHashedToken }
+        }
     })
 }

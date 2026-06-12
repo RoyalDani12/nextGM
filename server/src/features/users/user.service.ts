@@ -14,6 +14,7 @@ import {
     getUserSessions,
     getSessionById,
     deleteSessionById,
+    deleteAllOtherSessions,
 } from "./user.repository.js";
 import { changePasswordDto, UpdateProfileDto, RevokeSessionInput } from "./user.types.js";
 import { env } from "../../config/env.js";
@@ -274,19 +275,22 @@ export const revokeSessionService = async ({
     }
     await deleteSessionById(sessionId);
 
-    return { 
+    return {
         isCurrentSession,
-        message: "Session revoked successfully."
-     };
+        message: "Session revoked successfully.",
+    };
 };
 
-// upcoming  feature
-/* 
- 
- GET    /api/users/me/sessions
- DELETE /api/users/me/sessions/:id
- DELETE /api/users/me/sessions
+export const revokeAllSessionsService = async (userId: string, currentToken: string) => {
+    if (!currentToken) {
+        throw new AppError("Current session token is required to preserve it.", 400);
+    }
 
-THEN move to Shop module.
-Admin restore goes in Admin module later.
- */
+    const hashedCurrentToken = crypto.createHash("sha256").update(currentToken).digest("hex");
+
+    const result = await deleteAllOtherSessions(userId, hashedCurrentToken);
+
+    return {
+        revokedCount: result.count,
+    };
+};
