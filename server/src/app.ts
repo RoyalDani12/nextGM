@@ -11,20 +11,22 @@ import { notFound } from "./middleware/notFound.js"
 import { generalLimiter } from "./middleware/rateLimiter.middleware.js"
 import authRoute from "./features/auth/auth.routes.js"
 import userRoute from './features/users/user.routes.js'
+import { httpLogger } from "./middleware/httpLogger.middleware.js"
 
 
 // security first
+app.use(httpLogger)
 app.use(helmet())
 app.use(corsConfig)
 
 // http request  logger
-app.use(morgan("dev"))
+// app.use(morgan("dev"))
 
-//parse JSON bodies
+
 app.use(express.json())
 app.use(cookieParser())
 
-app.use(generalLimiter)   //  apply before routes
+app.use(generalLimiter)  
 
 app.use('/api/auth',authRoute)
 app.use('/api/users',userRoute)
