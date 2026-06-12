@@ -10,6 +10,7 @@ import {
     deleteAccountService,
     getSessionsService,
     revokeSessionService,
+    revokeAllSessionsService,
 } from "./user.service.js";
 import { AppError } from "../../middleware/appError.js";
 import { env } from "../../config/env.js";
@@ -144,8 +145,8 @@ export const deleteAccountController = asyncHandler(async (req: Request, res: Re
 
 export const getSessionsController = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user!.id;
-    const currentToken = req.cookies?.refreshToken || ""
-    const sessions = await getSessionsService(userId,currentToken);
+    const currentToken = req.cookies?.refreshToken || "";
+    const sessions = await getSessionsService(userId, currentToken);
 
     res.status(200).json({
         success: true,
@@ -156,9 +157,8 @@ export const getSessionsController = asyncHandler(async (req: Request, res: Resp
 });
 
 export const revokeSessionController = asyncHandler(async (req: Request, res: Response) => {
-
     const userId = req.user!.id;
-   const sessionId = req.params.id as string;
+    const sessionId = req.params.id as string;
     const currentToken = req.cookies?.refreshToken || "";
 
     const result = await revokeSessionService({ userId, sessionId, currentToken });
@@ -169,12 +169,12 @@ export const revokeSessionController = asyncHandler(async (req: Request, res: Re
             secure: env.NODE_ENV === "production",
             sameSite: "strict",
         });
-        
+
         res.status(200).json({
             success: true,
             statusCode: 200,
             message: "Current session revoked successfully. You have been logged out.",
-            data: null
+            data: null,
         });
         return;
     }
@@ -183,8 +183,26 @@ export const revokeSessionController = asyncHandler(async (req: Request, res: Re
         success: true,
         statusCode: 200,
         message: "Device session revoked successfully.",
-        data: null
+        data: null,
     });
 });
 
+export const revokeAllSessionsController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.id;
 
+    const rawToken = req.cookies.refreshToken;
+    if (!rawToken) {
+        throw new AppError("No token provided.", 401);
+    }
+
+    const result = await revokeAllSessionsService(userId, rawToken);
+
+    res.status(200).json({
+        success: true,
+        statusCode: 200,
+        message: "All other sessions revoked successfully.",
+        data: {
+            revokedCount: result.revokedCount,
+        },
+    });
+});
