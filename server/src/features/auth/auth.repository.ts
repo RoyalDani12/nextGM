@@ -118,7 +118,7 @@ export const saveRefreshTokenAndUpdateLastLogin = async (userId: string, token: 
                 token,
                 expiresAt: new Date(Date.now() + SEVEN_DAYS_MS),
                 ipAddress:deviceInfo.ipAddress,
-                usersAgent: deviceInfo.userAgent,
+                userAgent: deviceInfo.userAgent,
                 deviceName: deviceInfo.deviceName,
             },
         });
