@@ -1,7 +1,11 @@
 import express from "express"
 import { authenticate } from "../../middleware/auth.middleware.js"
 import { validate } from "../../middleware/validate.middleware.js"
-import { createShopController ,getMyShopController,updateShopProfileController} from "./shop.controller.js"
+import { createShopController,
+         getMyShopController,
+         updateShopProfileController,
+         getShopBySlugController
+     } from "./shop.controller.js"
 import { createShopSchema,updateShopProfileSchema } from "./shop.schema.js"
 // import { create } from "domain"
 
@@ -23,6 +27,12 @@ router.put(
     authenticate,
     validate(updateShopProfileSchema),
     updateShopProfileController
+)
+
+router.get(
+    "/:slug",
+    getShopBySlugController
+    
 )
 export default router
 
