@@ -76,3 +76,30 @@ export const updateShopProfileRepository = async (
         data,
     });
 };
+
+export const findActiveShopBySlug=async(slug:string)=>{
+    return prisma.shop.findFirst({
+        where:{
+            slug,
+            deletedAt:null,
+            status:"ACTIVE"
+        },
+        select:{
+            slug:true,
+            profile:{
+
+                select:{
+                    name:true,
+                    description:true,
+                    logo:true,
+                    banner:true,
+                    phone:true,
+                    email:true,
+                    city:true,
+                    country:true,
+                    website:true
+                }
+            }
+        }
+    })
+}
