@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { AppError } from "../../middleware/appError.js";
-import { createShopService, getMyShopService, updateShopProfileService } from "./shop.service.js";
+import { createShopService, getMyShopService, updateShopProfileService,getShopBySlugService } from "./shop.service.js";
 
 export const createShopController = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;
@@ -56,3 +56,19 @@ export const updateShopProfileController = asyncHandler(async (req: Request, res
         data: result,
     });
 });
+
+export const getShopBySlugController = asyncHandler(
+    async (req: Request, res: Response) => {
+
+        const slug  = req.params.slug as string
+
+        const result = await getShopBySlugService(slug)
+
+        res.status(200).json({
+            success:    true,
+            statusCode: 200,
+            message:    "Shop fetched successfully.",
+            data:       result,
+        })
+    }
+)
