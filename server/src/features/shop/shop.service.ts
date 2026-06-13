@@ -7,6 +7,7 @@ import {
     findMyShopWithProfile,
     findShopById,
     updateShopProfileRepository,
+    findActiveShopBySlug,
 } from "./shop.repository.js";
 
 export const createShopService = async (ownerId: string, name: string) => {
@@ -90,5 +91,18 @@ export const updateShopProfileService = async(
         city:        updatedProfile.city,
         country:     updatedProfile.country,
         website:     updatedProfile.website,
+    }
+}
+
+export const getShopBySlugService= async(slug:string)=>{
+    const shop = await findActiveShopBySlug(slug)
+
+    if(!shop){
+        throw  new AppError("Shop not found.",404)
+    }
+
+    return {
+        slug:shop.slug,
+        profile:shop.profile
     }
 }
