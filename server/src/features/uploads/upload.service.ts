@@ -1,0 +1,72 @@
+import { cloudinary } from "../../infrastructure/storage/cloudinary.client.js";
+import { AppError } from "../../middleware/appError.js";
+import { env } from "../../config/env.js";
+import { findShopById } from "../shop/shop.repository.js";
+import { GenerateSignatureInput, MimeType } from "./upload.types.js";
+
+// FIX: Ensure your dictionary explicitly covers all possible valid union values
+const MIME_TO_EXTENSION: Record<MimeType, string> = {
+    "image/jpeg": "jpg",
+    "image/png":  "png",
+    "image/webp": "webp",
+};
+
+export const generateUploadSignatureService = async ({
+    userId,
+    resourceType,
+    resourceId,
+    mimeType,
+}: GenerateSignatureInput) => {
+    let folder: string;
+
+    switch (resourceType) {
+        case "user_avatar": {
+            if (resourceId !== userId) {
+                throw new AppError("You can only upload your own avatar.", 403);
+            }
+            folder = `user_avatar/${userId}`;
+            break;
+        }
+        case "shop_logo":
+        case "shop_banner": {
+            const shop = await findShopById(resourceId);
+            if (!shop) {
+                throw new AppError("shop not found.", 404);
+            }
+            if (shop.ownerId !== userId) {
+                throw new AppError("You do not own this shop.", 403);
+            }
+            const assetType = resourceType === "shop_logo" ? "logo" : "banner";
+            folder = `shop_assets/${resourceId}/${assetType}`;
+            break;
+        }
+        case "product_image": {
+            throw new AppError("Product image uploads not available yet.", 501);
+        }
+        default: {
+            throw new AppError("Invalid resource type.", 400);
+        }
+    }
+
+  
+    const allowedFormat = MIME_TO_EXTENSION[mimeType];
+    const timestamp = Math.round(Date.now() / 1000);
+    
+    const signature = cloudinary.utils.api_sign_request(
+        {
+            timestamp,
+            folder,
+            allowed_formats: [allowedFormat],
+            max_file_size: 5_000_000,
+        },
+        env.CLOUDINARY_API_SECRET,
+    );
+
+    return {
+        signature,
+        timestamp,
+        folder,
+        apiKey: env.CLOUDINARY_API_KEY,
+        cloudName: env.CLOUDINARY_CLOUD_NAME,
+    };
+};
