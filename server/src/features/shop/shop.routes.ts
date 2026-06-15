@@ -4,10 +4,10 @@ import { validate } from "../../middleware/validate.middleware.js"
 import { createShopController,
          getMyShopController,
          updateShopProfileController,
-         getShopBySlugController
+         getShopBySlugController,
+         updateShopStatusController
      } from "./shop.controller.js"
-import { createShopSchema,updateShopProfileSchema } from "./shop.schema.js"
-// import { create } from "domain"
+import { createShopSchema,updateShopProfileSchema,updateShopStatusSchema } from "./shop.schema.js"
 
 const router = express.Router()
 
@@ -21,6 +21,12 @@ router.get(
     "/me",
     authenticate,
     getMyShopController
+)
+router.patch(
+    "/status/:id",
+    authenticate,
+    validate(updateShopStatusSchema),
+    updateShopStatusController
 )
 router.put(
     "/:id/profile",

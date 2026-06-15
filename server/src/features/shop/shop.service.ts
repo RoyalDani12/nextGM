@@ -8,6 +8,7 @@ import {
     findShopById,
     updateShopProfileRepository,
     findActiveShopBySlug,
+    updateShopStatusRepository,
 } from "./shop.repository.js";
 
 export const createShopService = async (ownerId: string, name: string) => {
@@ -59,50 +60,88 @@ export const getMyShopService = async (ownerId: string) => {
     };
 };
 
-export const updateShopProfileService = async(
-    userId:string,
-    shopId:string,
-    body:Record<string,unknown>
-)=>{
-      const shop = await findShopById(shopId)
+export const updateShopProfileService = async (
+    userId: string,
+    shopId: string,
+    body: Record<string, unknown>,
+) => {
+    const shop = await findShopById(shopId);
 
-      if (!shop){
-        throw new AppError("Shop not found.",404)
-      }
-
-          if (shop.ownerId !== userId) {
-        throw new AppError("You do not own this shop.", 403)
+    if (!shop) {
+        throw new AppError("Shop not found.", 404);
     }
-        const hasUpdates = Object.values(body).some((v) => v !== undefined)
+
+    if (shop.ownerId !== userId) {
+        throw new AppError("You do not own this shop.", 403);
+    }
+    const hasUpdates = Object.values(body).some((v) => v !== undefined);
     if (!hasUpdates) {
-        throw new AppError("No update data provided.", 400)
+        throw new AppError("No update data provided.", 400);
     }
 
-    const updatedProfile = await updateShopProfileRepository(shopId, body)
+    const updatedProfile = await updateShopProfileRepository(shopId, body);
 
-     return {
-        name:        updatedProfile.name,
+    return {
+        name: updatedProfile.name,
         description: updatedProfile.description,
-        logo:        updatedProfile.logo,
-        banner:      updatedProfile.banner,
-        phone:       updatedProfile.phone,
-        email:       updatedProfile.email,
-        address:     updatedProfile.address,
-        city:        updatedProfile.city,
-        country:     updatedProfile.country,
-        website:     updatedProfile.website,
-    }
-}
+        logo: updatedProfile.logo,
+        banner: updatedProfile.banner,
+        phone: updatedProfile.phone,
+        email: updatedProfile.email,
+        address: updatedProfile.address,
+        city: updatedProfile.city,
+        country: updatedProfile.country,
+        website: updatedProfile.website,
+    };
+};
 
-export const getShopBySlugService= async(slug:string)=>{
-    const shop = await findActiveShopBySlug(slug)
+export const getShopBySlugService = async (slug: string) => {
+    const shop = await findActiveShopBySlug(slug);
 
-    if(!shop){
-        throw  new AppError("Shop not found.",404)
+    if (!shop) {
+        throw new AppError("Shop not found.", 404);
     }
 
     return {
-        slug:shop.slug,
-        profile:shop.profile
+        slug: shop.slug,
+        profile: shop.profile,
+    };
+};
+
+// state transition map — defines what owner can change FROM and TO
+const ALLOWED_OWNER_TRANSITIONS: Record<string, string[]> = {
+    ACTIVE: ["PAUSED"],
+    PAUSED: ["ACTIVE"],
+    PENDING: [],
+    SUSPENDED: [],
+    CLOSED: [],
+};
+export const updateShopStatusService = async (
+    userId: string,
+    shopId: string,
+    newStatus: "ACTIVE" | "PAUSED",
+) => {
+    const shop = await findShopById(shopId);
+
+    if (!shop) {
+        throw new AppError("Shop not found.", 404);
     }
-}
+    if (shop.ownerId !== userId) {
+        throw new AppError("You don't own this shop.", 403);
+    }
+    if (shop.status == newStatus) {
+        throw new AppError(`Shop  is already ${newStatus}.`, 400);
+    }
+
+    const allowedNext = ALLOWED_OWNER_TRANSITIONS[shop.status] ?? [];
+
+    if (!allowedNext.includes(newStatus)) {
+        throw new AppError(`Cannot change status from ${shop.status} to ${newStatus}.`, 400);
+    }
+
+    const update = await updateShopStatusRepository(shopId, newStatus);
+
+    return {
+        status: update.status,
+    };
+};
