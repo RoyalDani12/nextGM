@@ -5,9 +5,10 @@ import { createShopController,
          getMyShopController,
          updateShopProfileController,
          getShopBySlugController,
-         updateShopStatusController
+         updateShopStatusController,
+         closeShopController,
      } from "./shop.controller.js"
-import { createShopSchema,updateShopProfileSchema,updateShopStatusSchema } from "./shop.schema.js"
+import { createShopSchema,updateShopProfileSchema,updateShopStatusSchema,closeShopSchema } from "./shop.schema.js"
 
 const router = express.Router()
 
@@ -34,11 +35,17 @@ router.put(
     validate(updateShopProfileSchema),
     updateShopProfileController
 )
-
+router.delete(
+    "/:id",
+    authenticate,
+    validate(closeShopSchema),
+    closeShopController
+)
 router.get(
     "/:slug",
     getShopBySlugController
     
 )
+
 export default router
 
