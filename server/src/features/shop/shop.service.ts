@@ -9,6 +9,7 @@ import {
     updateShopProfileRepository,
     findActiveShopBySlug,
     updateShopStatusRepository,
+    closeShopRepository,
 } from "./shop.repository.js";
 
 export const createShopService = async (ownerId: string, name: string) => {
@@ -145,3 +146,29 @@ export const updateShopStatusService = async (
         status: update.status,
     };
 };
+
+
+export const closeShopService = async (userId: string, shopId: string) => {
+
+    const shop = await findShopById(shopId)
+
+    if (!shop) {
+        throw new AppError("Shop not found.", 404)
+    }
+
+    if (shop.ownerId !== userId) {
+        throw new AppError("You do not own this shop.", 403)
+    }
+
+    
+    if (shop.status === "CLOSED") {
+        throw new AppError("Shop is already closed.", 400)
+    }
+
+
+    await closeShopRepository(shopId)
+
+    return {
+        message: "Shop closed successfully."
+    }
+}
