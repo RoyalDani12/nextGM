@@ -7,6 +7,7 @@ import {
     updateShopProfileService,
     getShopBySlugService,
     updateShopStatusService,
+    closeShopService,
 } from "./shop.service.js";
 
 export const createShopController = asyncHandler(async (req: Request, res: Response) => {
@@ -93,3 +94,23 @@ export const updateShopStatusController = asyncHandler(async (req: Request, res:
         data: result,
     });
 });
+
+export const closeShopController = asyncHandler(
+    async (req: Request, res: Response) => {
+
+        const userId = req.user?.id
+        if (!userId) {
+            throw new AppError("Unauthorized.", 401)
+        }
+
+        const shopId = req.params.id as string
+
+        const result = await closeShopService(userId, shopId)
+
+        res.status(200).json({
+            success:    true,
+            statusCode: 200,
+            message:    result.message,
+        })
+    }
+)
