@@ -53,3 +53,14 @@ export const updateShopStatusSchema = z.object({
         })
         .strict(),
 });
+
+export const closeShopSchema = z.object({
+    body: z.object({
+        confirmText: z
+            .string()
+            .refine(
+                (val) => val === "CLOSE MY SHOP",
+                { message: "Type CLOSE MY SHOP to confirm." }
+            )
+    }).strict()
+})
