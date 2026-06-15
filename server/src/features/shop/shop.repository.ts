@@ -39,7 +39,7 @@ export const findMyShopWithProfile = async (ownerId: string) => {
     return prisma.shop.findFirst({
         where: {
             ownerId,
-            deletedAt: null,
+            // deletedAt: null,
         },
         include: {
             profile: true,
@@ -116,5 +116,23 @@ export  const updateShopStatusRepository = async(
             id:true,
             status:true,
         }
+    })
+}
+export const closeShopRepository = async (shopId: string) => {
+    return prisma.$transaction(async (tx) => {
+
+        
+        await tx.shop.update({
+            where: { id: shopId },
+            data: {
+                status:    "CLOSED",
+                deletedAt: new Date(),
+            }
+        })
+
+        await tx.product.updateMany({
+            where: { shopId },
+            data: { status: "ARCHIVED" }
+        })
     })
 }
