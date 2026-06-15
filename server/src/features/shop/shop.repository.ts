@@ -53,6 +53,7 @@ export const findShopById = async (shopId: string) => {
         select: {
             id: true,
             ownerId: true,
+            status:true,
         },
     });
 };
@@ -100,6 +101,20 @@ export const findActiveShopBySlug=async(slug:string)=>{
                     website:true
                 }
             }
+        }
+    })
+}
+
+export  const updateShopStatusRepository = async(
+    shopId:string,
+    newStatus:"ACTIVE" |"PAUSED"
+)=>{
+    return prisma.shop.update({
+        where:{ id: shopId },
+        data:{ status:newStatus },
+        select:{
+            id:true,
+            status:true,
         }
     })
 }
