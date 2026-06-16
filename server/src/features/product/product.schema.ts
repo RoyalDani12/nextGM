@@ -1,0 +1,56 @@
+import { z } from "zod";
+
+export const createProductSchema = z.object({
+    params: z.object({
+        shopId: z.string().cuid("Invalid shop identification format."),
+    }),
+
+    body: z
+        .object({
+            name: z
+                .string()
+                .trim()
+                .min(3, "Product name must be at least 3 characters.")
+                .max(200, "Product name cannot exceed 200 characters."),
+
+            description: z
+                .string()
+                .trim()
+                .max(2000, "Description cannot exceed 2000 characters.")
+                .default(""),
+
+            basePrice: z
+                .string()
+                .regex(/^\d+(\.\d{1,2})?$/, "Price must be a valid currency amount (e.g., 19.99)")
+                .transform((val) => parseFloat(val))
+                .pipe(
+                    z
+                        .number()
+                        .min(0.01, "Price must be at least 0.01")
+                        .max(1000000, "Price cannot exceed 1,000,000"),
+                ),
+
+            stock: z
+                .number()
+                .int("Stock must be a whole number.")
+                .min(0, "Stock cannot be negative.")
+                .max(100000, "Stock cannot exceed 100,000 units per item."),
+
+            type: z
+                .enum(["PHYSICAL", "DIGITAL"], {
+                    message: "Type must be either PHYSICAL or DIGITAL.",
+                })
+                .default("PHYSICAL"),
+
+            categoryId: z.string().cuid("Invalid category ID format.").optional(),
+
+            images: z
+                .array(z.string().url("Each image must be a valid asset URL."))
+                .max(10, "You can upload a maximum of 10 images.")
+                .default([]),
+            sku: z.string().optional(),
+        })
+        .strict(),
+});
+
+
