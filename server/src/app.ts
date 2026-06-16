@@ -12,6 +12,7 @@ import { generalLimiter } from "./middleware/rateLimiter.middleware.js"
 import authRoute from "./features/auth/auth.routes.js"
 import userRoute from './features/users/user.routes.js'
 import uploadRoute from './features/uploads/upload.routes.js'
+import productRoute from './features/product/product.routes.js'
 import { httpLogger } from "./middleware/httpLogger.middleware.js"
 import shopRoute from "./features/shop/shop.routes.js"
 
@@ -34,6 +35,7 @@ app.use('/api/auth',authRoute)
 app.use('/api/users',userRoute)
 app.use('/api/shops',shopRoute)
 app.use('/api/uploads',uploadRoute)
+app.use('/api/shops/:shopId/products',productRoute)
 
 app.get('/',(req ,res)=>{
   res.json({message:"server running successfully"})
