@@ -53,4 +53,30 @@ export const createProductSchema = z.object({
         .strict(),
 });
 
+export const getShopProductsSchema = z.object({
+    query: z.object({
+        status: z
+            .enum(["DRAFT", "ACTIVE", "ARCHIVED"])
+            .optional(),
 
+        page: z
+            .string()
+            .regex(/^\d+$/, "Page must be a positive number.")
+            .transform(Number)
+            .optional(),
+
+        limit: z
+            .string()
+            .regex(/^\d+$/, "Limit must be a positive number.")
+            .transform(Number)
+            .optional(),
+
+        sort: z
+            .enum(["createdAt", "name", "basePrice", "stock"])
+            .optional(),
+
+        order: z
+            .enum(["asc", "desc"])
+            .optional(),
+    })
+})

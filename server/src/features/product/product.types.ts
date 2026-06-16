@@ -9,3 +9,20 @@ export interface CreateProductData {
     stock:       number
     type:        "PHYSICAL" | "DIGITAL"
 }
+
+export interface GetShopProductsOptions {
+    shopId:  string
+    status?: "DRAFT" | "ACTIVE" | "ARCHIVED"
+    skip:    number
+    take:    number
+    sort:    string
+    order:   "asc" | "desc"
+}
+
+export interface GetShopProductsQuery {
+    status?: "DRAFT" | "ACTIVE" | "ARCHIVED"
+    page?:   number
+    limit?:  number
+    sort?:   string
+    order?:  "asc" | "desc"
+}
