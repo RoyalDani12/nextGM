@@ -1,7 +1,11 @@
 import { Request, Response } from "express";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { AppError } from "../../middleware/appError.js";
-import { createProductService, getShopProductsService } from "./product.service.js";
+import {
+    createProductService,
+    getShopProductsService,
+    updateProductService,
+} from "./product.service.js";
 
 export const createProductController = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;
@@ -35,6 +39,27 @@ export const getShopProductsController = asyncHandler(async (req: Request, res: 
         success: true,
         statusCode: 200,
         message: "Products fetched successfully.",
+        data: result,
+    });
+});
+
+export const updateProductController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) {
+        throw new AppError("Unauthorized.", 401);
+    }
+
+    const { shopId, productId } = req.params as {
+        shopId: string;
+        productId: string;
+    };
+
+    const result = await updateProductService(userId, shopId, productId, req.body);
+
+    res.status(200).json({
+        success: true,
+        statusCode: 200,
+        message: "Product updated successfully.",
         data: result,
     });
 });

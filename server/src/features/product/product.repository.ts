@@ -82,3 +82,37 @@ export const getShopProductsRepository = async (options: GetShopProductsOptions)
     ]);
     return { products, total };
 };
+
+export const findProductById = async (productId: string) => {
+    return prisma.product.findUnique({
+        where: { id: productId },
+        select: {
+            id: true,
+            shopId: true,
+            name: true,
+            slug: true,
+            categoryId: true,
+            sku: true,
+            status: true,
+            deletedAt: true,
+        },
+    });
+};
+
+export const updateProductRepository = async (
+    productId: string,
+    data: Partial<{
+        name: string;
+        slug: string;
+        description: string;
+        basePrice: string;
+        stock: number;
+        categoryId: string | null;
+        sku: string;
+    }>,
+) => {
+    return prisma.product.update({
+        where: { id: productId },
+        data,
+    });
+};

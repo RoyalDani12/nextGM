@@ -7,8 +7,10 @@ import {
     createProductRepository,
     findProductBySlugInShop,
     getShopProductsRepository,
+    findProductById,
+    updateProductRepository,
 } from "./product.repository.js";
-import { CreateProductData, GetShopProductsQuery } from "./product.types.js";
+import { CreateProductData, GetShopProductsQuery, UpdateProductInput } from "./product.types.js";
 
 export const createProductService = async (
     userId: string,
@@ -115,5 +117,73 @@ export const getShopProductsService = async (
             hasNextPage: page < totalPages,
             hasPrevPage: page > 1,
         },
+    };
+};
+
+export const updateProductService = async (
+    userId: string,
+    shopId: string,
+    productId: string,
+    body: UpdateProductInput,
+) => {
+    const product = await findProductById(productId);
+    if (!product || product.shopId !== shopId || product.deletedAt) {
+        throw new AppError("Product not found.", 404);
+    }
+
+    const shop = await findShopById(shopId);
+    if (!shop) {
+        throw new AppError("Shop is not found.", 404);
+    }
+    if (shop.ownerId !== userId) {
+        throw new AppError("You don't own the shop.", 403);
+    }
+
+    const hasUpdates = Object.values(body).some((v) => v !== undefined);
+    if (!hasUpdates) {
+        throw new AppError("No update data provided.", 400);
+    }
+
+    const updateData: Record<string, unknown> = {};
+    if (body.name !== undefined && body.name !== product.name) {
+        updateData.name = body.name;
+        updateData.slug = await generateUniqueSlug(body.name, async (candidateSlug) => {
+            const existing = await findProductBySkuInShop(shopId, candidateSlug);
+            return existing !== null && existing.id !== productId;
+        });
+    }
+
+    if (body.categoryId !== undefined) {
+        const category = await findCategoryById(body.categoryId);
+        if (!category || category.shopId !== shopId) {
+            throw new AppError("Invalid category.", 400);
+        }
+        updateData.categoryId = body.categoryId;
+    }
+
+    if (body.sku !== undefined) {
+        const existingSku = await findProductBySkuInShop(shopId, body.sku);
+        if (existingSku && existingSku.id !== productId) {
+            throw new AppError("SKU is already in use in this shop", 409);
+        }
+        updateData.sku = body.sku;
+    }
+
+    if (body.description !== undefined) updateData.description = body.description;
+    if (body.basePrice !== undefined) updateData.basePrice = body.basePrice;
+    if (body.stock !== undefined) updateData.stock = body.stock;
+
+    const updated = await updateProductRepository(productId, updateData);
+
+    return {
+        id: updated.id,
+        name: updated.name,
+        slug: updated.slug,
+        description: updated.description,
+        sku: updated.sku,
+        basePrice: updated.basePrice,
+        stock: updated.stock,
+        categoryId: updated.categoryId,
+        status: updated.status,
     };
 };
