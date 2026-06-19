@@ -5,6 +5,7 @@ import {
     createProductService,
     getShopProductsService,
     updateProductService,
+    updateProductStatusService,
 } from "./product.service.js";
 
 export const createProductController = asyncHandler(async (req: Request, res: Response) => {
@@ -60,6 +61,28 @@ export const updateProductController = asyncHandler(async (req: Request, res: Re
         success: true,
         statusCode: 200,
         message: "Product updated successfully.",
+        data: result,
+    });
+});
+
+export const updateProductStatusController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) {
+        throw new AppError("Unauthorized.", 401);
+    }
+
+    const { shopId, productId } = req.params as {
+        shopId: string;
+        productId: string;
+    };
+    const { status } = req.body;
+
+    const result = await updateProductStatusService(userId, shopId, productId, status);
+
+    res.status(200).json({
+        success: true,
+        statusCode: 200,
+        message: `Product status updated to ${result.status}.`,
         data: result,
     });
 });

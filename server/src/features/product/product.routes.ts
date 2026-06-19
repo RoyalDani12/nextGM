@@ -1,8 +1,16 @@
 import express from "express"
 import { authenticate } from "../../middleware/auth.middleware.js"
 import { validate } from "../../middleware/validate.middleware.js"
-import { createProductSchema,getShopProductsSchema, updateProductSchema } from "./product.schema.js"
-import { createProductController,getShopProductsController, updateProductController } from "./product.controller.js"
+import { createProductSchema,
+         getShopProductsSchema,
+          updateProductSchema,
+          updateProductStatusSchema 
+        } from "./product.schema.js"
+import { createProductController
+        ,getShopProductsController, 
+        updateProductController,
+        updateProductStatusController 
+    } from "./product.controller.js"
 
 // mergeParams: true → gives access to :shopId from the parent mount path
 const router = express.Router({ mergeParams: true })
@@ -26,5 +34,12 @@ router.put(
     authenticate,
     validate(updateProductSchema),
     updateProductController
+)
+
+router.patch(
+    "/:productId/status",
+    authenticate,
+    validate(updateProductStatusSchema),
+    updateProductStatusController
 )
 export default router
