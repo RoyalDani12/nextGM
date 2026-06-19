@@ -26,3 +26,12 @@ export interface GetShopProductsQuery {
     sort?:   string
     order?:  "asc" | "desc"
 }
+
+export interface UpdateProductInput {
+    name?:        string
+    description?: string
+    basePrice?:   string
+    stock?:       number
+    categoryId?:  string
+    sku?:         string
+}

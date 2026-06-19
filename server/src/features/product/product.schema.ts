@@ -80,3 +80,43 @@ export const getShopProductsSchema = z.object({
             .optional(),
     })
 })
+
+export const updateProductSchema = z.object({
+    body: z.object({
+        name: z
+            .string()
+            .trim()
+            .min(3, "Product name must be at least 3 characters.")
+            .max(200, "Product name cannot exceed 200 characters.")
+            .optional(),
+
+        description: z
+            .string()
+            .trim()
+            .max(2000, "Description cannot exceed 2000 characters.")
+            .optional(),
+
+        basePrice: z
+            .string()
+            .regex(/^\d+(\.\d{1,2})?$/, "Price must be a valid amount (e.g. 19.99)")
+            .optional(),
+
+        stock: z
+            .number()
+            .int("Stock must be a whole number.")
+            .min(0, "Stock cannot be negative.")
+            .optional(),
+
+        categoryId: z
+            .string()
+            .cuid("Invalid category ID.")
+            .optional(),
+
+        sku: z
+            .string()
+            .trim()
+            .max(100, "SKU cannot exceed 100 characters.")
+            .optional(),
+
+    }).strict()
+})
