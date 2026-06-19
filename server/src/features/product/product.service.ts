@@ -9,6 +9,7 @@ import {
     getShopProductsRepository,
     findProductById,
     updateProductRepository,
+    updateProductStatusRepository,
 } from "./product.repository.js";
 import { CreateProductData, GetShopProductsQuery, UpdateProductInput } from "./product.types.js";
 
@@ -184,6 +185,48 @@ export const updateProductService = async (
         basePrice: updated.basePrice,
         stock: updated.stock,
         categoryId: updated.categoryId,
+        status: updated.status,
+    };
+};
+
+const ALLOWED_PRODUCT_TRANSITIONS: Record<string, string[]> = {
+    DRAFT: ["ACTIVE", "ARCHIVED"],
+    ACTIVE: ["ARCHIVED"],
+    ARCHIVED: ["ACTIVE"],
+};
+
+export const updateProductStatusService = async (
+    userId: string,
+    shopId: string,
+    productId: string,
+    newStatus: "ACTIVE" | "ARCHIVED",
+) => {
+    const product = await findProductById(productId);
+    if (!product || product.shopId !== shopId || product.deletedAt) {
+        throw new AppError("Product not found.", 404);
+    }
+
+    const shop = await findShopById(shopId);
+    if (!shop) {
+        throw new AppError("Shop not found.", 404);
+    }
+    if (shop.ownerId !== userId) {
+        throw new AppError("You do not own this shop.", 403);
+    }
+    if (product.status === newStatus) {
+        throw new AppError(`Product is already ${newStatus}.`, 400);
+    }
+
+    const allowedNext = ALLOWED_PRODUCT_TRANSITIONS[product.status] ?? [];
+
+    if (!allowedNext.includes(newStatus)) {
+        throw new AppError(`Cannot change status from ${product.status} to ${newStatus}.`, 400);
+    }
+
+    const updated = await updateProductStatusRepository(productId, newStatus);
+
+    return {
+        id: updated.id,
         status: updated.status,
     };
 };

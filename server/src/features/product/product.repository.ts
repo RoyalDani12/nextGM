@@ -116,3 +116,17 @@ export const updateProductRepository = async (
         data,
     });
 };
+
+export const updateProductStatusRepository = async (
+    productId: string,
+    status: "ACTIVE" | "ARCHIVED",
+) => {
+    return prisma.product.update({
+        where: { id: productId },
+        data: { status },
+        select: {
+            id: true,
+            status: true,
+        },
+    });
+};

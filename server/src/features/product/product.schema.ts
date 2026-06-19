@@ -120,3 +120,11 @@ export const updateProductSchema = z.object({
 
     }).strict()
 })
+
+export const updateProductStatusSchema = z.object({
+    body:z.object({
+        status:z.enum(["ACTIVE","ARCHIVED"],{
+            message:"Status must be either Active or Archived."
+        })
+    }).strict()
+})
