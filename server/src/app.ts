@@ -1,6 +1,7 @@
 import dotenv from "dotenv"
 dotenv.config()
 import express from "express"
+import { setupSwagger } from "./config/swagger.config.js"
 const app = express()
 import helmet from "helmet"
 import cookieParser from "cookie-parser"
@@ -19,7 +20,11 @@ import shopRoute from "./features/shop/shop.routes.js"
 
 // security first
 app.use(httpLogger)
-app.use(helmet())
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+  })
+)
 app.use(corsConfig)
 
 // http request  logger
@@ -28,6 +33,8 @@ app.use(corsConfig)
 
 app.use(express.json())
 app.use(cookieParser())
+app.use(express.urlencoded({ extended: true }));
+setupSwagger(app);
 
 app.use(generalLimiter)  
 
