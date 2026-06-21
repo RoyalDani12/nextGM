@@ -141,3 +141,63 @@ export const softDeleteProductRepository = async(productId:string)=>{
         select:{ id:true }
     })
 }
+
+export const findPublicProductById = async (productId: string) => {
+    return prisma.product.findFirst({
+        where: {
+            id:        productId,
+            status:    "ACTIVE",
+            deletedAt: null,
+            shop: {
+                status:    "ACTIVE",   // ← parent shop must also be ACTIVE
+                deletedAt: null,
+            }
+        },
+        select: {
+            id:          true,
+            name:        true,
+            slug:        true,
+            description: true,
+            basePrice:   true,
+            stock:       true,
+            type:        true,
+            status:      true,
+            createdAt:   true,
+            shop: {
+                select: {
+                    slug:    true,
+                    profile: {
+                        select: {
+                            name: true,
+                            logo: true,
+                        }
+                    }
+                }
+            },
+            category: {
+                select: {
+                    id:   true,
+                    name: true,
+                    slug: true,
+                }
+            },
+            images: {
+                select: {
+                    id:        true,
+                    url:       true,
+                    isPrimary: true,
+                },
+                orderBy: { isPrimary: "desc" }
+            },
+            variants: {
+                select: {
+                    id:    true,
+                    name:  true,
+                    price: true,
+                    stock: true,
+                    sku:   true,
+                }
+            }
+        }
+    })
+}
