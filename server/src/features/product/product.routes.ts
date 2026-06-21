@@ -4,12 +4,14 @@ import { validate } from "../../middleware/validate.middleware.js"
 import { createProductSchema,
          getShopProductsSchema,
           updateProductSchema,
-          updateProductStatusSchema 
+          updateProductStatusSchema,
+          deleteProductSchema,
         } from "./product.schema.js"
 import { createProductController
         ,getShopProductsController, 
         updateProductController,
-        updateProductStatusController 
+        updateProductStatusController,
+        deleteProductController,
     } from "./product.controller.js"
 
 // mergeParams: true → gives access to :shopId from the parent mount path
@@ -41,5 +43,11 @@ router.patch(
     authenticate,
     validate(updateProductStatusSchema),
     updateProductStatusController
+)
+router.delete(
+    "/:productId",
+    authenticate,
+    validate(deleteProductSchema),
+    deleteProductController
 )
 export default router
