@@ -11,6 +11,7 @@ import {
     updateProductRepository,
     updateProductStatusRepository,
     softDeleteProductRepository,
+    findPublicProductById,
 } from "./product.repository.js";
 import { CreateProductData, GetShopProductsQuery, UpdateProductInput } from "./product.types.js";
 
@@ -253,3 +254,14 @@ export const deleteProductService = async (userId: string, shopId: string, produ
         message: "Product deleted successfully.",
     };
 };
+
+export const getPublicProductService = async (productId: string) => {
+
+    const product = await findPublicProductById(productId)
+
+    if (!product) {
+        throw new AppError("Product not found.", 404)
+    }
+
+    return product
+}

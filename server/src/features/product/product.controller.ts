@@ -7,6 +7,7 @@ import {
     updateProductService,
     updateProductStatusService,
     deleteProductService,
+    getPublicProductService,
 } from "./product.service.js";
 
 export const createProductController = asyncHandler(async (req: Request, res: Response) => {
@@ -107,6 +108,22 @@ export const deleteProductController = asyncHandler(
             success:    true,
             statusCode: 200,
             message:    result.message,
+        })
+    }
+)
+
+export const getPublicProductController = asyncHandler(
+    async (req: Request, res: Response) => {
+
+        const { productId } = req.params as { productId: string }
+
+        const result = await getPublicProductService(productId)
+
+        res.status(200).json({
+            success:    true,
+            statusCode: 200,
+            message:    "Product fetched successfully.",
+            data:       result,
         })
     }
 )
