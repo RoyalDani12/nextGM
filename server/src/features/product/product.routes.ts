@@ -6,12 +6,14 @@ import { createProductSchema,
           updateProductSchema,
           updateProductStatusSchema,
           deleteProductSchema,
+          addProductImageSchema,
         } from "./product.schema.js"
 import { createProductController
         ,getShopProductsController, 
         updateProductController,
         updateProductStatusController,
         deleteProductController,
+        addProductImageController,
     } from "./product.controller.js"
 
 // mergeParams: true → gives access to :shopId from the parent mount path
@@ -49,5 +51,11 @@ router.delete(
     authenticate,
     validate(deleteProductSchema),
     deleteProductController
+)
+router.post(
+    "/:productId/images",
+    authenticate,
+    validate(addProductImageSchema),
+    addProductImageController
 )
 export default router

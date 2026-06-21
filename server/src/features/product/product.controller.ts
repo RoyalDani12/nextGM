@@ -9,6 +9,7 @@ import {
     deleteProductService,
     getPublicProductService,
     browseProductsService,
+    addProductImageService,
 } from "./product.service.js";
 
 export const createProductController = asyncHandler(async (req: Request, res: Response) => {
@@ -139,6 +140,35 @@ export const browseProductsController = asyncHandler(
             success:    true,
             statusCode: 200,
             message:    "Products fetched successfully.",
+            data:       result,
+        })
+    }
+)
+
+export const addProductImageController = asyncHandler(
+    async (req: Request, res: Response) => {
+
+        const userId = req.user?.id
+        if (!userId) {
+            throw new AppError("Unauthorized.", 401)
+        }
+
+        const { shopId, productId } = req.params as {
+            shopId:    string
+            productId: string
+        }
+
+        const result = await addProductImageService(
+            userId,
+            shopId,
+            productId,
+            req.body
+        )
+
+        res.status(201).json({
+            success:    true,
+            statusCode: 201,
+            message:    "Product image added successfully.",
             data:       result,
         })
     }

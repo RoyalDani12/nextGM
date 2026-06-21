@@ -3,11 +3,12 @@ import { AppError } from "../../middleware/appError.js";
 import { env } from "../../config/env.js";
 import { findShopById } from "../shop/shop.repository.js";
 import { GenerateSignatureInput, MimeType } from "./upload.types.js";
+import { findProductWithShop } from "../product/product.repository.js";
 
 // FIX: Ensure your dictionary explicitly covers all possible valid union values
 const MIME_TO_EXTENSION: Record<MimeType, string> = {
     "image/jpeg": "jpg",
-    "image/png":  "png",
+    "image/png": "png",
     "image/webp": "webp",
 };
 
@@ -41,17 +42,27 @@ export const generateUploadSignatureService = async ({
             break;
         }
         case "product_image": {
-            throw new AppError("Product image uploads not available yet.", 501);
+            const product = await findProductWithShop(resourceId);
+
+            if (!product || product.deletedAt) {
+                throw new AppError("Product not found.", 404);
+            }
+
+            if (product.shop.ownerId !== userId) {
+                throw new AppError("You do not own this product's shop.", 403);
+            }
+
+            folder = `product_images/${resourceId}`;
+            break;
         }
         default: {
             throw new AppError("Invalid resource type.", 400);
         }
     }
 
-  
     const allowedFormat = MIME_TO_EXTENSION[mimeType];
     const timestamp = Math.round(Date.now() / 1000);
-    
+
     const signature = cloudinary.utils.api_sign_request(
         {
             timestamp,

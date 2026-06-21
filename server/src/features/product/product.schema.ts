@@ -189,3 +189,21 @@ export const browseProductsSchema = z.object({
             .optional(),
     })
 })
+
+export const addProductImageSchema = z.object({
+    body: z.object({
+        url: z
+            .string()
+            .url("Image must be a valid URL.")
+            .refine(
+                (url) => url.includes("res.cloudinary.com"),
+                { message: "Image must be uploaded via Cloudinary." }
+            ),
+
+        isPrimary: z
+            .boolean()
+            .optional()
+            .default(false),
+
+    }).strict()
+})

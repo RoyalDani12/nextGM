@@ -270,3 +270,57 @@ export const browseProductRepository = async (options: BrowseProductsOptions) =>
     ]);
     return { products, total };
 };
+
+export const findProductWithShop = async (productId: string) => {
+    return prisma.product.findUnique({
+        where: { id: productId },
+        select: {
+            id:       true,
+            shopId:   true,
+            deletedAt: true,
+            shop: {
+                select: {
+                    ownerId: true,
+                    status:  true,
+                }
+            }
+        }
+    })
+}
+export const addProductImageRepository = async (
+    productId: string,
+    url:       string,
+    isPrimary: boolean
+) => {
+    return prisma.$transaction(async (tx) => {
+
+        if (isPrimary) {
+            await tx.productImage.updateMany({
+                where: { productId, isPrimary: true },
+                data:  { isPrimary: false }
+            })
+        }
+
+        return tx.productImage.create({
+            data: {
+                productId,
+                url,
+                isPrimary,
+            }
+        })
+    })
+}
+
+
+export const getProductImagesRepository = async (productId: string) => {
+    return prisma.productImage.findMany({
+        where:   { productId },
+        select: {
+            id:        true,
+            url:       true,
+            isPrimary: true,
+            createdAt: true,
+        },
+        orderBy: { isPrimary: "desc" }
+    })
+}
