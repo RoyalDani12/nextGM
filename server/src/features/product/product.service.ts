@@ -10,6 +10,7 @@ import {
     findProductById,
     updateProductRepository,
     updateProductStatusRepository,
+    softDeleteProductRepository,
 } from "./product.repository.js";
 import { CreateProductData, GetShopProductsQuery, UpdateProductInput } from "./product.types.js";
 
@@ -228,5 +229,27 @@ export const updateProductStatusService = async (
     return {
         id: updated.id,
         status: updated.status,
+    };
+};
+
+export const deleteProductService = async (userId: string, shopId: string, productId: string) => {
+    const product = await findProductById(productId);
+
+    if (!product || product.shopId !== shopId || product.deletedAt) {
+        throw new AppError("Product not found.", 404);
+    }
+
+    const shop = await findShopById(shopId);
+    if (!shop) {
+        throw new AppError("Shop not found.", 404);
+    }
+
+    if (shop.ownerId !== userId) {
+        throw new AppError("You do not own this shop.", 403);
+    }
+    await softDeleteProductRepository(productId);
+
+    return {
+        message: "Product deleted successfully.",
     };
 };

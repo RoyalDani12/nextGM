@@ -130,3 +130,14 @@ export const updateProductStatusRepository = async (
         },
     });
 };
+
+export const softDeleteProductRepository = async(productId:string)=>{
+    return prisma.product.update({
+        where:{ id: productId },
+        data:{
+            deletedAt:new Date(),
+            status:"ARCHIVED",
+        },
+        select:{ id:true }
+    })
+}

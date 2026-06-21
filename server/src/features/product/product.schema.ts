@@ -128,3 +128,10 @@ export const updateProductStatusSchema = z.object({
         })
     }).strict()
 })
+
+export const deleteProductSchema = z.object({
+    params: z.object({
+        shopId:    z.string().cuid("Invalid shop ID."),
+        productId: z.string().cuid("Invalid product ID."),
+    })
+})

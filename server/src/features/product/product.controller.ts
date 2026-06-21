@@ -6,6 +6,7 @@ import {
     getShopProductsService,
     updateProductService,
     updateProductStatusService,
+    deleteProductService,
 } from "./product.service.js";
 
 export const createProductController = asyncHandler(async (req: Request, res: Response) => {
@@ -86,3 +87,26 @@ export const updateProductStatusController = asyncHandler(async (req: Request, r
         data: result,
     });
 });
+
+export const deleteProductController = asyncHandler(
+    async (req: Request, res: Response) => {
+
+        const userId = req.user?.id
+        if (!userId) {
+            throw new AppError("Unauthorized.", 401)
+        }
+
+        const { shopId, productId } = req.params as {
+            shopId:    string
+            productId: string
+        }
+
+        const result = await deleteProductService(userId, shopId, productId)
+
+        res.status(200).json({
+            success:    true,
+            statusCode: 200,
+            message:    result.message,
+        })
+    }
+)
