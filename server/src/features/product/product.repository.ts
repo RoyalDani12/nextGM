@@ -1,6 +1,10 @@
 import { StringDecoder } from "node:string_decoder";
 import { prisma } from "../../config/db.js";
-import { CreateProductData, GetShopProductsOptions } from "./product.types.js";
+import {
+    CreateProductData,
+    GetShopProductsOptions,
+    BrowseProductsOptions,
+} from "./product.types.js";
 
 export const findCategoryById = async (categoryId: string) => {
     return prisma.productCategory.findUnique({
@@ -131,73 +135,138 @@ export const updateProductStatusRepository = async (
     });
 };
 
-export const softDeleteProductRepository = async(productId:string)=>{
+export const softDeleteProductRepository = async (productId: string) => {
     return prisma.product.update({
-        where:{ id: productId },
-        data:{
-            deletedAt:new Date(),
-            status:"ARCHIVED",
+        where: { id: productId },
+        data: {
+            deletedAt: new Date(),
+            status: "ARCHIVED",
         },
-        select:{ id:true }
-    })
-}
+        select: { id: true },
+    });
+};
 
 export const findPublicProductById = async (productId: string) => {
     return prisma.product.findFirst({
         where: {
-            id:        productId,
-            status:    "ACTIVE",
+            id: productId,
+            status: "ACTIVE",
             deletedAt: null,
             shop: {
-                status:    "ACTIVE",   // ← parent shop must also be ACTIVE
+                status: "ACTIVE", // ← parent shop must also be ACTIVE
                 deletedAt: null,
-            }
+            },
         },
         select: {
-            id:          true,
-            name:        true,
-            slug:        true,
+            id: true,
+            name: true,
+            slug: true,
             description: true,
-            basePrice:   true,
-            stock:       true,
-            type:        true,
-            status:      true,
-            createdAt:   true,
+            basePrice: true,
+            stock: true,
+            type: true,
+            status: true,
+            createdAt: true,
             shop: {
                 select: {
-                    slug:    true,
+                    slug: true,
                     profile: {
                         select: {
                             name: true,
                             logo: true,
-                        }
-                    }
-                }
+                        },
+                    },
+                },
             },
             category: {
                 select: {
-                    id:   true,
+                    id: true,
                     name: true,
                     slug: true,
-                }
+                },
             },
             images: {
                 select: {
-                    id:        true,
-                    url:       true,
+                    id: true,
+                    url: true,
                     isPrimary: true,
                 },
-                orderBy: { isPrimary: "desc" }
+                orderBy: { isPrimary: "desc" },
             },
             variants: {
                 select: {
-                    id:    true,
-                    name:  true,
+                    id: true,
+                    name: true,
                     price: true,
                     stock: true,
-                    sku:   true,
-                }
-            }
-        }
-    })
-}
+                    sku: true,
+                },
+            },
+        },
+    });
+};
+
+export const browseProductRepository = async (options: BrowseProductsOptions) => {
+    const { skip, take, sort, order, shopId, categoryId, type, minPrice, maxPrice, search } =
+        options;
+
+    const where: any = {
+        status: "ACTIVE",
+        deletedAt: null,
+        shop: {
+            status: "ACTIVE",
+            deletedAt: null,
+        },
+        ...(shopId && { shopId }),
+        ...(categoryId && { categoryId }),
+        ...(type && { type }),
+        ...(minPrice || maxPrice
+            ? {
+                  basePrice: {
+                      ...(minPrice && { gte: minPrice }),
+                      ...(maxPrice && { lte: maxPrice }),
+                  },
+              }
+            : {}),
+        ...(search && {
+            name: {
+                contains: search,
+                mode: "insensitive",
+            },
+        }),
+    };
+
+    const [products, total] = await Promise.all([
+        prisma.product.findMany({
+            where,
+            select: {
+                id: true,
+                name: true,
+                slug: true,
+                basePrice: true,
+                type: true,
+                shop: {
+                    select: {
+                        slug: true,
+                        profile: {
+                            select: { name: true, logo: true },
+                        },
+                    },
+                },
+                images: {
+                    where: { isPrimary: true },
+                    select: { url: true },
+                    take: 1,
+                },
+                category: {
+                    select: { name: true, slug: true },
+                },
+            },
+            orderBy: { [sort]: order },
+            skip,
+            take,
+        }),
+        prisma.product.count({ where }),
+    ]);
+    return { products, total };
+};

@@ -135,3 +135,57 @@ export const deleteProductSchema = z.object({
         productId: z.string().cuid("Invalid product ID."),
     })
 })
+
+export const browseProductsSchema = z.object({
+    query: z.object({
+        page: z
+            .string()
+            .regex(/^\d+$/)
+            .transform(Number)
+            .optional(),
+
+        limit: z
+            .string()
+            .regex(/^\d+$/)
+            .transform(Number)
+            .optional(),
+
+        sort: z
+            .enum(["createdAt", "basePrice", "name"])
+            .optional(),
+
+        order: z
+            .enum(["asc", "desc"])
+            .optional(),
+
+        shopId: z
+            .string()
+            .cuid()
+            .optional(),
+
+        categoryId: z
+            .string()
+            .cuid()
+            .optional(),
+
+        type: z
+            .enum(["PHYSICAL", "DIGITAL"])
+            .optional(),
+
+        minPrice: z
+            .string()
+            .regex(/^\d+(\.\d{1,2})?$/)
+            .optional(),
+
+        maxPrice: z
+            .string()
+            .regex(/^\d+(\.\d{1,2})?$/)
+            .optional(),
+
+        search: z
+            .string()
+            .trim()
+            .max(100)
+            .optional(),
+    })
+})

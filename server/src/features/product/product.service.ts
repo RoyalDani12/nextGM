@@ -12,8 +12,14 @@ import {
     updateProductStatusRepository,
     softDeleteProductRepository,
     findPublicProductById,
+    browseProductRepository,
 } from "./product.repository.js";
-import { CreateProductData, GetShopProductsQuery, UpdateProductInput } from "./product.types.js";
+import {
+    CreateProductData,
+    GetShopProductsQuery,
+    UpdateProductInput,
+    BrowseProductsQuery,
+} from "./product.types.js";
 
 export const createProductService = async (
     userId: string,
@@ -256,12 +262,48 @@ export const deleteProductService = async (userId: string, shopId: string, produ
 };
 
 export const getPublicProductService = async (productId: string) => {
-
-    const product = await findPublicProductById(productId)
+    const product = await findPublicProductById(productId);
 
     if (!product) {
-        throw new AppError("Product not found.", 404)
+        throw new AppError("Product not found.", 404);
     }
 
-    return product
-}
+    return product;
+};
+
+export const browseProductsService = async (query: BrowseProductsQuery) => {
+    const page = Math.max(1, query.page ?? 1);
+    const limit = Math.min(50, query.limit ?? 20);
+    const skip = (page - 1) * limit;
+    const sort = query.sort ?? "createdAt";
+    const order = query.order ?? "desc";
+
+    const { products, total } = await browseProductRepository({
+        skip,
+        take: limit,
+        sort,
+        order,
+        shopId: query.shopId,
+        categoryId: query.categoryId,
+        type: query.type,
+        minPrice: query.minPrice,
+        maxPrice: query.maxPrice,
+        search: query.search,
+    });
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+        products,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages,
+            hasNextPage: page < totalPages,
+            hasPrevPage: page > 1,
+        },
+    };
+};
+
+
