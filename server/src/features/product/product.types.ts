@@ -35,3 +35,29 @@ export interface UpdateProductInput {
     categoryId?:  string
     sku?:         string
 }
+
+export interface BrowseProductsOptions {
+    skip:        number
+    take:        number
+    sort:        string
+    order:       "asc" | "desc"
+    shopId?:     string
+    categoryId?: string
+    type?:       "PHYSICAL" | "DIGITAL"
+    minPrice?:   string
+    maxPrice?:   string
+    search?:     string
+}
+
+export interface BrowseProductsQuery {
+    page?:       number
+    limit?:      number
+    sort?:       string
+    order?:      "asc" | "desc"
+    shopId?:     string
+    categoryId?: string
+    type?:       "PHYSICAL" | "DIGITAL"
+    minPrice?:   string
+    maxPrice?:   string
+    search?:     string
+}

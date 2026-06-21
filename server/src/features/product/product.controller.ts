@@ -8,6 +8,7 @@ import {
     updateProductStatusService,
     deleteProductService,
     getPublicProductService,
+    browseProductsService,
 } from "./product.service.js";
 
 export const createProductController = asyncHandler(async (req: Request, res: Response) => {
@@ -123,6 +124,21 @@ export const getPublicProductController = asyncHandler(
             success:    true,
             statusCode: 200,
             message:    "Product fetched successfully.",
+            data:       result,
+        })
+    }
+)
+
+
+export const browseProductsController = asyncHandler(
+    async (req: Request, res: Response) => {
+
+        const result = await browseProductsService(req.query as any)
+
+        res.status(200).json({
+            success:    true,
+            statusCode: 200,
+            message:    "Products fetched successfully.",
             data:       result,
         })
     }
