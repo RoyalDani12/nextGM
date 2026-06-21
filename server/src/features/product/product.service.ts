@@ -13,6 +13,8 @@ import {
     softDeleteProductRepository,
     findPublicProductById,
     browseProductRepository,
+    getProductImagesRepository,
+    addProductImageRepository,
 } from "./product.repository.js";
 import {
     CreateProductData,
@@ -306,4 +308,46 @@ export const browseProductsService = async (query: BrowseProductsQuery) => {
     };
 };
 
+export const addProductImageService = async (
+    userId:string,
+    shopId:string,
+    productId:string,
+    body:{
+        url:string
+        isPrimary:boolean
+    }
+)=>{
+    const product = await findProductById(productId)
+      if (!product || product.shopId !== shopId || product.deletedAt) {
+        throw new AppError("Product not found.", 404)
+    }
+     const shop = await findShopById(shopId)
+         if (!shop) {
+        throw new AppError("Shop not found.", 404)
+    }
+
+      if (shop.ownerId !== userId) {
+        throw new AppError("You do not own this shop.", 403)
+    }
+
+      const existingImages = await getProductImagesRepository(productId)
+
+    if (existingImages.length >= 10) {
+        throw new AppError(
+            "Product cannot have more than 10 images.",
+            400
+        )
+    }
+     const isPrimary = existingImages.length === 0
+        ? true              // ← first image is always primary
+        : body.isPrimary 
+        const image = await addProductImageRepository(productId, body.url, isPrimary)
+
+    return {
+        id:        image.id,
+        url:       image.url,
+        isPrimary: image.isPrimary,
+        createdAt: image.createdAt,
+    }
+}
 
