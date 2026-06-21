@@ -1,60 +1,58 @@
 export const authDocs = {
   "/api/auth/register": {
     post: {
+      tags: ["Authentication"],
       summary: "Register a new user",
-      tags: ["Authentication"],
-      responses: { 201: { description: "User registered successfully." } }
-    }
-  },
-  "/api/auth/verify-email": {
-    get: {
-      summary: "Verify user email address",
-      tags: ["Authentication"],
-      responses: { 200: { description: "Email verified successfully." } }
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["name", "email", "password", "confirmPassword"],
+              properties: {
+                name: { type: "string", example: "Daniel" },
+                email: { type: "string", example: "daniel@test.com" },
+                password: { type: "string", example: "StrongPassword123!" },
+                confirmPassword: { type: "string", example: "StrongPassword123!" }
+              }
+            }
+          }
+        }
+      },
+      responses: { 201: { description: "Registered successfully" }, 400: { description: "Validation failed" } }
     }
   },
   "/api/auth/login": {
     post: {
-      summary: "Log in user credentials",
       tags: ["Authentication"],
-      responses: { 200: { description: "Login successful." } }
+      summary: "User login",
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["email", "password"],
+              properties: {
+                email: { type: "string", example: "daniel@test.com" },
+                password: { type: "string", example: "StrongPassword123!" }
+              }
+            }
+          }
+        }
+      },
+      responses: { 200: { description: "Logged in successfully" }, 401: { description: "Invalid credentials" } }
     }
   },
-  "/api/auth/refresh-token": {
-    post: {
-      summary: "Refresh access token",
+  "/api/auth/verify-email": {
+    get: {
       tags: ["Authentication"],
-      security: [{ bearerAuth: [] }],
-      responses: { 200: { description: "Token refreshed." } }
-    }
-  },
-  "/api/auth/logout": {
-    post: {
-      summary: "Log out user session",
-      tags: ["Authentication"],
-      security: [{ bearerAuth: [] }],
-      responses: { 200: { description: "Logged out." } }
-    }
-  },
-  "/api/auth/resend-verification": {
-    post: {
-      summary: "Resend email verification link",
-      tags: ["Authentication"],
-      responses: { 200: { description: "Verification email sent." } }
-    }
-  },
-  "/api/auth/forgot-password": {
-    post: {
-      summary: "Request password reset token",
-      tags: ["Authentication"],
-      responses: { 200: { description: "Reset email dispatched." } }
-    }
-  },
-  "/api/auth/reset-password": {
-    post: {
-      summary: "Execute account password reset",
-      tags: ["Authentication"],
-      responses: { 200: { description: "Password reset completed." } }
+      summary: "Verify user email via token",
+      parameters: [
+        { name: "token", in: "query", required: true, schema: { type: "string" }, example: "verification-token-xyz" }
+      ],
+      responses: { 200: { description: "Email verified" } }
     }
   }
 };
