@@ -11,6 +11,7 @@ import {
     browseProductsService,
     addProductImageService,
     createVaraintService,
+    updateVariantService,
 } from "./product.service.js";
 
 export const createProductController = asyncHandler(async (req: Request, res: Response) => {
@@ -92,108 +93,106 @@ export const updateProductStatusController = asyncHandler(async (req: Request, r
     });
 });
 
-export const deleteProductController = asyncHandler(
-    async (req: Request, res: Response) => {
-
-        const userId = req.user?.id
-        if (!userId) {
-            throw new AppError("Unauthorized.", 401)
-        }
-
-        const { shopId, productId } = req.params as {
-            shopId:    string
-            productId: string
-        }
-
-        const result = await deleteProductService(userId, shopId, productId)
-
-        res.status(200).json({
-            success:    true,
-            statusCode: 200,
-            message:    result.message,
-        })
+export const deleteProductController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) {
+        throw new AppError("Unauthorized.", 401);
     }
-)
 
-export const getPublicProductController = asyncHandler(
-    async (req: Request, res: Response) => {
+    const { shopId, productId } = req.params as {
+        shopId: string;
+        productId: string;
+    };
 
-        const { productId } = req.params as { productId: string }
+    const result = await deleteProductService(userId, shopId, productId);
 
-        const result = await getPublicProductService(productId)
+    res.status(200).json({
+        success: true,
+        statusCode: 200,
+        message: result.message,
+    });
+});
 
-        res.status(200).json({
-            success:    true,
-            statusCode: 200,
-            message:    "Product fetched successfully.",
-            data:       result,
-        })
+export const getPublicProductController = asyncHandler(async (req: Request, res: Response) => {
+    const { productId } = req.params as { productId: string };
+
+    const result = await getPublicProductService(productId);
+
+    res.status(200).json({
+        success: true,
+        statusCode: 200,
+        message: "Product fetched successfully.",
+        data: result,
+    });
+});
+
+export const browseProductsController = asyncHandler(async (req: Request, res: Response) => {
+    const result = await browseProductsService(req.query as any);
+
+    res.status(200).json({
+        success: true,
+        statusCode: 200,
+        message: "Products fetched successfully.",
+        data: result,
+    });
+});
+
+export const addProductImageController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) {
+        throw new AppError("Unauthorized.", 401);
     }
-)
 
+    const { shopId, productId } = req.params as {
+        shopId: string;
+        productId: string;
+    };
 
-export const browseProductsController = asyncHandler(
-    async (req: Request, res: Response) => {
+    const result = await addProductImageService(userId, shopId, productId, req.body);
 
-        const result = await browseProductsService(req.query as any)
+    res.status(201).json({
+        success: true,
+        statusCode: 201,
+        message: "Product image added successfully.",
+        data: result,
+    });
+});
 
-        res.status(200).json({
-            success:    true,
-            statusCode: 200,
-            message:    "Products fetched successfully.",
-            data:       result,
-        })
-    }
-)
+export const createVariantController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) throw new AppError("Unauthorized.", 401);
 
-export const addProductImageController = asyncHandler(
-    async (req: Request, res: Response) => {
+    const { shopId, productId } = req.params as {
+        shopId: string;
+        productId: string;
+    };
 
-        const userId = req.user?.id
-        if (!userId) {
-            throw new AppError("Unauthorized.", 401)
-        }
+    const result = await createVaraintService(userId, shopId, productId, req.body);
 
-        const { shopId, productId } = req.params as {
-            shopId:    string
-            productId: string
-        }
+    res.status(201).json({
+        success: true,
+        statusCode: 201,
+        message: "Variant created successfully.",
+        data: result,
+    });
+});
 
-        const result = await addProductImageService(
-            userId,
-            shopId,
-            productId,
-            req.body
-        )
+export const updateVariantController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) throw new AppError("Unauthorized.", 401);
 
-        res.status(201).json({
-            success:    true,
-            statusCode: 201,
-            message:    "Product image added successfully.",
-            data:       result,
-        })
-    }
-)
+    const { shopId, productId, variantId } = req.params as {
+        shopId: string;
+        productId: string;
+        variantId: string;
+    };
 
-export const createVariantController = asyncHandler(
-    async (req: Request, res: Response) => {
-        const userId = req.user?.id
-        if (!userId) throw new AppError("Unauthorized.", 401)
+    const result = await updateVariantService(userId, shopId, productId, variantId, req.body);
 
-        const { shopId, productId } = req.params as {
-            shopId: string
-            productId: string
-        }
-
-        const result = await  createVaraintService(
-            userId, shopId, productId, req.body
-        )
-
-        res.status(201).json({
-            success:    true,
-            statusCode: 201,
-            message:    "Variant created successfully.",
-            data:       result,
-        })
-    }
-)
+    res.status(200).json({
+        success: true,
+        statusCode: 200,
+        message: "Variant updated successfully.",
+        data: result,
+    });
+});

@@ -378,3 +378,26 @@ export const findProductSkuVariants = async (
         select: { id: true }
     })
 }
+
+
+export const updateVariantRepository = async(
+    variantId:string,
+    data:Partial<{
+         name:string,
+         price:string,
+         stock:number,
+         sku:string
+    }>
+)=>{
+    return prisma.productVariant.update({
+        where:{ id: variantId },
+        data,
+        select:{
+            id:    true,
+            name:  true,
+            price: true,
+            stock: true,
+            sku:   true,
+        }
+    })
+}

@@ -17,6 +17,8 @@ import {
     addProductImageRepository,
     findProductSkuVariants,
     createVariantRepository,
+    findVariantByIdForOwner,
+    updateVariantRepository,
 } from "./product.repository.js";
 import {
     CreateProductData,
@@ -311,78 +313,127 @@ export const browseProductsService = async (query: BrowseProductsQuery) => {
 };
 
 export const addProductImageService = async (
-    userId:string,
-    shopId:string,
-    productId:string,
-    body:{
-        url:string
-        isPrimary:boolean
+    userId: string,
+    shopId: string,
+    productId: string,
+    body: {
+        url: string;
+        isPrimary: boolean;
+    },
+) => {
+    const product = await findProductById(productId);
+    if (!product || product.shopId !== shopId || product.deletedAt) {
+        throw new AppError("Product not found.", 404);
     }
-)=>{
-    const product = await findProductById(productId)
-      if (!product || product.shopId !== shopId || product.deletedAt) {
-        throw new AppError("Product not found.", 404)
-    }
-     const shop = await findShopById(shopId)
-         if (!shop) {
-        throw new AppError("Shop not found.", 404)
-    }
-
-      if (shop.ownerId !== userId) {
-        throw new AppError("You do not own this shop.", 403)
+    const shop = await findShopById(shopId);
+    if (!shop) {
+        throw new AppError("Shop not found.", 404);
     }
 
-      const existingImages = await getProductImagesRepository(productId)
+    if (shop.ownerId !== userId) {
+        throw new AppError("You do not own this shop.", 403);
+    }
+
+    const existingImages = await getProductImagesRepository(productId);
 
     if (existingImages.length >= 10) {
-        throw new AppError(
-            "Product cannot have more than 10 images.",
-            400
-        )
+        throw new AppError("Product cannot have more than 10 images.", 400);
     }
-     const isPrimary = existingImages.length === 0
-        ? true              // ← first image is always primary
-        : body.isPrimary 
-        const image = await addProductImageRepository(productId, body.url, isPrimary)
+    const isPrimary =
+        existingImages.length === 0
+            ? true // ← first image is always primary
+            : body.isPrimary;
+    const image = await addProductImageRepository(productId, body.url, isPrimary);
 
     return {
-        id:        image.id,
-        url:       image.url,
+        id: image.id,
+        url: image.url,
         isPrimary: image.isPrimary,
         createdAt: image.createdAt,
-    }
-}
+    };
+};
 
-export const createVaraintService = async(
-    userId:string,
-    shopId:string,
-    productId:string,
-    body:{
-        name:  string
-        price: string
-        stock: number
-        sku?:  string
-    }
-)=>{
-    const  product = await findProductById(productId)
-    
-     if (!product || product.shopId !== shopId || product.deletedAt) {
-        throw new AppError("Product not found.", 404)
+export const createVaraintService = async (
+    userId: string,
+    shopId: string,
+    productId: string,
+    body: {
+        name: string;
+        price: string;
+        stock: number;
+        sku?: string;
+    },
+) => {
+    const product = await findProductById(productId);
+
+    if (!product || product.shopId !== shopId || product.deletedAt) {
+        throw new AppError("Product not found.", 404);
     }
 
-    const shop = await findShopById(shopId)
+    const shop = await findShopById(shopId);
 
     if (!shop || shop.ownerId !== userId) {
-        throw new AppError("You do not own this shop.", 403)
+        throw new AppError("You do not own this shop.", 403);
     }
 
-        // Step 3 — SKU uniqueness within product
+    // Step 3 — SKU uniqueness within product
     if (body.sku) {
-        const existing = await findProductSkuVariants(productId, body.sku)
+        const existing = await findProductSkuVariants(productId, body.sku);
         if (existing) {
-            throw new AppError("SKU already exists for this product.", 409)
+            throw new AppError("SKU already exists for this product.", 409);
         }
     }
 
-    return  await  createVariantRepository(productId,body)
-}
+    return await createVariantRepository(productId, body);
+};
+
+export const updateVariantService = async (
+    userId: string,
+    shopId: string,
+    productId: string,
+    variantId: string,
+    body: {
+        name?: string;
+        price?: string;
+        stock?: number;
+        sku?: string;
+    },
+) => {
+    const product = await findProductById(productId);
+
+    if (!product || product.shopId !== shopId || product.deletedAt) {
+        throw new AppError("Product not found.", 404);
+    }
+
+    const shop = await findShopById(shopId);
+    if (!shop || shop.ownerId !== userId) {
+        throw new AppError("You do not own this shop.", 403);
+    }
+
+    const variant = await findVariantByIdForOwner(variantId, productId);
+    if (!variant) {
+        throw new AppError("Variant not found.", 404);
+    }
+
+    //  — empty body check
+    const hasUpdates = Object.values(body).some((v) => v !== undefined);
+    if (!hasUpdates) {
+        throw new AppError("No update data provided.", 400);
+    }
+
+    //   SKU uniqueness (excluding self)
+    if (body.sku) {
+        const existing = await findProductSkuVariants(productId, body.sku);
+        if (existing && existing.id !== variantId) {
+            throw new AppError("SKU already exists for this product.", 409);
+        }
+    }
+
+    const updateData: Record<string, unknown> = {};
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.price !== undefined) updateData.price = body.price;
+    if (body.stock !== undefined) updateData.stock = body.stock;
+    if (body.sku !== undefined) updateData.sku = body.sku;
+
+    return updateVariantRepository(variantId, updateData);
+};

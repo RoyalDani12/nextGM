@@ -230,3 +230,32 @@ export const createVariantSchema = z.object({
 
     }).strict()
 })
+
+export const updateVariantSchema = z.object({
+    body: z.object({
+        name:  z
+            .string()
+            .trim()
+            .min(1)
+            .max(100)
+            .optional(),
+
+        price: z
+            .string()
+            .regex(/^\d+(\.\d{1,2})?$/, "Price must be a valid amount.")
+            .optional(),
+
+        stock: z
+            .number()
+            .int()
+            .min(0)
+            .optional(),
+
+        sku: z
+            .string()
+            .trim()
+            .max(100)
+            .optional(),
+
+    }).strict()
+})
