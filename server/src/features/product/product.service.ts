@@ -15,6 +15,8 @@ import {
     browseProductRepository,
     getProductImagesRepository,
     addProductImageRepository,
+    findProductSkuVariants,
+    createVariantRepository,
 } from "./product.repository.js";
 import {
     CreateProductData,
@@ -351,3 +353,36 @@ export const addProductImageService = async (
     }
 }
 
+export const createVaraintService = async(
+    userId:string,
+    shopId:string,
+    productId:string,
+    body:{
+        name:  string
+        price: string
+        stock: number
+        sku?:  string
+    }
+)=>{
+    const  product = await findProductById(productId)
+    
+     if (!product || product.shopId !== shopId || product.deletedAt) {
+        throw new AppError("Product not found.", 404)
+    }
+
+    const shop = await findShopById(shopId)
+
+    if (!shop || shop.ownerId !== userId) {
+        throw new AppError("You do not own this shop.", 403)
+    }
+
+        // Step 3 — SKU uniqueness within product
+    if (body.sku) {
+        const existing = await findProductSkuVariants(productId, body.sku)
+        if (existing) {
+            throw new AppError("SKU already exists for this product.", 409)
+        }
+    }
+
+    return  await  createVariantRepository(productId,body)
+}

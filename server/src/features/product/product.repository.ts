@@ -324,3 +324,57 @@ export const getProductImagesRepository = async (productId: string) => {
         orderBy: { isPrimary: "desc" }
     })
 }
+
+export  const createVariantRepository = async(
+    productId:string,
+    data:{
+        name:string,
+        price:string,
+        stock:number,
+        sku?:string
+    }
+)=>{
+    return prisma.productVariant.create({
+        data:{
+             productId,
+            name:  data.name,
+            price: data.price,
+            stock: data.stock,
+            sku:   data.sku,
+        },
+        select:{
+            id:true,
+            name:true,
+            price:true,
+            stock:true,
+            sku:true,
+            createdAt:true
+        }
+    })
+}
+
+export const findVariantByIdForOwner = async(
+    variantId:string,
+    productId:string
+)=>{
+    return prisma.productVariant.findFirst({
+        where: { id:variantId ,productId },
+        select:{
+            id:    true,
+            name:  true,
+            price: true,
+            stock: true,
+            sku:   true,
+        }
+    })
+}
+
+export const findProductSkuVariants = async (
+    productId: string,
+    sku:       string
+) => {
+    return prisma.productVariant.findFirst({
+        where: { productId, sku },
+        select: { id: true }
+    })
+}
