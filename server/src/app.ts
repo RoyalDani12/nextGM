@@ -6,7 +6,7 @@ const app = express()
 import helmet from "helmet"
 import cookieParser from "cookie-parser"
 import { corsConfig } from "./config/cors.js"
-import morgan from "morgan"
+// import morgan from "morgan"
 import { errHandler } from "./middleware/errorHandler.middleware.js"
 import { notFound } from "./middleware/notFound.js"
 import { generalLimiter } from "./middleware/rateLimiter.middleware.js"
@@ -15,6 +15,7 @@ import userRoute from './features/users/user.routes.js'
 import uploadRoute from './features/uploads/upload.routes.js'
 import productRoute from './features/product/product.routes.js'
 import productPublicRoute from "./features/product/product.public.routes.js"
+import cartRoute from "./features/cart/cart.routes.js"
 import { httpLogger } from "./middleware/httpLogger.middleware.js"
 import shopRoute from "./features/shop/shop.routes.js"
 
@@ -45,6 +46,7 @@ app.use('/api/shops',shopRoute)
 app.use('/api/uploads',uploadRoute)
 app.use('/api/shops/:shopId/products',productRoute)
 app.use('/api/products', productPublicRoute)
+app.use('/api/cart', cartRoute)
 
 app.get('/',(req ,res)=>{
   res.json({message:"server running successfully"})

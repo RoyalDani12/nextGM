@@ -1,0 +1,77 @@
+import { prisma } from "../../config/db.js";
+
+export const findVariantById = async (variantId: string, productId: string) => {
+    return prisma.productVariant.findFirst({
+        where: { id: variantId, productId },
+        select: {
+            id: true,
+            stock: true,
+            price: true,
+            name: true,
+        },
+    });
+};
+
+export const getOrCreateCart = async (userId: string) => {
+    return prisma.cart.upsert({
+        where: { userId },
+        update: {},
+        create: { userId },
+    });
+};
+
+export const upsertCartItem = async (
+    cartId: string,
+    productId: string,
+    quantity: number,
+    variantId?:string,
+) => {
+    // Scenario 1: Product with a specific variant
+      if(variantId){
+
+      return prisma.cartItem.upsert({
+        where: {
+            cartId_productId_variantId: {
+                cartId,
+                productId,
+                variantId: variantId
+            },
+        },
+        update: {
+            quantity: { increment: quantity },
+        },
+        create: {
+            cartId,
+            productId,
+            variantId: variantId ?? null,
+            quantity,
+        },
+        select: {
+            id: true,
+            productId: true,
+            variantId: true,
+            quantity: true,
+        },
+          });
+
+      }
+// Scenario 2: Standard Product without a variant
+      return prisma.cartItem.upsert({
+        where: {
+            cartId_productId: {
+                cartId,
+                productId,
+            },
+        },
+        update: {
+            quantity: { increment: quantity },
+        },
+        create: {
+            cartId,
+            productId,
+            quantity,
+        },
+        select: { id: true, productId: true, quantity: true },
+    });
+
+};

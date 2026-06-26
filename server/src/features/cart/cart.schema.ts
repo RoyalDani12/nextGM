@@ -1,0 +1,21 @@
+import { z } from "zod"
+
+export const addToCartSchema = z.object({
+    body: z.object({
+        productId: z
+            .string()
+            .cuid("Invalid product ID."),
+
+        variantId: z
+            .string()
+            .cuid("Invalid variant ID.")
+            .optional(),
+
+        quantity: z
+            .number()
+            .int("Quantity must be a whole number.")
+            .min(1,   "Quantity must be at least 1.")
+            .max(100, "Quantity cannot exceed 100."),
+
+    }).strict()
+})
