@@ -19,6 +19,7 @@ import {
     createVariantRepository,
     findVariantByIdForOwner,
     updateVariantRepository,
+    deleteVariantRepository,
 } from "./product.repository.js";
 import {
     CreateProductData,
@@ -436,4 +437,35 @@ export const updateVariantService = async (
     if (body.sku !== undefined) updateData.sku = body.sku;
 
     return updateVariantRepository(variantId, updateData);
+};
+
+export const deleteVariantService = async (
+    userId: string,
+    shopId: string,
+    productId: string,
+    variantId: string,
+) => {
+    const product = await findProductById(productId);
+    if (!product || product.shopId !== shopId || product.deletedAt) {
+        throw new AppError("Product not found.", 404);
+    }
+
+    const shop = await findShopById(shopId);
+    if (!shop || shop.ownerId !== userId) {
+        throw new AppError("You do not own this shop.", 403);
+    }
+
+    // verify variant belongs to a product
+
+    const variant = await findVariantByIdForOwner(variantId, productId);
+
+    if (!variant) {
+        throw new AppError("Varaint not found.", 404);
+    }
+
+    await deleteVariantRepository(variantId);
+
+    return {
+        message: "Variant deleted successfully",
+    };
 };
