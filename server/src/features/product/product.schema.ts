@@ -207,3 +207,26 @@ export const addProductImageSchema = z.object({
 
     }).strict()
 })
+
+export const createVariantSchema = z.object({
+    body:z.object({
+        name: z
+              .string()
+              .trim()
+              .min(1,"Varaint name is required")
+              .max(100,"Variant name cannot exceed 100 characters."),
+        price:z
+               .string()
+               .regex(/^\d+(\.\d{1,2})?$/, "Price must be a valid amount (e.g. 9.99)"),
+        stock:z
+              .number()
+              .int("Stock must be a whole number.")
+              .min(0, "Stock cannot be negative."),
+        sku:z
+             .string()
+             .trim()
+             .max(100,"SKU cannot exceed 100 characters.")
+             .optional()
+
+    }).strict()
+})

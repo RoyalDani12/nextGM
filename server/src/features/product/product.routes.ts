@@ -7,6 +7,7 @@ import { createProductSchema,
           updateProductStatusSchema,
           deleteProductSchema,
           addProductImageSchema,
+          createVariantSchema
         } from "./product.schema.js"
 import { createProductController
         ,getShopProductsController, 
@@ -14,6 +15,7 @@ import { createProductController
         updateProductStatusController,
         deleteProductController,
         addProductImageController,
+        createVariantController,
     } from "./product.controller.js"
 
 // mergeParams: true → gives access to :shopId from the parent mount path
@@ -57,5 +59,12 @@ router.post(
     authenticate,
     validate(addProductImageSchema),
     addProductImageController
+)
+
+router.post(
+    "/:productId/variants",
+    authenticate,
+    validate(createVariantSchema),
+    createVariantController
 )
 export default router
