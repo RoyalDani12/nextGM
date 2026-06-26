@@ -275,30 +275,29 @@ export const findProductWithShop = async (productId: string) => {
     return prisma.product.findUnique({
         where: { id: productId },
         select: {
-            id:       true,
-            shopId:   true,
+            id: true,
+            shopId: true,
             deletedAt: true,
             shop: {
                 select: {
                     ownerId: true,
-                    status:  true,
-                }
-            }
-        }
-    })
-}
+                    status: true,
+                },
+            },
+        },
+    });
+};
 export const addProductImageRepository = async (
     productId: string,
-    url:       string,
-    isPrimary: boolean
+    url: string,
+    isPrimary: boolean,
 ) => {
     return prisma.$transaction(async (tx) => {
-
         if (isPrimary) {
             await tx.productImage.updateMany({
                 where: { productId, isPrimary: true },
-                data:  { isPrimary: false }
-            })
+                data: { isPrimary: false },
+            });
         }
 
         return tx.productImage.create({
@@ -306,98 +305,96 @@ export const addProductImageRepository = async (
                 productId,
                 url,
                 isPrimary,
-            }
-        })
-    })
-}
-
+            },
+        });
+    });
+};
 
 export const getProductImagesRepository = async (productId: string) => {
     return prisma.productImage.findMany({
-        where:   { productId },
+        where: { productId },
         select: {
-            id:        true,
-            url:       true,
+            id: true,
+            url: true,
             isPrimary: true,
             createdAt: true,
         },
-        orderBy: { isPrimary: "desc" }
-    })
-}
+        orderBy: { isPrimary: "desc" },
+    });
+};
 
-export  const createVariantRepository = async(
-    productId:string,
-    data:{
-        name:string,
-        price:string,
-        stock:number,
-        sku?:string
-    }
-)=>{
+export const createVariantRepository = async (
+    productId: string,
+    data: {
+        name: string;
+        price: string;
+        stock: number;
+        sku?: string;
+    },
+) => {
     return prisma.productVariant.create({
-        data:{
-             productId,
-            name:  data.name,
+        data: {
+            productId,
+            name: data.name,
             price: data.price,
             stock: data.stock,
-            sku:   data.sku,
+            sku: data.sku,
         },
-        select:{
-            id:true,
-            name:true,
-            price:true,
-            stock:true,
-            sku:true,
-            createdAt:true
-        }
-    })
-}
-
-export const findVariantByIdForOwner = async(
-    variantId:string,
-    productId:string
-)=>{
-    return prisma.productVariant.findFirst({
-        where: { id:variantId ,productId },
-        select:{
-            id:    true,
-            name:  true,
+        select: {
+            id: true,
+            name: true,
             price: true,
             stock: true,
-            sku:   true,
-        }
-    })
-}
+            sku: true,
+            createdAt: true,
+        },
+    });
+};
 
-export const findProductSkuVariants = async (
-    productId: string,
-    sku:       string
-) => {
+export const findVariantByIdForOwner = async (variantId: string, productId: string) => {
+    return prisma.productVariant.findFirst({
+        where: { id: variantId, productId },
+        select: {
+            id: true,
+            name: true,
+            price: true,
+            stock: true,
+            sku: true,
+        },
+    });
+};
+
+export const findProductSkuVariants = async (productId: string, sku: string) => {
     return prisma.productVariant.findFirst({
         where: { productId, sku },
-        select: { id: true }
-    })
-}
+        select: { id: true },
+    });
+};
 
-
-export const updateVariantRepository = async(
-    variantId:string,
-    data:Partial<{
-         name:string,
-         price:string,
-         stock:number,
-         sku:string
-    }>
-)=>{
+export const updateVariantRepository = async (
+    variantId: string,
+    data: Partial<{
+        name: string;
+        price: string;
+        stock: number;
+        sku: string;
+    }>,
+) => {
     return prisma.productVariant.update({
-        where:{ id: variantId },
+        where: { id: variantId },
         data,
-        select:{
-            id:    true,
-            name:  true,
+        select: {
+            id: true,
+            name: true,
             price: true,
             stock: true,
-            sku:   true,
-        }
-    })
-}
+            sku: true,
+        },
+    });
+};
+
+export const deleteVariantRepository = async (variantId: string) => {
+    return prisma.productVariant.delete({
+        where: { id: variantId },
+    });
+};

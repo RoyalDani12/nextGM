@@ -12,6 +12,7 @@ import {
     addProductImageService,
     createVaraintService,
     updateVariantService,
+    deleteVariantService,
 } from "./product.service.js";
 
 export const createProductController = asyncHandler(async (req: Request, res: Response) => {
@@ -196,3 +197,26 @@ export const updateVariantController = asyncHandler(async (req: Request, res: Re
         data: result,
     });
 });
+
+export const deleteVariantController = asyncHandler(
+    async (req: Request, res: Response) => {
+        const userId = req.user?.id
+        if (!userId) throw new AppError("Unauthorized.", 401)
+
+        const { shopId, productId, variantId } = req.params as {
+            shopId:    string
+            productId: string
+            variantId: string
+        }
+
+        const result = await deleteVariantService(
+            userId, shopId, productId, variantId
+        )
+
+        res.status(200).json({
+            success:    true,
+            statusCode: 200,
+            message:    result.message,
+        })
+    }
+)

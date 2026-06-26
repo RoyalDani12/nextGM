@@ -18,6 +18,7 @@ import { createProductController
         addProductImageController,
         createVariantController,
         updateVariantController,
+        deleteVariantController,
     } from "./product.controller.js"
 
 // mergeParams: true → gives access to :shopId from the parent mount path
@@ -76,5 +77,9 @@ router.put(
     validate(updateVariantSchema),
     updateVariantController
 )
-
+router.delete(
+    "/:productId/variants/:variantId",
+    authenticate,
+    deleteVariantController
+)
 export default router
