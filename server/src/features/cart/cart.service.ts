@@ -2,9 +2,11 @@ import { totalmem } from "node:os";
 import { AppError } from "../../middleware/appError.js";
 import { findPublicProductById } from "../product/product.repository.js";
 import {
+    findCartItemById,
     findVariantById,
     getCartWithItems,
     getOrCreateCart,
+    updateCartItemQuantity,
     upsertCartItem,
 } from "./cart.repository.js";
 
@@ -121,3 +123,29 @@ export const getCartService = async (userId: string) => {
         totalPrice,
     };
 };
+
+export const updateCartItemService = async(
+    userId:string,
+    itemId:string,
+    quantity:number
+)=>{
+       // find Item and verify OwnerShip
+    const  item = await findCartItemById(itemId,userId)
+
+    if(!item){
+        throw new AppError("Cart Item Not found.",404)
+    }
+
+
+    // check stock
+    const availableStock = item.variant ? item.variant.stock : item.product.stock
+
+    if(availableStock < quantity){
+        throw new AppError(
+            `Insufficint stock. only ${availableStock} avaliable.`,
+            400
+        )
+    }
+
+    return updateCartItemQuantity(itemId,quantity)
+}
