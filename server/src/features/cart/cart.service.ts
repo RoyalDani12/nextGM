@@ -9,6 +9,7 @@ import {
     getOrCreateCart,
     updateCartItemQuantity,
     upsertCartItem,
+    clearCart,
 } from "./cart.repository.js";
 
 interface AddToCartInput {
@@ -125,43 +126,41 @@ export const getCartService = async (userId: string) => {
     };
 };
 
-export const updateCartItemService = async(
-    userId:string,
-    itemId:string,
-    quantity:number
-)=>{
-       // find Item and verify OwnerShip
-    const  item = await findCartItemById(itemId,userId)
+export const updateCartItemService = async (userId: string, itemId: string, quantity: number) => {
+    // find Item and verify OwnerShip
+    const item = await findCartItemById(itemId, userId);
 
-    if(!item){
-        throw new AppError("Cart Item Not found.",404)
+    if (!item) {
+        throw new AppError("Cart Item Not found.", 404);
     }
-
 
     // check stock
-    const availableStock = item.variant ? item.variant.stock : item.product.stock
+    const availableStock = item.variant ? item.variant.stock : item.product.stock;
 
-    if(availableStock < quantity){
-        throw new AppError(
-            `Insufficint stock. only ${availableStock} avaliable.`,
-            400
-        )
+    if (availableStock < quantity) {
+        throw new AppError(`Insufficint stock. only ${availableStock} avaliable.`, 400);
     }
 
-    return updateCartItemQuantity(itemId,quantity)
-}
+    return updateCartItemQuantity(itemId, quantity);
+};
 
-export const removeCartItemService = async(userId:string,itemId:string)=>{
+export const removeCartItemService = async (userId: string, itemId: string) => {
+    const item = await findCartItemById(itemId, userId);
 
-     const item = await findCartItemById(itemId,userId)
-
-      if (!item) {
-        throw new AppError("Cart item not found.", 404)
+    if (!item) {
+        throw new AppError("Cart item not found.", 404);
     }
 
-    await deleteCartItem(itemId)
+    await deleteCartItem(itemId);
     return {
-        message:"Item removed from cart."
-    }
+        message: "Item removed from cart.",
+    };
+};
 
-}
+export const clearCartService = async (userId: string) => {
+    const result = await clearCart(userId);
+
+    return {
+        message: `Cart Cleard. ${result.count} items(s) removed.`,
+    };
+};

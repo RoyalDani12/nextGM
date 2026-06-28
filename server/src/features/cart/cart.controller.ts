@@ -6,6 +6,7 @@ import {
     getCartService,
     removeCartItemService,
     updateCartItemService,
+    clearCartService,
 } from "./cart.service.js";
 
 export const addToCartController = asyncHandler(async (req: Request, res: Response) => {
@@ -74,3 +75,18 @@ export const removeCartItemController = asyncHandler(async (req: Request, res: R
         message: result.message,
     });
 });
+
+export const clearCartController = asyncHandler(
+    async (req: Request, res: Response) => {
+        const userId = req.user?.id
+        if (!userId) throw new AppError("Unauthorized.", 401)
+
+        const result = await clearCartService(userId)
+
+        res.status(200).json({
+            success:    true,
+            statusCode: 200,
+            message:    result.message,
+        })
+    }
+)
