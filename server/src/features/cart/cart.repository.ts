@@ -148,3 +148,9 @@ export const updateCartItemQuantity = async (itemId: string, quantity: number) =
         },
     });
 };
+
+export const deleteCartItem = async(itemId:string)=>{
+    return prisma.cartItem.delete({
+        where:{ id:itemId }
+    })
+}
