@@ -43,6 +43,12 @@ enum ProductType {
   PHYSICAL
   DIGITAL
 }
+enum Gender {
+  MEN
+  WOMEN
+  UNISEX
+  KIDS
+}
 
 enum ProductStatus {
   DRAFT
@@ -287,11 +293,35 @@ model ProductCategory {
   @@index([shopId])
 }
 
+// PLATFORM-WIDE categories 
+model Category {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  parentId    String?
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryTree")
+  imageUrl    String?
+  isActive    Boolean    @default(true)
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+
+  products    Product[]
+
+  @@index([parentId])
+  @@index([slug])
+}
+
 model Product {
   id         String           @id @default(cuid())
   shopId     String
   shop       Shop             @relation(fields: [shopId], references: [id])
-  categoryId String?
+  categoryId    String?
+platformCategoryId  String?
+platformCategory    Category? @relation(fields: [platformCategoryId], references: [id])
+
+  gender              Gender?   // ← MEN, WOMEN, UNISEX, KIDS
+  tags                String[]    // ← ["running", "casual", "waterproof"]
   cartItems         CartItem[]  
   category   ProductCategory? @relation(fields: [categoryId], references: [id])
 
