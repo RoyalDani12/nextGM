@@ -7,6 +7,7 @@ import {
      getCartController,
      updateCartItemController,
      removeCartItemController,
+     clearCartController,
      } from "./cart.controller.js"
 
 const router = express.Router()
@@ -32,6 +33,11 @@ router.delete(
     "/items/:itemId",
     authenticate,
     removeCartItemController
+)
+router.delete(
+    "/clear",
+    authenticate,
+    clearCartController
 )
 
 export default router
