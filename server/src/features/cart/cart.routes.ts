@@ -5,7 +5,8 @@ import { addToCartSchema, updateCartItemSchema } from "./cart.schema.js"
 import {
      addToCartController,
      getCartController,
-     updateCartItemController
+     updateCartItemController,
+     removeCartItemController,
      } from "./cart.controller.js"
 
 const router = express.Router()
@@ -26,6 +27,11 @@ router.patch(
     authenticate,
     validate(updateCartItemSchema),
     updateCartItemController
+)
+router.delete(
+    "/items/:itemId",
+    authenticate,
+    removeCartItemController
 )
 
 export default router

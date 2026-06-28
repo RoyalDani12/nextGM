@@ -2,6 +2,7 @@ import { totalmem } from "node:os";
 import { AppError } from "../../middleware/appError.js";
 import { findPublicProductById } from "../product/product.repository.js";
 import {
+    deleteCartItem,
     findCartItemById,
     findVariantById,
     getCartWithItems,
@@ -148,4 +149,19 @@ export const updateCartItemService = async(
     }
 
     return updateCartItemQuantity(itemId,quantity)
+}
+
+export const removeCartItemService = async(userId:string,itemId:string)=>{
+
+     const item = await findCartItemById(itemId,userId)
+
+      if (!item) {
+        throw new AppError("Cart item not found.", 404)
+    }
+
+    await deleteCartItem(itemId)
+    return {
+        message:"Item removed from cart."
+    }
+
 }
