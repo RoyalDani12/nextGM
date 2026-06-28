@@ -1,8 +1,12 @@
 import express from "express"
 import { authenticate } from "../../middleware/auth.middleware.js"
 import { validate } from "../../middleware/validate.middleware.js"
-import { addToCartSchema } from "./cart.schema.js"
-import { addToCartController,getCartController } from "./cart.controller.js"
+import { addToCartSchema, updateCartItemSchema } from "./cart.schema.js"
+import {
+     addToCartController,
+     getCartController,
+     updateCartItemController
+     } from "./cart.controller.js"
 
 const router = express.Router()
 
@@ -16,6 +20,12 @@ router.get(
     "/view-cart-items",
     authenticate,
     getCartController
+)
+router.patch(
+    "/items/:itemId",
+    authenticate,
+    validate(updateCartItemSchema),
+    updateCartItemController
 )
 
 export default router
