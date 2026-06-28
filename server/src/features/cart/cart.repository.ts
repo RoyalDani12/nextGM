@@ -75,3 +75,48 @@ export const upsertCartItem = async (
     });
 
 };
+
+
+export const getCartWithItems = async (userId:string)=>{
+    return prisma.cart.findUnique({
+        where:{ userId },
+        include :{
+            items:{
+                include :{
+                    product :{
+                        select :{
+                            id: true,
+                            name:true,
+                            slug:true,
+                            basePrice:true,
+                            status:true,
+                            shop :{
+                                select :{
+                                    slug :true,
+                                    status :true,
+                                    profile:{
+                                        select: { name: true }
+                                    }
+                                }
+                            },
+                            images :{
+                                where: { isPrimary :true },
+                                select :{ url : true },
+                                take : 1
+                            }
+                        }
+                    },
+                    variant : {
+                        select :{
+                            id : true,
+                            name: true,
+                            price :true,
+                            stock :true,
+                        }
+                    }
+                },
+                orderBy :{ createdAt : "asc"}
+            }
+        }
+    })
+}
