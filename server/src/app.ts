@@ -16,6 +16,7 @@ import uploadRoute from './features/uploads/upload.routes.js'
 import productRoute from './features/product/product.routes.js'
 import productPublicRoute from "./features/product/product.public.routes.js"
 import cartRoute from "./features/cart/cart.routes.js"
+import orderRoute from "./features/orders/order.route.js"
 import { httpLogger } from "./middleware/httpLogger.middleware.js"
 import shopRoute from "./features/shop/shop.routes.js"
 
@@ -47,6 +48,7 @@ app.use('/api/uploads',uploadRoute)
 app.use('/api/shops/:shopId/products',productRoute)
 app.use('/api/products', productPublicRoute)
 app.use('/api/cart', cartRoute)
+app.use('/api/orders', orderRoute)
 
 app.get('/',(req ,res)=>{
   res.json({message:"server running successfully"})
