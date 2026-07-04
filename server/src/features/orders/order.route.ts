@@ -1,8 +1,8 @@
 import express from "express"
 import { authenticate } from "../../middleware/auth.middleware.js"
 import { validate } from "../../middleware/validate.middleware.js"
-import { checkoutSchema } from "./order.schema.js"
-import { checkoutController } from "./order.controller.js"
+import { checkoutSchema, getOrdersSchema } from "./order.schema.js"
+import { checkoutController, getCustomerOrderController } from "./order.controller.js"
 
 const router = express.Router()
 
@@ -13,4 +13,10 @@ router.post(
     checkoutController
 )
 
+router.get(
+    "/",
+    authenticate,
+    validate(getOrdersSchema),
+    getCustomerOrderController
+)
 export default router

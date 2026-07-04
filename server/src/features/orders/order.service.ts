@@ -1,7 +1,7 @@
 import { AppError } from "../../middleware/appError.js";
 import { getCartWithItems, clearCart } from "../cart/cart.repository.js";
-import { createOrdersFromCart } from "./order.repository.js";
-import { shipAddressInput } from "./order.types.js";
+import { createOrdersFromCart, getCustomerOrdersRepository } from "./order.repository.js";
+import { GetOrdersQuery, shipAddressInput } from "./order.types.js";
 
 export const checkoutService = async (customerId: string, shippingAddress: shipAddressInput) => {
     const cart = await getCartWithItems(customerId);
@@ -82,3 +82,47 @@ export const checkoutService = async (customerId: string, shippingAddress: shipA
         grandTotal,
     };
 };
+
+export const getCustomerOrdersService = async(
+    customerId:string,
+    query:GetOrdersQuery
+)=>{
+     const page = Math.max(1,query.page ?? 1)
+     const limit = Math.min(50,query.limit ?? 10)
+     const skip = (page -1) * limit
+
+     const { orders , total } = await getCustomerOrdersRepository({
+        customerId,
+        status:query.status,
+        skip,
+        take:limit
+     })
+
+     const  totalPages = Math.ceil(total/ limit)
+
+     const shaped = orders.map((order)=>({
+        id:order.id,
+        status:  order.status,
+        totalAmount: order.totalAmount,
+        createdAt:order.createdAt,
+        shop:{
+            slug:order.shop.slug,
+            name:order.shop.profile?.name ?? null,
+            logo: order.shop.profile?.logo ?? null,
+        },
+        itemCount: order.items.length,
+        payment: order.payment ?? null,
+     }))
+
+      return {
+        orders:shaped,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages,
+            hasNextPage: page < totalPages,
+            hasPrevPage: page > 1
+        }
+      }
+}

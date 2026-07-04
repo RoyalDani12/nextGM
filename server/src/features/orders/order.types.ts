@@ -1,4 +1,5 @@
 import {Prisma } from "@prisma/client"
+import { OrderStatus } from "@prisma/client";
 export interface shipAddressInput {
   fullName :  string
   phone :      string
@@ -35,4 +36,17 @@ export interface shopGroup {
   shopId:   string
   shopSlug:  string
   items:  ccartItemForCheckOut[]
+}
+
+export interface GetCustomerOrdersOptions {
+  customerId : string
+  status?:  OrderStatus
+  skip:   number
+  take:   number
+}
+
+export interface GetOrdersQuery {
+    status?: OrderStatus
+    page?:   number
+    limit?:  number
 }

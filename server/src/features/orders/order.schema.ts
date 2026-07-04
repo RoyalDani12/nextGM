@@ -48,3 +48,26 @@ export const checkoutSchema = z.object({
 })
 
 export type CheckoutInput = z.infer<typeof checkoutSchema>
+
+
+export const  getOrdersSchema = z.object({
+    
+       query:z.object({
+         status: z
+           .enum([
+               "PENDING","CONFIRMED","PROCESSING","SHIPPED","DELIVERED","CANCELLED","REFUNDED"
+         ]).optional(),
+         
+         page:z
+               .string()
+               .regex(/^\d+$/)
+               .transform(Number)
+               .optional(),
+         limit: z
+              .string()
+              .regex(/^\d+$/)
+              .transform(Number)
+              .optional()
+
+       })
+})
