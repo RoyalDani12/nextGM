@@ -1,6 +1,10 @@
 import { AppError } from "../../middleware/appError.js";
 import { getCartWithItems, clearCart } from "../cart/cart.repository.js";
-import { createOrdersFromCart, getCustomerOrdersRepository } from "./order.repository.js";
+import {
+    createOrdersFromCart,
+    getCustomerOrderByIdRepository,
+    getCustomerOrdersRepository,
+} from "./order.repository.js";
 import { GetOrdersQuery, shipAddressInput } from "./order.types.js";
 
 export const checkoutService = async (customerId: string, shippingAddress: shipAddressInput) => {
@@ -58,10 +62,8 @@ export const checkoutService = async (customerId: string, shippingAddress: shipA
 
     const shopGroups = Object.values(shopGroupMap);
 
-    
     //create all orders in one transaction
     const createdOrders = await createOrdersFromCart(customerId, shopGroups, shippingAddress);
-
 
     try {
         await clearCart(customerId);
@@ -75,7 +77,6 @@ export const checkoutService = async (customerId: string, shippingAddress: shipA
         .reduce((sum, order) => sum + Number(order.totalAmount), 0)
         .toFixed(2);
 
-        
     return {
         orders: createdOrders,
         totalOrders: createdOrders.length,
@@ -83,46 +84,53 @@ export const checkoutService = async (customerId: string, shippingAddress: shipA
     };
 };
 
-export const getCustomerOrdersService = async(
-    customerId:string,
-    query:GetOrdersQuery
-)=>{
-     const page = Math.max(1,query.page ?? 1)
-     const limit = Math.min(50,query.limit ?? 10)
-     const skip = (page -1) * limit
+export const getCustomerOrdersService = async (customerId: string, query: GetOrdersQuery) => {
+    const page = Math.max(1, query.page ?? 1);
+    const limit = Math.min(50, query.limit ?? 10);
+    const skip = (page - 1) * limit;
 
-     const { orders , total } = await getCustomerOrdersRepository({
+    const { orders, total } = await getCustomerOrdersRepository({
         customerId,
-        status:query.status,
+        status: query.status,
         skip,
-        take:limit
-     })
+        take: limit,
+    });
 
-     const  totalPages = Math.ceil(total/ limit)
+    const totalPages = Math.ceil(total / limit);
 
-     const shaped = orders.map((order)=>({
-        id:order.id,
-        status:  order.status,
+    const shaped = orders.map((order) => ({
+        id: order.id,
+        status: order.status,
         totalAmount: order.totalAmount,
-        createdAt:order.createdAt,
-        shop:{
-            slug:order.shop.slug,
-            name:order.shop.profile?.name ?? null,
+        createdAt: order.createdAt,
+        shop: {
+            slug: order.shop.slug,
+            name: order.shop.profile?.name ?? null,
             logo: order.shop.profile?.logo ?? null,
         },
         itemCount: order.items.length,
         payment: order.payment ?? null,
-     }))
+    }));
 
-      return {
-        orders:shaped,
+    return {
+        orders: shaped,
         pagination: {
             total,
             page,
             limit,
             totalPages,
             hasNextPage: page < totalPages,
-            hasPrevPage: page > 1
-        }
-      }
-}
+            hasPrevPage: page > 1,
+        },
+    };
+};
+
+export const getCustomerrderByIdService = async (orderId: string, customerId: string) => {
+    const order = await getCustomerOrderByIdRepository(orderId, customerId);
+
+    if (!order) {
+        throw new AppError("Order not found.", 404);
+    }
+
+    return order;
+};
