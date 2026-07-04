@@ -452,6 +452,8 @@ model Order {
   @@index([customerId])
   @@index([status])
   @@index([idempotencyKey])
+  @@index([customerId, status])   
+  @@index([customerId, createdAt])
 }
 
 model OrderItem {
