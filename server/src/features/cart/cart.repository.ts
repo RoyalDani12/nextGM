@@ -86,12 +86,16 @@ export const getCartWithItems = async (userId: string) => {
                             slug: true,
                             basePrice: true,
                             status: true,
+                            stock:true,
+                            shopId:true,
                             shop: {
                                 select: {
                                     slug: true,
                                     status: true,
                                     profile: {
-                                        select: { name: true },
+                                        select: { name: true,
+                                            logo:true
+                                         },
                                     },
                                 },
                             },
