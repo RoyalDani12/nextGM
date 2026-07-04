@@ -146,3 +146,89 @@ export const getCustomerOrdersRepository = async (
       ])
       return { orders,total }
 }
+
+export const getCustomerOrderByIdRepository = async (
+    orderId:    string,
+    customerId: string
+) => {
+    return prisma.order.findFirst({
+        where: {
+            id:         orderId,
+            customerId,            // ← ownership: only see YOUR order
+            deletedAt:  null,
+        },
+        select: {
+            id:            true,
+            status:        true,
+            totalAmount:   true,
+            discountAmount: true,
+            notes:         true,
+            createdAt:     true,
+            updatedAt:     true,
+            shop: {
+                select: {
+                    slug:    true,
+                    profile: {
+                        select: {
+                            name:  true,
+                            logo:  true,
+                            email: true,
+                            phone: true,
+                        }
+                    }
+                }
+            },
+            items: {
+                select: {
+                    id:        true,
+                    quantity:  true,
+                    unitPrice: true,
+                    product: {
+                        select: {
+                            id:   true,
+                            name: true,
+                            slug: true,
+                            images: {
+                                where:  { isPrimary: true },
+                                select: { url: true },
+                                take:   1,
+                            }
+                        }
+                    },
+                    variant: {
+                        select: {
+                            id:   true,
+                            name: true,
+                        }
+                    }
+                }
+            },
+            shippingAddress: {
+                select: {
+                    fullName:   true,
+                    phone:      true,
+                    address:    true,
+                    city:       true,
+                    country:    true,
+                    postalCode: true,
+                }
+            },
+            payment: {
+                select: {
+                    status:   true,
+                    amount:   true,
+                    currency: true,
+                    provider: true,
+                }
+            },
+            statusHistory: {
+                select: {
+                    status:    true,
+                    note:      true,
+                    createdAt: true,
+                },
+                orderBy: { createdAt: "asc" }
+            }
+        }
+    })
+}
