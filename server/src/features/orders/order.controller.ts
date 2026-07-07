@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { AppError } from "../../middleware/appError.js";
 import {
+    cancelOrderService,
     checkoutService,
     getCustomerOrdersService,
     getCustomerrderByIdService,
@@ -58,3 +59,22 @@ export const getCustomerOrderByIdController = asyncHandler(async (req: Request, 
         data: result,
     });
 });
+
+export const cancelOrderController = asyncHandler( async ( req:Request,res:Response)=>{
+
+    const userId = req.user?.id
+    if(!userId){
+        throw new AppError("Unauthorized.",401)
+    }
+
+    const { orderId } = req.params as { orderId:string }
+
+    const result = await cancelOrderService(orderId,userId)
+
+    res.status(200).json({
+        success:true,
+        statusCode:200,
+        message:"Order cancelled sucessfully.",
+        data:result,
+    })
+})

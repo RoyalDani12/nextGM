@@ -1,4 +1,5 @@
 import { prisma } from "../../config/db.js";
+import { AppError } from "../../middleware/appError.js";
 import { GetCustomerOrdersOptions, shipAddressInput, shopGroup } from "./order.types.js";
 import crypto from "crypto";
 
@@ -230,5 +231,83 @@ export const getCustomerOrderByIdRepository = async (
                 orderBy: { createdAt: "asc" }
             }
         }
+    })
+}
+
+export const findOrderForCancelRepository = async (orderId:string,customerId:string)=>{
+    return prisma.order.findFirst({
+        where :{ id:orderId ,customerId,deletedAt:null },
+        select :{
+            id:true,
+            status:true,
+            items:{
+                select :{
+                    productId :true,
+                    variantId:true,
+                    quantity:true
+                }
+            }
+
+        }
+    })
+}
+
+const CANCELABLE_STATUSES = ["PENDING", "CONFIRMED"] as const;
+
+export const cancelOrderRepository = async(
+    orderId:string,
+    items: { productId: string; variantId: string | null; quantity: number }[],
+)=>{
+    return prisma.$transaction(async (tx)=>{
+        /* 
+        Atomic guard: only flips status if it's STILL in a cancelable state.
+        If another request (shop marking it SHIPPED, or a double-click cancel)
+        already moved it out of PENDING/CONFIRMED, count is 0 and we bail —
+        no stock gets restored twice, no order gets cancelled twice. */
+
+        const guard = await tx.order.updateMany({
+            where: { id:orderId,status:{ in:[... CANCELABLE_STATUSES] }},
+            data: { status:"CANCELLED" },
+        })
+
+        if(guard.count === 0){
+            throw new AppError(
+                "Order can no longer be cancelled -its status has changed.",
+                409
+            )
+        }
+        // restore stock — increment is always safe, no gte guard needed
+        await Promise.all(
+            items.map((item)=>
+            item.variantId
+               ? tx.productVariant.update({
+                where: { id: item.variantId },
+                data: { stock :{ increment :item.quantity }}
+               }) :
+               tx.product.update({
+                where: { id:item.productId },
+                data: { stock: { increment :item.quantity }}
+               })
+             )
+
+        )
+
+        await tx.orderStatusHistory.create({
+            data: {
+                orderId,
+                status:"CANCELLED",
+                note:"Order cancelled by customer."
+            }
+        })
+
+        return tx.order.findUnique({
+            where:{ id: orderId },
+            select: {
+                id:true,
+                status:true,
+                totalAmount:true,
+                updatedAt:true
+            }
+        })
     })
 }

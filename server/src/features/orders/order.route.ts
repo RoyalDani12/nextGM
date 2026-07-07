@@ -3,6 +3,7 @@ import { authenticate } from "../../middleware/auth.middleware.js"
 import { validate } from "../../middleware/validate.middleware.js"
 import { checkoutSchema, getOrdersSchema } from "./order.schema.js"
 import {
+    cancelOrderController,
       checkoutController,
       getCustomerOrderByIdController,
       getCustomerOrderController
@@ -27,5 +28,11 @@ router.get(
     "/:orderId",
     authenticate,
     getCustomerOrderByIdController
+)
+
+router.post(
+    "/:orderId/cancel",
+    authenticate,
+    cancelOrderController
 )
 export default router
