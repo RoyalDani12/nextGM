@@ -1,7 +1,9 @@
 import { AppError } from "../../middleware/appError.js";
 import { getCartWithItems, clearCart } from "../cart/cart.repository.js";
 import {
+    cancelOrderRepository,
     createOrdersFromCart,
+    findOrderForCancelRepository,
     getCustomerOrderByIdRepository,
     getCustomerOrdersRepository,
 } from "./order.repository.js";
@@ -134,3 +136,19 @@ export const getCustomerrderByIdService = async (orderId: string, customerId: st
 
     return order;
 };
+
+export const cancelOrderService= async (orderId:string,customerId:string)=>{
+      const order = await findOrderForCancelRepository(orderId,customerId)
+
+      if(!order){
+        throw new AppError("Order not found.",404)
+      }
+      
+      if(!["PENDING","CONFIRMED"].includes(order.status)){
+        throw new AppError(
+            `Order cannot be cancelled - current status is ${order.status}`,
+            400
+        )
+      }
+      return cancelOrderRepository(orderId,order.items)
+}
