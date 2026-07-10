@@ -9,6 +9,10 @@ declare global {
         status: string;
         passwordChangedAt: Date | string | null
       };
+      shop?:{
+        id:string
+        ownerId:string
+      }
     }
   }
 }

@@ -1,5 +1,6 @@
 import {Prisma } from "@prisma/client"
 import { OrderStatus } from "@prisma/client";
+import { number, string } from "zod";
 export interface shipAddressInput {
   fullName :  string
   phone :      string
@@ -50,3 +51,11 @@ export interface GetOrdersQuery {
     page?:   number
     limit?:  number
 }
+
+
+export type GetShopOrdersOptions = {
+    shopId: string;
+    status?: OrderStatus;
+    skip: number;
+    take: number;
+};
