@@ -6,6 +6,7 @@ import {
     checkoutService,
     getCustomerOrdersService,
     getCustomerrderByIdService,
+    getShopOrdersService,
 } from "./order.service.js";
 
 export const checkoutController = asyncHandler(async (req: Request, res: Response) => {
@@ -60,21 +61,32 @@ export const getCustomerOrderByIdController = asyncHandler(async (req: Request, 
     });
 });
 
-export const cancelOrderController = asyncHandler( async ( req:Request,res:Response)=>{
-
-    const userId = req.user?.id
-    if(!userId){
-        throw new AppError("Unauthorized.",401)
+export const cancelOrderController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) {
+        throw new AppError("Unauthorized.", 401);
     }
 
-    const { orderId } = req.params as { orderId:string }
+    const { orderId } = req.params as { orderId: string };
 
-    const result = await cancelOrderService(orderId,userId)
+    const result = await cancelOrderService(orderId, userId);
 
     res.status(200).json({
-        success:true,
-        statusCode:200,
-        message:"Order cancelled sucessfully.",
-        data:result,
-    })
-})
+        success: true,
+        statusCode: 200,
+        message: "Order cancelled sucessfully.",
+        data: result,
+    });
+});
+
+export const getShopOrdersController = asyncHandler(async (req: Request, res: Response) => {
+    const { shopId } = req.params as { shopId: string };
+    const result = await getShopOrdersService(shopId, req.query as any);
+
+    res.status(200).json({
+        sucess: true,
+        statusCode: 200,
+        message: "Shop orders fetched sucessfully.",
+        data: result,
+    });
+});

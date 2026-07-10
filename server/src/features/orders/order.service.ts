@@ -6,6 +6,7 @@ import {
     findOrderForCancelRepository,
     getCustomerOrderByIdRepository,
     getCustomerOrdersRepository,
+    getShopOrdersRepository,
 } from "./order.repository.js";
 import { GetOrdersQuery, shipAddressInput } from "./order.types.js";
 
@@ -151,4 +152,46 @@ export const cancelOrderService= async (orderId:string,customerId:string)=>{
         )
       }
       return cancelOrderRepository(orderId,order.items)
+}
+
+export const getShopOrdersService = async ( shopId:string,query:GetOrdersQuery)=>{
+   const page = Math.max(1,query.page ?? 1)  
+   const limit =Math.min(50,query.limit ?? 20)
+   const skip = (page - 1)* limit
+
+   const { orders, total } = await getShopOrdersRepository({
+    shopId,
+    status:query.status,
+    skip,
+    take:limit
+   })
+
+   const totalPages = Math.ceil(total / limit )
+
+   const shaped = orders.map((order)=>({
+    id:order.id,
+    status:order.status,
+    totalAmount:order.totalAmount,
+    createdAt:order.createdAt,
+    itemCount:order.items.length,
+    shipTo:{
+        fullName: order.shippingAddress?.fullName ?? null,
+        city:order.shippingAddress?.city ?? null,
+        country:order.shippingAddress?.country ?? null
+    },
+    paymentStatus:order.payment?.status ?? null
+   }))
+
+
+   return {
+    orders:shaped,
+    pagination:{
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage:page < totalPages,
+        hasPrevPage:page > 1
+    }
+   }
 }

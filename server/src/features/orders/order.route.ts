@@ -6,8 +6,10 @@ import {
     cancelOrderController,
       checkoutController,
       getCustomerOrderByIdController,
-      getCustomerOrderController
+      getCustomerOrderController,
+      getShopOrdersController
      } from "./order.controller.js"
+import { authorizeShopAccess } from "../../middleware/authorizeShopAccess.middleware.js"
 
 const router = express.Router()
 
@@ -34,5 +36,13 @@ router.post(
     "/:orderId/cancel",
     authenticate,
     cancelOrderController
+)
+
+router.get(
+    "/:shopId/orders",
+    authenticate,
+    authorizeShopAccess,
+    validate(getOrdersSchema),
+    getShopOrdersController
 )
 export default router

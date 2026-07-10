@@ -1,6 +1,6 @@
 import { prisma } from "../../config/db.js";
 import { AppError } from "../../middleware/appError.js";
-import { GetCustomerOrdersOptions, shipAddressInput, shopGroup } from "./order.types.js";
+import { GetCustomerOrdersOptions, GetShopOrdersOptions, shipAddressInput, shopGroup } from "./order.types.js";
 import crypto from "crypto";
 
 export const createOrdersFromCart = async (
@@ -310,4 +310,41 @@ export const cancelOrderRepository = async(
             }
         })
     })
+}
+
+export const getShopOrdersRepository = async(options:GetShopOrdersOptions)=>{
+     const { shopId,status,skip,take } = options
+
+     const where ={
+        shopId,
+        deletedAt:null,
+        ...(status &&{status})
+     }
+
+     const [orders,total ] = await Promise.all([
+         prisma.order.findMany({
+             where,
+             select:{
+                id:true,
+                status:true,
+                totalAmount:true,
+                createdAt:true,
+                items:{
+                    select: { id:true,quantity:true }
+                },
+                shippingAddress:{
+                    select:{ fullName:true,city:true,country:true }
+                },
+                payment:{
+                    select: { status:true }
+                }
+             },
+             orderBy:{ createdAt:"desc" },
+             skip,
+             take,
+         }),
+
+        prisma.order.count ({ where })
+     ])
+     return { orders,total }
 }
