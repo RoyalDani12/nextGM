@@ -6,6 +6,7 @@ import {
     checkoutService,
     getCustomerOrdersService,
     getCustomerrderByIdService,
+    getShopOrderByIdService,
     getShopOrdersService,
 } from "./order.service.js";
 
@@ -87,6 +88,18 @@ export const getShopOrdersController = asyncHandler(async (req: Request, res: Re
         sucess: true,
         statusCode: 200,
         message: "Shop orders fetched sucessfully.",
+        data: result,
+    });
+});
+
+export const getShopOrderByIdController = asyncHandler(async (req: Request, res: Response) => {
+    const { shopId, orderId } = req.params as { shopId: string; orderId: string };
+
+    const result = await getShopOrderByIdService(orderId, shopId);
+    res.status(200).json({
+        success: true,
+        statusCode: 200,
+        message: "Order fetched successfully.",
         data: result,
     });
 });

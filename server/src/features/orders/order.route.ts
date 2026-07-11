@@ -7,6 +7,7 @@ import {
       checkoutController,
       getCustomerOrderByIdController,
       getCustomerOrderController,
+      getShopOrderByIdController,
       getShopOrdersController
      } from "./order.controller.js"
 import { authorizeShopAccess } from "../../middleware/authorizeShopAccess.middleware.js"
@@ -44,5 +45,11 @@ router.get(
     authorizeShopAccess,
     validate(getOrdersSchema),
     getShopOrdersController
+)
+router.get(
+    "/:shopId/orders/:orderId",
+    authenticate,
+    authorizeShopAccess,
+    getShopOrderByIdController
 )
 export default router

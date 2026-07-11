@@ -6,6 +6,7 @@ import {
     findOrderForCancelRepository,
     getCustomerOrderByIdRepository,
     getCustomerOrdersRepository,
+    getShopOrderByIdRepository,
     getShopOrdersRepository,
 } from "./order.repository.js";
 import { GetOrdersQuery, shipAddressInput } from "./order.types.js";
@@ -138,60 +139,66 @@ export const getCustomerrderByIdService = async (orderId: string, customerId: st
     return order;
 };
 
-export const cancelOrderService= async (orderId:string,customerId:string)=>{
-      const order = await findOrderForCancelRepository(orderId,customerId)
+export const cancelOrderService = async (orderId: string, customerId: string) => {
+    const order = await findOrderForCancelRepository(orderId, customerId);
 
-      if(!order){
-        throw new AppError("Order not found.",404)
-      }
-      
-      if(!["PENDING","CONFIRMED"].includes(order.status)){
-        throw new AppError(
-            `Order cannot be cancelled - current status is ${order.status}`,
-            400
-        )
-      }
-      return cancelOrderRepository(orderId,order.items)
-}
-
-export const getShopOrdersService = async ( shopId:string,query:GetOrdersQuery)=>{
-   const page = Math.max(1,query.page ?? 1)  
-   const limit =Math.min(50,query.limit ?? 20)
-   const skip = (page - 1)* limit
-
-   const { orders, total } = await getShopOrdersRepository({
-    shopId,
-    status:query.status,
-    skip,
-    take:limit
-   })
-
-   const totalPages = Math.ceil(total / limit )
-
-   const shaped = orders.map((order)=>({
-    id:order.id,
-    status:order.status,
-    totalAmount:order.totalAmount,
-    createdAt:order.createdAt,
-    itemCount:order.items.length,
-    shipTo:{
-        fullName: order.shippingAddress?.fullName ?? null,
-        city:order.shippingAddress?.city ?? null,
-        country:order.shippingAddress?.country ?? null
-    },
-    paymentStatus:order.payment?.status ?? null
-   }))
-
-
-   return {
-    orders:shaped,
-    pagination:{
-        total,
-        page,
-        limit,
-        totalPages,
-        hasNextPage:page < totalPages,
-        hasPrevPage:page > 1
+    if (!order) {
+        throw new AppError("Order not found.", 404);
     }
-   }
-}
+
+    if (!["PENDING", "CONFIRMED"].includes(order.status)) {
+        throw new AppError(`Order cannot be cancelled - current status is ${order.status}`, 400);
+    }
+    return cancelOrderRepository(orderId, order.items);
+};
+
+export const getShopOrdersService = async (shopId: string, query: GetOrdersQuery) => {
+    const page = Math.max(1, query.page ?? 1);
+    const limit = Math.min(50, query.limit ?? 20);
+    const skip = (page - 1) * limit;
+
+    const { orders, total } = await getShopOrdersRepository({
+        shopId,
+        status: query.status,
+        skip,
+        take: limit,
+    });
+
+    const totalPages = Math.ceil(total / limit);
+
+    const shaped = orders.map((order) => ({
+        id: order.id,
+        status: order.status,
+        totalAmount: order.totalAmount,
+        createdAt: order.createdAt,
+        itemCount: order.items.length,
+        shipTo: {
+            fullName: order.shippingAddress?.fullName ?? null,
+            city: order.shippingAddress?.city ?? null,
+            country: order.shippingAddress?.country ?? null,
+        },
+        paymentStatus: order.payment?.status ?? null,
+    }));
+
+    return {
+        orders: shaped,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages,
+            hasNextPage: page < totalPages,
+            hasPrevPage: page > 1,
+        },
+    };
+};
+
+export const getShopOrderByIdService = async (orderId: string, shopId: string) => {
+    const order = await getShopOrderByIdRepository(orderId, shopId);
+
+    if (!order) {
+        throw new AppError("Order not found.", 404);
+    }
+
+    return order;
+};
