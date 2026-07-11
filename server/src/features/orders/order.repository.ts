@@ -1,6 +1,11 @@
 import { prisma } from "../../config/db.js";
 import { AppError } from "../../middleware/appError.js";
-import { GetCustomerOrdersOptions, GetShopOrdersOptions, shipAddressInput, shopGroup } from "./order.types.js";
+import {
+    GetCustomerOrdersOptions,
+    GetShopOrdersOptions,
+    shipAddressInput,
+    shopGroup,
+} from "./order.types.js";
 import crypto from "crypto";
 
 export const createOrdersFromCart = async (
@@ -102,163 +107,156 @@ export const createOrdersFromCart = async (
     });
 };
 
+export const getCustomerOrdersRepository = async (options: GetCustomerOrdersOptions) => {
+    const { customerId, status, skip, take } = options;
 
-export const getCustomerOrdersRepository = async (
-     options:GetCustomerOrdersOptions
-)=>{
-      const { customerId,status,skip,take } = options
-
-      const where ={
+    const where = {
         customerId,
-        deletedAt:null,
-        ...(status &&{ status })
-      }
-      const [orders,total ] = await Promise.all([
+        deletedAt: null,
+        ...(status && { status }),
+    };
+    const [orders, total] = await Promise.all([
         prisma.order.findMany({
             where,
             select: {
-                id:true,
-                status:true,
-                totalAmount:true,
-                createdAt:true,
-                shop:{
-                    select:{
-                        slug:true,
-                        profile :{
-                            select :{
-                                name:true,
-                                logo:true,
-                            }
-                        }
-                    }
+                id: true,
+                status: true,
+                totalAmount: true,
+                createdAt: true,
+                shop: {
+                    select: {
+                        slug: true,
+                        profile: {
+                            select: {
+                                name: true,
+                                logo: true,
+                            },
+                        },
+                    },
                 },
-                items:{
-                    select: { id: true }
+                items: {
+                    select: { id: true },
                 },
-                payment:{
-                    select:{ status:true }
-                }
+                payment: {
+                    select: { status: true },
+                },
             },
-            orderBy:{ createdAt: "desc" },
+            orderBy: { createdAt: "desc" },
             skip,
             take,
         }),
-        prisma.order.count({ where })
-      ])
-      return { orders,total }
-}
+        prisma.order.count({ where }),
+    ]);
+    return { orders, total };
+};
 
-export const getCustomerOrderByIdRepository = async (
-    orderId:    string,
-    customerId: string
-) => {
+export const getCustomerOrderByIdRepository = async (orderId: string, customerId: string) => {
     return prisma.order.findFirst({
         where: {
-            id:         orderId,
-            customerId,            // ← ownership: only see YOUR order
-            deletedAt:  null,
+            id: orderId,
+            customerId, // ← ownership: only see YOUR order
+            deletedAt: null,
         },
         select: {
-            id:            true,
-            status:        true,
-            totalAmount:   true,
+            id: true,
+            status: true,
+            totalAmount: true,
             discountAmount: true,
-            notes:         true,
-            createdAt:     true,
-            updatedAt:     true,
+            notes: true,
+            createdAt: true,
+            updatedAt: true,
             shop: {
                 select: {
-                    slug:    true,
+                    slug: true,
                     profile: {
                         select: {
-                            name:  true,
-                            logo:  true,
+                            name: true,
+                            logo: true,
                             email: true,
                             phone: true,
-                        }
-                    }
-                }
+                        },
+                    },
+                },
             },
             items: {
                 select: {
-                    id:        true,
-                    quantity:  true,
+                    id: true,
+                    quantity: true,
                     unitPrice: true,
                     product: {
                         select: {
-                            id:   true,
+                            id: true,
                             name: true,
                             slug: true,
                             images: {
-                                where:  { isPrimary: true },
+                                where: { isPrimary: true },
                                 select: { url: true },
-                                take:   1,
-                            }
-                        }
+                                take: 1,
+                            },
+                        },
                     },
                     variant: {
                         select: {
-                            id:   true,
+                            id: true,
                             name: true,
-                        }
-                    }
-                }
+                        },
+                    },
+                },
             },
             shippingAddress: {
                 select: {
-                    fullName:   true,
-                    phone:      true,
-                    address:    true,
-                    city:       true,
-                    country:    true,
+                    fullName: true,
+                    phone: true,
+                    address: true,
+                    city: true,
+                    country: true,
                     postalCode: true,
-                }
+                },
             },
             payment: {
                 select: {
-                    status:   true,
-                    amount:   true,
+                    status: true,
+                    amount: true,
                     currency: true,
                     provider: true,
-                }
+                },
             },
             statusHistory: {
                 select: {
-                    status:    true,
-                    note:      true,
+                    status: true,
+                    note: true,
                     createdAt: true,
                 },
-                orderBy: { createdAt: "asc" }
-            }
-        }
-    })
-}
+                orderBy: { createdAt: "asc" },
+            },
+        },
+    });
+};
 
-export const findOrderForCancelRepository = async (orderId:string,customerId:string)=>{
+export const findOrderForCancelRepository = async (orderId: string, customerId: string) => {
     return prisma.order.findFirst({
-        where :{ id:orderId ,customerId,deletedAt:null },
-        select :{
-            id:true,
-            status:true,
-            items:{
-                select :{
-                    productId :true,
-                    variantId:true,
-                    quantity:true
-                }
-            }
-
-        }
-    })
-}
+        where: { id: orderId, customerId, deletedAt: null },
+        select: {
+            id: true,
+            status: true,
+            items: {
+                select: {
+                    productId: true,
+                    variantId: true,
+                    quantity: true,
+                },
+            },
+        },
+    });
+};
 
 const CANCELABLE_STATUSES = ["PENDING", "CONFIRMED"] as const;
 
-export const cancelOrderRepository = async(
-    orderId:string,
+export const cancelOrderRepository = async (
+    orderId: string,
     items: { productId: string; variantId: string | null; quantity: number }[],
-)=>{
-    return prisma.$transaction(async (tx)=>{
+) => {
+    return prisma.$transaction(async (tx) => {
         /* 
         Atomic guard: only flips status if it's STILL in a cancelable state.
         If another request (shop marking it SHIPPED, or a double-click cancel)
@@ -266,85 +264,146 @@ export const cancelOrderRepository = async(
         no stock gets restored twice, no order gets cancelled twice. */
 
         const guard = await tx.order.updateMany({
-            where: { id:orderId,status:{ in:[... CANCELABLE_STATUSES] }},
-            data: { status:"CANCELLED" },
-        })
+            where: { id: orderId, status: { in: [...CANCELABLE_STATUSES] } },
+            data: { status: "CANCELLED" },
+        });
 
-        if(guard.count === 0){
-            throw new AppError(
-                "Order can no longer be cancelled -its status has changed.",
-                409
-            )
+        if (guard.count === 0) {
+            throw new AppError("Order can no longer be cancelled -its status has changed.", 409);
         }
         // restore stock — increment is always safe, no gte guard needed
         await Promise.all(
-            items.map((item)=>
-            item.variantId
-               ? tx.productVariant.update({
-                where: { id: item.variantId },
-                data: { stock :{ increment :item.quantity }}
-               }) :
-               tx.product.update({
-                where: { id:item.productId },
-                data: { stock: { increment :item.quantity }}
-               })
-             )
-
-        )
+            items.map((item) =>
+                item.variantId
+                    ? tx.productVariant.update({
+                          where: { id: item.variantId },
+                          data: { stock: { increment: item.quantity } },
+                      })
+                    : tx.product.update({
+                          where: { id: item.productId },
+                          data: { stock: { increment: item.quantity } },
+                      }),
+            ),
+        );
 
         await tx.orderStatusHistory.create({
             data: {
                 orderId,
-                status:"CANCELLED",
-                note:"Order cancelled by customer."
-            }
-        })
+                status: "CANCELLED",
+                note: "Order cancelled by customer.",
+            },
+        });
 
         return tx.order.findUnique({
-            where:{ id: orderId },
+            where: { id: orderId },
             select: {
-                id:true,
-                status:true,
-                totalAmount:true,
-                updatedAt:true
-            }
-        })
-    })
-}
+                id: true,
+                status: true,
+                totalAmount: true,
+                updatedAt: true,
+            },
+        });
+    });
+};
 
-export const getShopOrdersRepository = async(options:GetShopOrdersOptions)=>{
-     const { shopId,status,skip,take } = options
+export const getShopOrdersRepository = async (options: GetShopOrdersOptions) => {
+    const { shopId, status, skip, take } = options;
 
-     const where ={
+    const where = {
         shopId,
-        deletedAt:null,
-        ...(status &&{status})
-     }
+        deletedAt: null,
+        ...(status && { status }),
+    };
 
-     const [orders,total ] = await Promise.all([
-         prisma.order.findMany({
-             where,
-             select:{
-                id:true,
-                status:true,
-                totalAmount:true,
-                createdAt:true,
-                items:{
-                    select: { id:true,quantity:true }
+    const [orders, total] = await Promise.all([
+        prisma.order.findMany({
+            where,
+            select: {
+                id: true,
+                status: true,
+                totalAmount: true,
+                createdAt: true,
+                items: {
+                    select: { id: true, quantity: true },
                 },
-                shippingAddress:{
-                    select:{ fullName:true,city:true,country:true }
+                shippingAddress: {
+                    select: { fullName: true, city: true, country: true },
                 },
-                payment:{
-                    select: { status:true }
-                }
-             },
-             orderBy:{ createdAt:"desc" },
-             skip,
-             take,
-         }),
+                payment: {
+                    select: { status: true },
+                },
+            },
+            orderBy: { createdAt: "desc" },
+            skip,
+            take,
+        }),
 
-        prisma.order.count ({ where })
-     ])
-     return { orders,total }
-}
+        prisma.order.count({ where }),
+    ]);
+    return { orders, total };
+};
+
+export const getShopOrderByIdRepository = async (orderId: string, shopId: string) => {
+    return prisma.order.findFirst({
+        where: { id: orderId, shopId, deletedAt: null },
+        select: {
+            id: true,
+            status: true,
+            TotalAmount: true,
+            discount: true,
+            notes: true,
+            createdAt: true,
+            updatedAt: true,
+            items: {
+                select: {
+                    id: true,
+                    quantity: true,
+                    unitPrice: true,
+                    product: {
+                        select: {
+                            id: true,
+                            name: true,
+                            slug: true,
+                            images: {
+                                where: {
+                                    isPrimary: true,
+                                },
+                                select: { url: true },
+                                take: 1,
+                            },
+                        },
+                    },
+                    variant: {
+                        select: { id: true, name: true },
+                    },
+                },
+            },
+            shippingAddress: {
+                select: {
+                    fullName: true,
+                    phone: true,
+                    address: true,
+                    city: true,
+                    country: true,
+                    postalCode: true,
+                },
+            },
+            payment: {
+                select: {
+                    status: true,
+                    amount: true,
+                    currency: true,
+                    provider: true,
+                },
+            },
+            statusHistory: {
+                select: {
+                    status: true,
+                    note: true,
+                    createdAt: true,
+                },
+                orderBy: { createdAt: "asc" },
+            },
+        },
+    });
+};
