@@ -1,3 +1,4 @@
+import { OrderStatus } from "@prisma/client";
 import { AppError } from "../../middleware/appError.js";
 import { getCartWithItems, clearCart } from "../cart/cart.repository.js";
 import {
@@ -8,6 +9,7 @@ import {
     getCustomerOrdersRepository,
     getShopOrderByIdRepository,
     getShopOrdersRepository,
+    updateOrderStatusRepository,
 } from "./order.repository.js";
 import { GetOrdersQuery, shipAddressInput } from "./order.types.js";
 
@@ -201,4 +203,37 @@ export const getShopOrderByIdService = async (orderId: string, shopId: string) =
     }
 
     return order;
+};
+
+const SHOP_ALLOWED_TRANSITIONS: Record<string, string[]> = {
+    PENDING: ["CONFIRMED"],
+    CONFIRMED: ["PROCESSING"],
+    PROCESSING: ["SHIPPED"],
+    SHIPPED: ["DELIVERED"],
+    DELIVERED: [],
+    CANCELLED: [],
+    REFUNDED: [],
+};
+
+export const updateOrderStatusService = async (
+    orderId: string,
+    shopId: string,
+    newStatus: OrderStatus,
+) => {
+    const order = await getShopOrderByIdRepository(orderId, shopId);
+
+    if (!order) {
+        throw new AppError("Order not found.", 404);
+    }
+
+    const allowedNext = SHOP_ALLOWED_TRANSITIONS[order.status] ?? [];
+
+    if (!allowedNext.includes(newStatus)) {
+        throw new AppError(
+            `Cannot transition order from ${order.status} to ${newStatus}.`,
+            400,
+        );
+    }
+
+    return updateOrderStatusRepository(orderId, shopId, order.status, newStatus);
 };

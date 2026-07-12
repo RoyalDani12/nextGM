@@ -71,3 +71,15 @@ export const  getOrdersSchema = z.object({
 
        })
 })
+export const updateOrderStatusSchema = z.object({
+  body: z.object({
+    status: z.enum([
+      "CONFIRMED",
+      "PROCESSING",
+      "SHIPPED",
+      "DELIVERED",
+    ], {
+      message: "Status must be CONFIRMED, PROCESSING, SHIPPED, or DELIVERED."
+    })
+  }).strict()
+});

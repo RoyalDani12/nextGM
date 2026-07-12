@@ -1,3 +1,4 @@
+import { OrderStatus } from "@prisma/client";
 import { prisma } from "../../config/db.js";
 import { AppError } from "../../middleware/appError.js";
 import {
@@ -349,8 +350,8 @@ export const getShopOrderByIdRepository = async (orderId: string, shopId: string
         select: {
             id: true,
             status: true,
-            TotalAmount: true,
-            discount: true,
+            totalAmount: true,
+            discountAmount: true,
             notes: true,
             createdAt: true,
             updatedAt: true,
@@ -407,3 +408,47 @@ export const getShopOrderByIdRepository = async (orderId: string, shopId: string
         },
     });
 };
+
+
+export const updateOrderStatusRepository = async (
+    orderId:string,
+    shopId:string,
+    currentStatus:OrderStatus,
+    newStatus:OrderStatus,
+    note?:string
+)=>{
+    return prisma.$transaction( async(tx)=>{
+         // atomic guard — same shape as cancel: only flips if it's STILL
+        // in the exact state we validated against. Prevents a race where
+        // two shop-status updates (or a customer cancel) land concurrently.
+        const guard = await tx.order.updateMany({
+            where:{ id:orderId,shopId,status:currentStatus},
+            data:{
+                status:newStatus
+            }
+        })
+        if ( guard.count === 0){
+            throw new AppError(
+                "Order status changed before this update could apply.",
+                409
+            )
+        }
+
+        await tx.orderStatusHistory.create({
+            data:{
+                orderId,
+                status:newStatus,
+                note:note ?? `Order marked as ${newStatus} by shop.`
+            }
+        })
+
+        return tx.order.findUnique({
+            where:{ id:orderId },
+            select :{
+                id:true,
+                status:true,
+                updatedAt:true
+            }
+        })
+    })
+}
