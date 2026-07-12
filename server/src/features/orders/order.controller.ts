@@ -8,7 +8,9 @@ import {
     getCustomerrderByIdService,
     getShopOrderByIdService,
     getShopOrdersService,
+    updateOrderStatusService,
 } from "./order.service.js";
+import { OrderStatus } from "@prisma/client";
 
 export const checkoutController = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;
@@ -100,6 +102,20 @@ export const getShopOrderByIdController = asyncHandler(async (req: Request, res:
         success: true,
         statusCode: 200,
         message: "Order fetched successfully.",
+        data: result,
+    });
+});
+
+export const updateOrderStatusController = asyncHandler(async (req: Request, res: Response) => {
+    const { shopId, orderId } = req.params as { shopId: string; orderId: string };
+    const { status } = req.body as { status: OrderStatus };
+
+    const result = await updateOrderStatusService(orderId, shopId, status);
+
+    res.status(200).json({
+        success: true,
+        statusCode: 200,
+        message: "Order status updated successfully.",
         data: result,
     });
 });

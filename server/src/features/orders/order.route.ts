@@ -1,14 +1,15 @@
 import express from "express"
 import { authenticate } from "../../middleware/auth.middleware.js"
 import { validate } from "../../middleware/validate.middleware.js"
-import { checkoutSchema, getOrdersSchema } from "./order.schema.js"
+import { checkoutSchema, getOrdersSchema,updateOrderStatusSchema } from "./order.schema.js"
 import {
     cancelOrderController,
       checkoutController,
       getCustomerOrderByIdController,
       getCustomerOrderController,
       getShopOrderByIdController,
-      getShopOrdersController
+      getShopOrdersController,
+      updateOrderStatusController,
      } from "./order.controller.js"
 import { authorizeShopAccess } from "../../middleware/authorizeShopAccess.middleware.js"
 
@@ -52,4 +53,12 @@ router.get(
     authorizeShopAccess,
     getShopOrderByIdController
 )
+
+router.patch(
+    "/:shopId/orders/:orderId/status",
+    authenticate,
+    authorizeShopAccess,
+    validate(updateOrderStatusSchema),
+    updateOrderStatusController,
+);
 export default router
