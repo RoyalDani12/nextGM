@@ -1,6 +1,7 @@
 import { OrderStatus } from "@prisma/client";
 import { AppError } from "../../middleware/appError.js";
 import { getCartWithItems, clearCart } from "../cart/cart.repository.js";
+import { logger } from "../../config/logger.js";
 import {
     cancelOrderRepository,
     createOrdersFromCart,
@@ -12,6 +13,7 @@ import {
     updateOrderStatusRepository,
 } from "./order.repository.js";
 import { GetOrdersQuery, shipAddressInput } from "./order.types.js";
+import { scheduleOrderExpiration } from "../../infrastructure/queue/orderExpiration.helpers.js";
 
 export const checkoutService = async (customerId: string, shippingAddress: shipAddressInput) => {
     const cart = await getCartWithItems(customerId);
@@ -72,10 +74,16 @@ export const checkoutService = async (customerId: string, shippingAddress: shipA
     const createdOrders = await createOrdersFromCart(customerId, shopGroups, shippingAddress);
 
     try {
+        await Promise.all(createdOrders.map((order)=> scheduleOrderExpiration(order.id)))
+    } catch (err) {
+        logger.error({ err, customerId, orderIds:createdOrders.map((o)=> o.id)}),
+        "Failed to schedule order expiration jobs"
+    } 
+
+    try {
         await clearCart(customerId);
     } catch (err) {
-        // log but don't fail the whole checkout over this
-        console.error("Failed to clear cart after checkout:", err);
+        logger.error({ err, customerId }, "Failed to clear cart after checkout");
     }
 
     //  — build response
