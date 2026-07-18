@@ -8,6 +8,7 @@ import {
     shopGroup,
 } from "./order.types.js";
 import crypto from "crypto";
+import { getReservationExpiryTimestamp } from "../../infrastructure/queue/orderExpiration.helpers.js";
 
 export const createOrdersFromCart = async (
     customerId: string,
@@ -37,6 +38,7 @@ export const createOrdersFromCart = async (
                     totalAmount: totalAmount.toFixed(2),
                     status: "PENDING",
                     idempotencyKey: crypto.randomUUID(),
+                    reservationExpiresAt:getReservationExpiryTimestamp()
                 },
             });
 

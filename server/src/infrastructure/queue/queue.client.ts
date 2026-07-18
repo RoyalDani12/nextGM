@@ -54,3 +54,20 @@ export const accountPurgeQueue= new Queue('accountPurgeQueue',
         }
     }
 )
+
+export const orderExpirationQueue  = new Queue( "order-expiration",{
+    connection:redis,
+    defaultJobOptions:{
+        attempts:3,
+        backoff:{
+            type:"exponential",
+            delay:500,
+        },
+        removeOnComplete:true,
+        removeOnFail:{
+            age:24 * 60 * 60 *1000
+        }
+    }
+
+})
+console.log("order expiration queue initialized");

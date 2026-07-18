@@ -64,6 +64,7 @@ enum OrderStatus {
   DELIVERED
   CANCELLED
   REFUNDED
+  EXPIRED
 }
 
 enum PaymentStatus {
@@ -439,6 +440,7 @@ model Order {
   discountAmount Decimal     @default(0)
   idempotencyKey String      @unique
   notes          String?
+  reservationExpiresAt DateTime?
   deletedAt      DateTime?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
@@ -454,6 +456,7 @@ model Order {
   @@index([idempotencyKey])
   @@index([customerId, status])   
   @@index([customerId, createdAt])
+  @@index([status, reservationExpiresAt])
 }
 
 model OrderItem {
