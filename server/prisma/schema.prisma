@@ -534,6 +534,15 @@ model PaymentMethod {
   @@index([userId])
 }
 
+
+model WebhookEvent {
+  id             String   @id @default(cuid())
+  stripeEventId  String   @unique
+  type           String
+  processedAt    DateTime @default(now())
+
+  @@index([type])
+}
 // ─────────────────────────────────────────
 // COUPON
 // ─────────────────────────────────────────
