@@ -15,6 +15,7 @@ import userRoute from './features/users/user.routes.js'
 import uploadRoute from './features/uploads/upload.routes.js'
 import productRoute from './features/product/product.routes.js'
 import productPublicRoute from "./features/product/product.public.routes.js"
+import paymentRoute from "./features/payment/payment.route.js"
 import cartRoute from "./features/cart/cart.routes.js"
 import orderRoute from "./features/orders/order.route.js"
 import { httpLogger } from "./middleware/httpLogger.middleware.js"
@@ -41,14 +42,15 @@ setupSwagger(app);
 
 app.use(generalLimiter)  
 
-app.use('/api/auth',authRoute)
-app.use('/api/users',userRoute)
-app.use('/api/shops',shopRoute)
-app.use('/api/uploads',uploadRoute)
-app.use('/api/shops/:shopId/products',productRoute)
-app.use('/api/products', productPublicRoute)
-app.use('/api/cart', cartRoute)
-app.use('/api/orders', orderRoute)
+app.use('/api/v1/auth',authRoute)
+app.use('/api/v1/users',userRoute)
+app.use('/api/v1/shops',shopRoute)
+app.use('/api/v1/uploads',uploadRoute)
+app.use('/api/v1/shops/:shopId/products',productRoute)
+app.use('/api/v1/products', productPublicRoute)
+app.use('/api/v1/cart', cartRoute)
+app.use('/api/v1/orders', orderRoute)
+app.use('/api/v1/payment',paymentRoute)
 
 app.get('/',(req ,res)=>{
   res.json({message:"server running successfully"})

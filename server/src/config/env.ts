@@ -24,7 +24,8 @@ const envSchema = z.object({
     CLOUDINARY_CLOUD_NAME: z.string().trim().min(1, "Cloudinary Cloud Name is Required."),
     CLOUDINARY_API_KEY: z.string().min(1, "Cloudinary API Key is required"),
     CLOUDINARY_API_SECRET: z.string().min(1, "Cloudinary API Secret is required"),
-    ORDER_RESERVATION_TTL_MINUTES: z.string().transform(Number)
+    ORDER_RESERVATION_TTL_MINUTES: z.string().transform(Number),
+    STRIPE_SECRET_KEY:z.string().min(1,"Stripe API key us required")
 });
 
 const _env = envSchema.safeParse(process.env);
