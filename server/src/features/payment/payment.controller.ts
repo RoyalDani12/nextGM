@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { AppError } from "../../middleware/appError.js";
-import { createPaymentIntentService } from "./payment.service.js";
+import { createPaymentIntentService,constructStripeEvent,handleStripeWebhookEvent } from "./payment.service.js";
+
 
 export const createPaymentIntentController = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;
@@ -20,3 +21,17 @@ export const createPaymentIntentController = asyncHandler(async (req: Request, r
         data: result,
     });
 });
+
+export const stripeWebhookController = asyncHandler( async ( req:Request,res:Response)=>{
+     const signature = req.headers["stripe-signature"]
+
+     if(!signature || typeof signature !== "string"){
+        throw new AppError("Missing Stripe signature header.",400)
+     }
+       // req.body is a raw Buffer here — express.raw() on this route only
+     const event = constructStripeEvent(req.body as Buffer,signature)
+
+     await handleStripeWebhookEvent(event)
+
+     res.status(200).json({ received:true})
+})
