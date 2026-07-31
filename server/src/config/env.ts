@@ -25,7 +25,8 @@ const envSchema = z.object({
     CLOUDINARY_API_KEY: z.string().min(1, "Cloudinary API Key is required"),
     CLOUDINARY_API_SECRET: z.string().min(1, "Cloudinary API Secret is required"),
     ORDER_RESERVATION_TTL_MINUTES: z.string().transform(Number),
-    STRIPE_SECRET_KEY:z.string().min(1,"Stripe API key us required")
+    STRIPE_SECRET_KEY:z.string().min(1,"Stripe API key us required"),
+    STRIPE_WEBHOOK_SECRET: z.string().min(1),
 });
 
 const _env = envSchema.safeParse(process.env);
