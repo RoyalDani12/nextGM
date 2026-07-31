@@ -38,7 +38,7 @@ export const createOrdersFromCart = async (
                     totalAmount: totalAmount.toFixed(2),
                     status: "PENDING",
                     idempotencyKey: crypto.randomUUID(),
-                    reservationExpiresAt:getReservationExpiryTimestamp()
+                    reservationExpiresAt: getReservationExpiryTimestamp(),
                 },
             });
 
@@ -411,46 +411,108 @@ export const getShopOrderByIdRepository = async (orderId: string, shopId: string
     });
 };
 
-
 export const updateOrderStatusRepository = async (
-    orderId:string,
-    shopId:string,
-    currentStatus:OrderStatus,
-    newStatus:OrderStatus,
-    note?:string
-)=>{
-    return prisma.$transaction( async(tx)=>{
-         // atomic guard — same shape as cancel: only flips if it's STILL
+    orderId: string,
+    shopId: string,
+    currentStatus: OrderStatus,
+    newStatus: OrderStatus,
+    note?: string,
+) => {
+    return prisma.$transaction(async (tx) => {
+        // atomic guard — same shape as cancel: only flips if it's STILL
         // in the exact state we validated against. Prevents a race where
         // two shop-status updates (or a customer cancel) land concurrently.
         const guard = await tx.order.updateMany({
-            where:{ id:orderId,shopId,status:currentStatus},
-            data:{
-                status:newStatus
-            }
-        })
-        if ( guard.count === 0){
-            throw new AppError(
-                "Order status changed before this update could apply.",
-                409
-            )
+            where: { id: orderId, shopId, status: currentStatus },
+            data: {
+                status: newStatus,
+            },
+        });
+        if (guard.count === 0) {
+            throw new AppError("Order status changed before this update could apply.", 409);
         }
 
         await tx.orderStatusHistory.create({
-            data:{
+            data: {
                 orderId,
-                status:newStatus,
-                note:note ?? `Order marked as ${newStatus} by shop.`
+                status: newStatus,
+                note: note ?? `Order marked as ${newStatus} by shop.`,
+            },
+        });
+
+        return tx.order.findUnique({
+            where: { id: orderId },
+            select: {
+                id: true,
+                status: true,
+                updatedAt: true,
+            },
+        });
+    });
+};
+
+export const beginRefundRepository = async (orderId: string) => {
+    const REFUNDABLE_FROM = ["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"];
+
+    return prisma.$transaction(async (tx) => {
+        const order = await tx.order.findUnique({
+            where: { id: orderId },
+            select: { status: true },
+        });
+        if (!order) {
+            return {
+                success: false as const,
+                reason: "not_found" as const,
+            };
+        }
+        if (!REFUNDABLE_FROM.includes(order.status)) {
+            return {
+                success: false as const,
+                reason: "Invalid_status" as const,
+                currentStatus: order.status,
+            };
+        }
+
+        const guard = await tx.order.updateMany({
+            where: { id: orderId, status: order.status },
+            data: { status: "REFUND_PENDING" },
+        });
+        if (guard.count === 0) {
+            return { success: false as const, reason: "race" as const };
+        }
+
+        return { success: true as const };
+    });
+};
+
+
+export const confirmRefundedRepository = async (orderId:string)=>{
+    return prisma.$transaction( async ( tx)=>{
+        /* 
+        atomic guard — only fires if still REFUND_PENDING.
+        Prevents double-processing on webhook retries, same pattern as payment success
+         */
+
+        const guard = await tx.order.updateMany({
+            where: { id:orderId,status :"REFUND_PENDING"},
+            data:{
+                status:"REFUNDED"
             }
         })
 
-        return tx.order.findUnique({
-            where:{ id:orderId },
-            select :{
-                id:true,
-                status:true,
-                updatedAt:true
+        if(guard.count === 0){
+            return {
+                alreadyProcessed:true 
             }
-        })
+
+            await tx.orderStatusHistory.create({
+                data:{
+                    orderId,
+                    status:"REFUNDED",
+                    note:"Refunded Confirmed Via Stripe."
+                }
+            })
+            return { alreadyProcessed : false }
+        }
     })
 }

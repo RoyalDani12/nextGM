@@ -65,6 +65,7 @@ enum OrderStatus {
   CANCELLED
   REFUNDED
   EXPIRED
+  REFUND_PENDING
 }
 
 enum PaymentStatus {

@@ -17,6 +17,7 @@ import productRoute from './features/product/product.routes.js'
 import productPublicRoute from "./features/product/product.public.routes.js"
 import paymentRoute from "./features/payment/payment.route.js"
 import paymentWebhookRoute from "./features/payment/payment.webhook.route.js"
+import paymentAdminRoute from "./features/payment/payment.admin.route.js"
 import cartRoute from "./features/cart/cart.routes.js"
 import orderRoute from "./features/orders/order.route.js"
 import { httpLogger } from "./middleware/httpLogger.middleware.js"
@@ -59,6 +60,7 @@ app.use('/api/v1/products', productPublicRoute)
 app.use('/api/v1/cart', cartRoute)
 app.use('/api/v1/orders', orderRoute)
 app.use('/api/v1/payment',paymentRoute)
+app.use('/api/v1/admin/orders', paymentAdminRoute) 
 
 app.get('/',(req ,res)=>{
   res.json({message:"server running successfully"})
