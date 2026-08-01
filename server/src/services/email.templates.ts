@@ -157,3 +157,141 @@ export const accountDeletionScheduledTemplate = (name: string, reactivationToken
     `,
   };
 };
+
+
+
+type BaseTemplateParams = {
+    previewText: string;
+    heading: string;
+    bodyHtml: string; // the per-notification content, injected here
+    accentColor?: string;
+};
+
+const BRAND_COLOR = "#4F46E5";
+const BRAND_COLOR_DARK = "#3730A3";
+const TEXT_COLOR = "#1F2937";
+const MUTED_COLOR = "#6B7280";
+const BG_COLOR = "#F3F4F6";
+
+const renderBaseTemplate = ({ previewText, heading, bodyHtml, accentColor }: BaseTemplateParams) => `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>${heading}</title>
+<style>
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+  }
+  .animate-in { animation: fadeInUp 0.6s ease-out; }
+  .icon-pulse { animation: pulse 1.8s ease-in-out infinite; }
+  @media (max-width: 600px) {
+    .container { width: 100% !important; }
+    .px-40 { padding-left: 24px !important; padding-right: 24px !important; }
+  }
+</style>
+</head>
+<body style="margin:0; padding:0; background-color:${BG_COLOR}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <!-- preview text, hidden -->
+  <div style="display:none; max-height:0; overflow:hidden;">${previewText}</div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${BG_COLOR};">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px; background-color:#ffffff; border-radius:16px; overflow:hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+
+          <!-- header -->
+          <tr>
+            <td align="center" style="padding: 32px 40px 24px 40px; background: linear-gradient(135deg, ${BRAND_COLOR} 0%, ${BRAND_COLOR_DARK} 100%);">
+              <span style="font-size:22px; font-weight:700; color:#ffffff; letter-spacing: -0.5px;">Nexions</span>
+            </td>
+          </tr>
+
+          <!-- body -->
+          <tr>
+            <td class="px-40 animate-in" style="padding: 40px;">
+              <h1 style="margin:0 0 16px 0; font-size:22px; font-weight:700; color:${TEXT_COLOR}; line-height:1.3;">
+                ${heading}
+              </h1>
+              ${bodyHtml}
+            </td>
+          </tr>
+
+          <!-- footer -->
+          <tr>
+            <td align="center" style="padding: 24px 40px 32px 40px; border-top: 1px solid #E5E7EB;">
+              <p style="margin:0; font-size:13px; color:${MUTED_COLOR}; line-height:1.6;">
+                You're receiving this because you have an account with Nexions.<br/>
+                <a href="#" style="color:${MUTED_COLOR}; text-decoration:underline;">Manage notification preferences</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`;
+export const renderOrderPlacedEmail = (params: {
+    customerName: string;
+    orderId: string;
+    shopName: string;
+    totalAmount: string;
+    itemCount: number;
+}) => {
+    const { customerName, orderId, shopName, totalAmount, itemCount } = params;
+
+    const bodyHtml = `
+      <div style="text-align:center; margin-bottom:24px;">
+        <div class="icon-pulse" style="display:inline-flex; align-items:center; justify-content:center; width:64px; height:64px; border-radius:50%; background-color:#EEF2FF;">
+          <span style="font-size:32px;">🛍️</span>
+        </div>
+      </div>
+      <p style="margin:0 0 20px 0; font-size:15px; color:${TEXT_COLOR}; line-height:1.6;">
+        Hi ${customerName}, thanks for your order at <strong>${shopName}</strong>! We're getting it ready.
+      </p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F9FAFB; border-radius:12px; margin:0 0 24px 0;">
+        <tr>
+          <td style="padding: 20px 24px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding: 6px 0; font-size:14px; color:${MUTED_COLOR};">Order ID</td>
+                <td align="right" style="padding: 6px 0; font-size:14px; color:${TEXT_COLOR}; font-weight:600;">#${orderId.slice(-8).toUpperCase()}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-size:14px; color:${MUTED_COLOR};">Items</td>
+                <td align="right" style="padding: 6px 0; font-size:14px; color:${TEXT_COLOR}; font-weight:600;">${itemCount}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-size:14px; color:${MUTED_COLOR}; border-top:1px solid #E5E7EB; padding-top:12px;">Total</td>
+                <td align="right" style="padding: 6px 0; font-size:16px; color:${BRAND_COLOR}; font-weight:700; border-top:1px solid #E5E7EB; padding-top:12px;">$${totalAmount}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+        <tr>
+          <td style="border-radius:8px; background-color:${BRAND_COLOR};">
+            <a href="#" style="display:inline-block; padding:14px 32px; font-size:15px; font-weight:600; color:#ffffff; text-decoration:none;">
+              Track your order
+            </a>
+          </td>
+        </tr>
+      </table>
+    `;
+
+    return renderBaseTemplate({
+        previewText: `Your order at ${shopName} has been placed`,
+        heading: "Order confirmed 🎉",
+        bodyHtml,
+    });
+};

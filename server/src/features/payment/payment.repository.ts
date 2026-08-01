@@ -23,13 +23,21 @@ export const updatePaymentProvider = async ( paymentId:string,providerPaymentId:
     data: { providerPaymentId }
   })
 }
+export const markPaymentFailed = async (orderId: string) => {
+    return prisma.$transaction(async (tx) => {
+        await tx.payment.updateMany({
+            where: { orderId, status: "PENDING" },
+            data: { status: "FAILED" },
+        });
 
-export const markPaymentFailed = async ( orderId:string)=>{
-  return prisma.payment.updateMany({
-    where: { orderId, status: "PENDING" },
-    data: { status:"FAILED" }
-  })
-}
+        const order = await tx.order.findUnique({
+            where: { id: orderId },
+            select: { customerId: true },
+        });
+
+        return { customerId: order?.customerId };
+    });
+};
 
 export const findPaymentForRefund = async ( orderId:string)=>{
   return prisma.payment.findUnique({
@@ -95,8 +103,12 @@ export const confirmPaymentWithEventLog = async (
                 data: { orderId, status: "CONFIRMED", note: "Payment confirmed via Stripe." },
             });
         }
+        const order = await tx.order.findUnique({
+            where: { id: orderId },
+            select : { customerId: true }
+        })
 
-        return { alreadyProcessed: false as const, paymentStateMismatch: false as const };
+        return { alreadyProcessed: false as const, paymentStateMismatch: false as const, customerId: order?.customerId };
     });
 };
 
@@ -132,8 +144,14 @@ export const confirmRefundWithEventLog = async (
         await tx.orderStatusHistory.create({
             data: { orderId, status: "REFUNDED", note: "Refund confirmed via Stripe." },
         });
+        const order = await tx.order.findUnique({
+            where: { id: orderId },
+            select: { customerId: true },
+        });
 
-        return { alreadyProcessed: false as const, orderStateMismatch: false as const };
+        return {
+             alreadyProcessed: false as const, orderStateMismatch: false as const , customerId: order?.customerId
+            };
     });
 };
 
