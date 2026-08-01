@@ -357,6 +357,7 @@ export const getShopOrderByIdRepository = async (orderId: string, shopId: string
             notes: true,
             createdAt: true,
             updatedAt: true,
+            customerId:true,
             items: {
                 select: {
                     id: true,

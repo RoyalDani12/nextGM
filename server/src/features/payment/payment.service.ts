@@ -19,6 +19,8 @@ import {
     getCustomerOrderByIdRepository,
 } from "../orders/order.repository.js";
 import { cancelOrderExpiration } from "../../infrastructure/queue/orderExpiration.helpers.js";
+import { notifyUser } from "../notification/notification.service.js";
+import { getCustomerrderByIdService } from "../orders/order.service.js";
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 
@@ -133,6 +135,14 @@ const handlePaymentSucceeded = async (
         );
         return;
     }
+    try {
+        await notifyUser({
+            userId: result.customerId || "not user id",
+            type: "PAYMENT_SUCCESS",
+            title: "Payment successful",
+            body: `Your payment for order #${orderId} was successful.`,
+        });
+    } catch (err) {}
 
     try {
         await cancelOrderExpiration(orderId);
@@ -149,9 +159,22 @@ const handlePaymentFailed = async (intent: Stripe.PaymentIntent) => {
         logger.error({ intentId: intent.id }, "Payment intent failed but has no orderId metadata");
         return;
     }
+    const { customerId } = await markPaymentFailed(orderId);
 
-    await markPaymentFailed(orderId);
-    logger.info({ orderId, intentId: intent.id }, "Payment failed,order remains PENDING");
+    if (customerId) {
+        try {
+            await notifyUser({
+                userId: customerId,
+                type: "PAYMENT_FAILED",
+                title: "Payment failed",
+                body: `Your payment for order #${orderId} could not be processed. Please try again.`,
+            });
+        } catch (err) {
+            logger.error({ err, orderId }, "Failed to send payment-failed notification");
+        }
+    }
+
+    logger.info({ orderId, intentId: intent.id }, "Payment failed, order remains PENDING");
 };
 
 const handleChargeRefunded = async (charge: Stripe.Charge, eventId: string, eventType: string) => {
@@ -190,8 +213,18 @@ const handleChargeRefunded = async (charge: Stripe.Charge, eventId: string, even
         );
         return;
     }
-
-    //  await markPaymentRefunded(payment.orderId)
+     if (result.customerId) {
+        try {
+            await notifyUser({
+                userId: result.customerId,
+                type: "PAYMENT_REFUNDED",
+                title: "Refund processed",
+                body: `Your refund for order #${payment.orderId} has been processed.`,
+            });
+        } catch (err) {
+            logger.error({ err, orderId: payment.orderId }, "Failed to send refund notification");
+        }
+    }
 
     logger.info(
         { orderId: payment.orderId, chargeId: charge.id },

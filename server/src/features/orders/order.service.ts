@@ -14,6 +14,8 @@ import {
 } from "./order.repository.js";
 import { GetOrdersQuery, shipAddressInput } from "./order.types.js";
 import { scheduleOrderExpiration } from "../../infrastructure/queue/orderExpiration.helpers.js";
+import { notifyUser } from "../notification/notification.service.js";
+import { renderOrderPlacedEmail } from "../../services/email.templates.js";
 
 export const checkoutService = async (customerId: string, shippingAddress: shipAddressInput) => {
     const cart = await getCartWithItems(customerId);
@@ -74,11 +76,33 @@ export const checkoutService = async (customerId: string, shippingAddress: shipA
     const createdOrders = await createOrdersFromCart(customerId, shopGroups, shippingAddress);
 
     try {
-        await Promise.all(createdOrders.map((order)=> scheduleOrderExpiration(order.id)))
+        await Promise.all(createdOrders.map((order) => scheduleOrderExpiration(order.id)));
     } catch (err) {
-        logger.error({ err, customerId, orderIds:createdOrders.map((o)=> o.id)}),
-        "Failed to schedule order expiration jobs"
-    } 
+        (logger.error({ err, customerId, orderIds: createdOrders.map((o) => o.id) }),
+            "Failed to schedule order expiration jobs");
+    }
+
+    try {
+        await Promise.all(
+            createdOrders.map((order) =>
+                notifyUser({
+                    userId: customerId,
+                    type: "ORDER_PLACED",
+                    title: "Order palced",
+                    body: `Your order at ${order.shopSlug} has been placed sucessfully.`,
+                    shopId:order.shopId,
+                     meta: {
+                        orderId: order.id,
+                        shopName: order.shopSlug, 
+                        totalAmount: order.totalAmount,
+                        itemCount: order.itemCount,
+                    },
+                }),
+            ),
+        );
+    } catch (err) {
+        logger.error({ err, customerId }, "Failed to send order-placed notifications");
+    }
 
     try {
         await clearCart(customerId);
@@ -237,10 +261,21 @@ export const updateOrderStatusService = async (
     const allowedNext = SHOP_ALLOWED_TRANSITIONS[order.status] ?? [];
 
     if (!allowedNext.includes(newStatus)) {
-        throw new AppError(
-            `Cannot transition order from ${order.status} to ${newStatus}.`,
-            400,
-        );
+        throw new AppError(`Cannot transition order from ${order.status} to ${newStatus}.`, 400);
+    }
+
+    if (newStatus === "SHIPPED" || newStatus === "DELIVERED") {
+        try {
+            await notifyUser({
+                userId: order.customerId,
+                type: newStatus === "SHIPPED" ? "ORDER_SHIPPED" : "ORDER_DELIVERED",
+                title: newStatus === "SHIPPED" ? "Order shipped" : "Order delivered",
+                body: `Your order #${orderId} has been ${newStatus === "SHIPPED" ? "shipped" : "delivered"}.`,
+                shopId,
+            });
+        } catch (err) {
+            logger.error({ err, orderId, newStatus }, "Failed to send order status notification");
+        }
     }
 
     return updateOrderStatusRepository(orderId, shopId, order.status, newStatus);

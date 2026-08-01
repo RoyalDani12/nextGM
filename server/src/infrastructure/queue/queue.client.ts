@@ -71,3 +71,20 @@ export const orderExpirationQueue  = new Queue( "order-expiration",{
 
 })
 console.log("order expiration queue initialized");
+
+export const notificationQueue = new Queue("notifications",{
+    connection:redis,
+    defaultJobOptions:{
+        attempts:3,
+        backoff:{
+            type:"exponential",
+            delay:5000,
+        },
+        removeOnComplete:true,
+        removeOnFail:{
+            age:24 * 60 * 60
+        }
+    }
+})
+
+console.log("Notification Queue Initialized.")
