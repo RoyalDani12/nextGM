@@ -8,6 +8,9 @@ export interface RegisterPayload {
     email: string;
     password: string;
 }
+export interface ForgetPayload {
+    email:string
+}
 
 export interface AuthUser {
     id: string;
@@ -51,3 +54,10 @@ export const isDeactivatedResponse = (
 ): response is DeactivatedResponse => {
     return "code" in response && response.code === "ACCOUNT_DEACTIVATED";
 };
+
+
+export interface resetPasswordPayload {
+    token:string;
+    newPassword:string;
+    confirmPassword:string;
+}

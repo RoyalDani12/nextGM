@@ -7,7 +7,7 @@ export const  createShopRequest = async (paylod:CreateShopPayload):Promise<Creat
   return data 
 }
 
-export const getMyShopRequest = async (): Promise<GetMyShopResponse>=>{
-  const { data } = await api.get("/shops/me")
-  return data 
-}
+export const getMyShopRequest = async (): Promise<GetMyShopResponse> => {
+  const { data } = await api.get("/shops/mine");
+  return data;
+};

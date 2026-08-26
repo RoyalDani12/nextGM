@@ -5,6 +5,8 @@ import type {
     LoginResponse,
     RegisterResponse,
     DeactivatedResponse,
+    ForgetPayload,
+   resetPasswordPayload 
 } from "../features/auth/auth.types";
 
 
@@ -42,3 +44,20 @@ export const getMeRequest = async () => {
     const { data } = await api.get("/users/me");
     return data.data; // adjust based on your actual GET /users/me response shape
 };
+
+
+export const verifyEmailRequest = async(token:string)=>{
+  const { data } = await api.get(`/auth/verify-email?token=${token}`)
+  return data
+}
+
+
+export const forgetPasswordRequest = async (payload:ForgetPayload)=>{
+    const { data } = await api.post('/auth/forgot-password',payload)
+    return data
+}
+
+export const resetPasswordRequest = async (payload:resetPasswordPayload )=>{
+    const { data } = await api.post('/auth/reset-password',payload)
+    return data
+}

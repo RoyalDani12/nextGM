@@ -1,9 +1,9 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation,useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { loginRequest, registerRequest, logoutRequest } from "../../api/auth.api";
+import { loginRequest, registerRequest, logoutRequest,verifyEmailRequest,forgetPasswordRequest, resetPasswordRequest } from "../../api/auth.api";
 import { useAuthStore } from "../../store/auth.store";
 import { isDeactivatedResponse } from "./auth.types";
-import type { LoginPayload, RegisterPayload } from "./auth.types";
+import type { LoginPayload, RegisterPayload,ForgetPayload,resetPasswordPayload  } from "./auth.types";
 
 export const useLogin = () => {
     const setAuth = useAuthStore((state) => state.setAuth);
@@ -13,12 +13,12 @@ export const useLogin = () => {
         mutationFn: (payload: LoginPayload) => loginRequest(payload),
         onSuccess: (response) => {
             if (isDeactivatedResponse(response)) {
-                return; // component reads mutation.data, shows reactivation UI
+                return; 
             }
 
-            const { accessToken, user } = response.data; // now correctly typed as LoginResponse
+            const { accessToken, user } = response.data; 
             setAuth(user, accessToken);
-            navigate("/dashboard");
+            navigate("/role-redirect");
         },
     });
 };
@@ -46,3 +46,31 @@ export const useLogout = () => {
         },
     });
 };
+
+
+// Converted to useQuery to avoid duplicate fires on mount/StrictMode
+export const useVerifyEmail = (token: string | null) => {
+    return useQuery({
+        queryKey: ["verifyEmail", token],
+        queryFn: () => verifyEmailRequest(token!),
+        enabled: !!token,
+        retry: false,
+        staleTime: Infinity,
+    });
+};
+
+
+export const useForgotPassword = ()=>{
+      return  useMutation({
+        mutationFn:(email:ForgetPayload)=>forgetPasswordRequest(email),
+        
+      })
+}
+
+
+export const useResetPassword = ()=>{
+    return useMutation({
+        mutationFn:(payload:resetPasswordPayload )=>resetPasswordRequest(payload),
+
+    })
+}

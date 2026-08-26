@@ -1,21 +1,32 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuthStore } from "../store/auth.store";
+import { Spinner } from "@/components/ui/spinner";
 
-export default function ProtectedRoute() {
-    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-    const isInitializing = useAuthStore((state) => state.isInitializing);
+type Role = "SUPER_ADMIN" | "SHOP_OWNER" | "SHOP_EMPLOYEE" | "CUSTOMER";
+interface ProtectedRouteProps {
+   allowedRoles?: Role[];
+}
+export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
+   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+   const isInitializing = useAuthStore((state) => state.isInitializing);
 
-    if (isInitializing) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <p className="text-sm text-slate-500">Loading...</p>
-            </div>
-        );
-    }
+   const user = useAuthStore((state) => state.user);
 
-    if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
-    }
+   if (isInitializing) {
+      return (
+         <div className="flex items-center justify-center min-h-screen">
+            <Spinner className="size-8" />
+         </div>
+      );
+   }
 
-    return <Outlet />;
+   if (!isAuthenticated) {
+      return <Navigate to="/login" replace />;
+   }
+
+   if( allowedRoles && user?.role && !allowedRoles.includes(user.role as Role)) {
+     return <Navigate to="/" replace/>
+   }
+
+   return <Outlet />;
 }

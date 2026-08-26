@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export default function CreateShopPage() {
+export const CreateShopPage =()=> {
     const { register, handleSubmit, formState: { errors } } = useForm<CreateShopFormValues>({
         resolver: zodResolver(createShopSchema),
     });
@@ -21,7 +21,7 @@ export default function CreateShopPage() {
                 <div className="size-14 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-4">
                     <Store className="size-6 text-indigo-600" />
                 </div>
-                <h1 className="text-xl font-semibold text-slate-900 mb-1">Start selling on Nexions</h1>
+                <h1 className="text-xl font-semibold text-slate-900 mb-1">Start selling on NextG</h1>
                 <p className="text-sm text-slate-500 mb-6">Give your shop a name to get started.</p>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="text-left space-y-4">
