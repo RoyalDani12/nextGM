@@ -15,6 +15,7 @@ import {
     createPasswordResetToken,
     findResetPasswordToken,
     resetPasswordAndRevoke,
+    findUserById,
 } from "./auth.repository.js";
 import { hashPassword, verifyPassword } from "../../utils/auth.utils.js";
 import { emailQueue } from "../../infrastructure/queue/queue.client.js";
@@ -193,7 +194,7 @@ export const refreshTokenService = async (token: string) => {
     let user = await getUserSession(existingToken.userId);
 
     if (!user) {
-        const dbUser = await findUserByEmail(existingToken.userId);
+        const dbUser = await findUserById(existingToken.userId);
         if (!dbUser) {
             throw new AppError("User not found.", 401);
         }

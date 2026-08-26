@@ -48,8 +48,8 @@ export const generateAvatarUploadSignatureService = async (userId: string) => {
         {
             timestamp,
             folder,
-            allowed_formats: "jpg,png,webp",
-            max_file_size: 5000000,
+            // allowed_formats: "jpg,png,webp",
+            // max_file_size: 5000000,
         },
         env.CLOUDINARY_API_SECRET,
     );

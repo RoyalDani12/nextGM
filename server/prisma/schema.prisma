@@ -75,6 +75,10 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum WalletTransactionType {
+  CREDIT
+  DEBIT
+}
 enum PaymentProvider {
   STRIPE
   PAYPAL
@@ -226,6 +230,9 @@ model Shop {
   analytics     ShopAnalytics[]
   reviews       Review[]
   notifications Notification[]
+  legalInfo          ShopLegalInfo?
+  wallet             ShopWallet?
+  walletTransactions WalletTransaction[]
 
   @@index([ownerId])
   @@index([slug])
@@ -248,6 +255,41 @@ model ShopProfile {
   website     String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+model ShopLegalInfo {
+  id                String   @id @default(cuid())
+  shopId            String   @unique
+  shop              Shop     @relation(fields: [shopId], references: [id])
+  legalBusinessName String
+  taxId             String
+  entityType        String   // free text for now — "individual", "llc", etc. Not enum-constrained, kept minimal per scope.
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model ShopWallet {
+  id        String   @id @default(cuid())
+  shopId    String   @unique
+  shop      Shop     @relation(fields: [shopId], references: [id])
+  balance   Decimal  @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WalletTransaction {
+  id           String                @id @default(cuid())
+  shopId       String
+  shop         Shop                  @relation(fields: [shopId], references: [id])
+  orderId      String?
+  order        Order?                @relation(fields: [orderId], references: [id])
+  type         WalletTransactionType
+  amount       Decimal
+  balanceAfter Decimal
+  note         String?
+  createdAt    DateTime              @default(now())
+
+  @@index([shopId])
+  @@index([orderId])
 }
 
 model ShopEmployee {
@@ -459,6 +501,7 @@ model Order {
   @@index([customerId, status])   
   @@index([customerId, createdAt])
   @@index([status, reservationExpiresAt])
+  walletTransactions WalletTransaction[]
 }
 
 model OrderItem {

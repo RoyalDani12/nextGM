@@ -165,7 +165,7 @@ export const rotateRefreshToken = async (
     return prisma.$transaction(async (tx) => {
         const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
         // delete old one
-        await tx.refreshToken.delete({
+        await tx.refreshToken.deleteMany({
             where: { id: oldToken },
         });
 

@@ -27,6 +27,7 @@ const envSchema = z.object({
     ORDER_RESERVATION_TTL_MINUTES: z.string().transform(Number),
     STRIPE_SECRET_KEY:z.string().min(1,"Stripe API key us required"),
     STRIPE_WEBHOOK_SECRET: z.string().min(1),
+    PLATFORM_COMMISSION_RATE: z.coerce.number().min(0).max(1),
 });
 
 const _env = envSchema.safeParse(process.env);

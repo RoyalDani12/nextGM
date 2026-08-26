@@ -48,13 +48,13 @@ router.post('/login',
 
 
 router.post('/refresh-token',
-   authLimiter,
-   authenticate,
+  //  authLimiter,
+  //  authenticate,
    refreshTokenController
   )
 
 router.post('/logout',
-   authLimiter,
+  //  authLimiter,
    authenticate,
    logoutController
 )

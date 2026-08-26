@@ -64,3 +64,12 @@ export const closeShopSchema = z.object({
             )
     }).strict()
 })
+
+// shop.schema.ts
+export const updateShopLegalInfoSchema = z.object({
+    body: z.object({
+        legalBusinessName: z.string().min(2),
+        taxId: z.string().min(3),
+        entityType: z.string().min(2),
+    }).strict(),
+});

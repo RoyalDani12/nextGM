@@ -5,6 +5,8 @@ import { shopDocs } from "../features/shop/shop.docs.js";
 import { productDocs } from "../features/product/product.docs.js";
 import { uploadDocs } from "../features/uploads/upload.docs.js";
 import { userDocs } from "../features/users/user.docs.js";
+import { cartDocs } from "../features/cart/cart.docs.js";
+import { orderDocs } from "../features/orders/orders.docs.js";
 
 const swaggerDocument = {
   openapi: "3.0.0",
@@ -30,10 +32,12 @@ const swaggerDocument = {
   },
   paths: {
     ...authDocs,
+    ...uploadDocs,
+    ...userDocs,
     ...shopDocs,
     ...productDocs,
-    ...uploadDocs,
-    ...userDocs
+    ...cartDocs,
+    ...orderDocs
   }
 };
 export const setupSwagger = (app: Express): void => {

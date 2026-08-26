@@ -1,13 +1,12 @@
 import { prisma } from "../../config/db.js";
 
-export const findShopByOwnerId = async (ownerId: string) => {
-    return prisma.shop.findFirst({
-        where: {
-            ownerId,
-            deletedAt: null,
-        },
+export const findShopsByOwnerId = async (ownerId: string) => {
+    return prisma.shop.findMany({
+        where: { ownerId, deletedAt: null },
+        include: { profile: true },
+        orderBy: { createdAt: "desc" },
     });
-};
+}
 
 export const findShopBySlug = async (slug: string) => {
     return prisma.shop.findUnique({
@@ -31,11 +30,16 @@ export const createShopRepository = async (ownerId: string, slug: string, name: 
                 name,
             },
         });
+
+        await tx.user.updateMany({
+            where: { id:ownerId,role:"CUSTOMER"},
+            data: { role:"SHOP_OWNER"}
+        })
         return shop;
     });
 };
 
-export const findMyShopWithProfile = async (ownerId: string) => {
+/* export const findMyShopWithProfile = async (ownerId: string) => {
     return prisma.shop.findFirst({
         where: {
             ownerId,
@@ -45,7 +49,7 @@ export const findMyShopWithProfile = async (ownerId: string) => {
             profile: true,
         },
     });
-};
+}; */
 
 export const findShopById = async (shopId: string) => {
     return prisma.shop.findUnique({
@@ -136,3 +140,72 @@ export const closeShopRepository = async (shopId: string) => {
         })
     })
 }
+
+
+export const upsertShopLegalInfo = async (
+    shopId: string,
+    data: { legalBusinessName: string; taxId: string; entityType: string },
+) => {
+    return prisma.shopLegalInfo.upsert({
+        where: { shopId },
+        create: { shopId, ...data },
+        update: data,
+    });
+};
+
+export const findShopLegalInfo = async (shopId: string) => {
+    return prisma.shopLegalInfo.findUnique({ where: { shopId } });
+};
+
+export const findShopForPublishCheck = async (shopId: string) => {
+    return prisma.shop.findUnique({
+        where: { id: shopId },
+        select: {
+            id: true,
+            ownerId: true,
+            status: true,
+            profile: {
+                select: {
+                    name: true,
+                    description: true,
+                    logo: true,
+                    phone: true,
+                    email: true,
+                    address: true,
+                    city: true,
+                    country: true,
+                },
+            },
+
+             legalInfo: {
+                select: { id: true },
+             },
+            products: {
+                where: { status: "ACTIVE", deletedAt: null },
+                select: { id: true },
+                take: 1, // only need to know if at least one exists
+            },
+        },
+    });
+};
+
+export const publishShopRepository = async (shopId: string) => {
+    
+    return prisma.shop.updateMany({
+        where: { id: shopId, status: "PENDING" },
+        data: { status: "ACTIVE" },
+    });
+};
+
+
+export const getShopWallet = async (shopId: string) => {
+    return prisma.shopWallet.findUnique({ where: { shopId } });
+};
+
+export const getWalletTransactions = async (shopId: string) => {
+    return prisma.walletTransaction.findMany({
+        where: { shopId },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+    });
+};
