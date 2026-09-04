@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Separator } from "@/components/ui/separator"
 import { Card, CardContent } from "@/components/ui/card"
@@ -89,7 +89,7 @@ export default function SettingsPage() {
                   variant="outline" 
                   size="sm" 
                   className="gap-2 border-slate-200 text-slate-700 hover:bg-slate-50"
-                  onClick={() => navigate("/dashboard/settings/security")} 
+                  onClick={() => navigate("/account/settings")}
                 >
                   Manage Security <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -127,7 +127,7 @@ export default function SettingsPage() {
                   variant="outline" 
                   size="sm" 
                   className="gap-2 border-slate-200 text-slate-700 hover:bg-slate-50"
-                  onClick={() => navigate("/dashboard/settings/sessions")}
+                  onClick={() => navigate("/account/settings")}
                 >
                   View Sessions <ArrowRight className="h-4 w-4" />
                 </Button>

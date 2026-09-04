@@ -13,16 +13,13 @@ import { ResetPasswordPage } from "@/features/auth/ResetPasswordPage";
 import RoleRedirect from "./RoleRedirect";
 import { SuperAdminHome } from "@/features/pages/superAdmin/SuperAdminHome";
 import { AdminLayout } from "@/features/pages/superAdmin/AdminLayout";
-// import  { createShopPage } from "@features/shop/CreateShopPage"
 import { CreateShopPage } from "@/features/shop/CreateShopPage";
 import Pricing from "@/features/pages/public/Pricing";
 import { Shops } from "@/features/shop/Shops";
 import ShopDetail from "@/components/layout/shop/ShopDetail";
 import { CartPage } from "@/features/cart/CartPage";
-
-const DashboardOrders = () => <div className="p-6 font-semibold">Orders Page</div>;
-const DashboardProducts = () => <div className="p-6 font-semibold">Products Page</div>;
-const DashboardSettings = () => <div className="p-6 font-semibold">Settings Page</div>;
+import { DashboardSection } from "@/features/shop/DashboardSection";
+import { ShopDirectory } from "@/features/pages/public/ShopDirectory";
 
 export function AppRoutes() {
   return (
@@ -36,6 +33,7 @@ export function AppRoutes() {
       <Route path="/forgot-password" element={<ForgetPassword />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/pricing" element={<Pricing/>}/>
+      <Route path="/shops" element={<ShopDirectory />} />
 
       {/* 2. SHARED PROTECTED ROUTES */}
       <Route element={<ProtectedRoute />}>
@@ -50,9 +48,11 @@ export function AppRoutes() {
       
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<DashboardHome />} />
-          <Route path="orders" element={<DashboardOrders />} />
-          <Route path="products" element={<DashboardProducts />} />
-          <Route path="settings" element={<DashboardSettings />} />
+          <Route path="orders" element={<DashboardSection section="orders" />} />
+          <Route path="products" element={<DashboardSection section="products" />} />
+          <Route path="settings" element={<DashboardSection section="settings" />} />
+          <Route path="analytics" element={<DashboardSection section="analytics" />} />
+          <Route path="customers" element={<DashboardSection section="customers" />} />
            <Route path="shops">
     <Route index element={<Shops />} />
     <Route path=":id/detail" element={<ShopDetail />} />
@@ -64,7 +64,7 @@ export function AppRoutes() {
 
       {/* 4. EMPLOYEE ROUTES */}
       <Route element={<ProtectedRoute allowedRoles={["SHOP_EMPLOYEE"]} />}>
-        <Route path="/employee" element={<div className="p-6">Employee Dashboard</div>} />
+        <Route path="/employee" element={<DashboardSection section="orders" />} />
       </Route>
 
       {/* 5. SUPER ADMIN ROUTES */}

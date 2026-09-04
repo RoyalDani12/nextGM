@@ -20,8 +20,8 @@ import {
 
 const navigation = [
     { title: "Home", href: "/dashboard", icon: Home },
-    { title: "Shops", href: "/dashboard/shops", icon:Store },
-    { title: "Dashboard", href: "/dashboard/overview", icon: LayoutDashboard },
+    { title: "Shops", href: "/dashboard/shops", icon: Store },
+    { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { title: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
     {
         title: "Products",

@@ -1,29 +1,26 @@
-// store/useAuthStore.ts
 import { create } from "zustand"
-import { persist } from "zustand/middleware"
 
-interface User {
+export interface AuthUser {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: "SUPER_ADMIN" | "SHOP_OWNER" | "SHOP_EMPLOYEE" | "CUSTOMER" | string;
   avatarUrl?: string;
+  profile?: { avatar?: string | null; phone?: string | null; address?: string | null; city?: string | null; country?: string | null };
 }
 
 interface AuthState {
-  user: User | null;
+  user: AuthUser | null;
   accessToken: string | null;
   isAuthenticated: boolean;
   isInitializing: boolean;
-  setAuth: (user: User, accessToken: string) => void;
+  setAuth: (user: AuthUser, accessToken: string) => void;
   setAccessToken: (accessToken: string) => void;
   clearAuth: () => void;
   setInitializing: (value: boolean) => void;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
+export const useAuthStore = create<AuthState>()((set) => ({
       user: null,
       accessToken: null,
       isAuthenticated: false,
@@ -39,15 +36,4 @@ export const useAuthStore = create<AuthState>()(
 
       setInitializing: (value) => 
         set({ isInitializing: value })
-    }),
-    {
-      name: "auth-storage", 
-      // Only persist user data and tokens, never the initializing state
-      partialize: (state) => ({ 
-        user: state.user, 
-        accessToken: state.accessToken, 
-        isAuthenticated: state.isAuthenticated 
-      }),
-    }
-  )
-)
+    }))

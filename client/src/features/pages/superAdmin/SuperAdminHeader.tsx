@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, Bell, Menu } from "lucide-react";
 import { 
   Sheet,
@@ -19,9 +20,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AdminNavLinks } from "./AdminNavLinks";
+import { useLogout } from "@/features/auth/auth.hooks";
 
 export const SuperAdminHeader = () => {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+  const logout = useLogout();
 
   return (
     <header className="h-16 bg-background border-b border-border px-4 lg:px-8 flex items-center justify-between sticky top-0 z-50">
@@ -96,10 +100,10 @@ export const SuperAdminHeader = () => {
               <p className="text-xs text-muted-foreground mt-1">admin@systemos.com</p>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem render={<a href="#" />}>Profile Settings</DropdownMenuItem>
-            <DropdownMenuItem render={<a href="#" />}>Platform Audit Logs</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/account/settings")}>Profile Settings</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/superadmin/audits")}>Platform Audit Logs</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem render={<button className="w-full text-destructive" />} className="text-destructive focus:text-destructive">
+            <DropdownMenuItem onClick={() => logout.mutate()} className="text-destructive focus:text-destructive">
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>

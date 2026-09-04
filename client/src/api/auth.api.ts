@@ -47,7 +47,7 @@ export const getMeRequest = async () => {
 
 
 export const verifyEmailRequest = async(token:string)=>{
-  const { data } = await api.get(`/auth/verify-email?token=${token}`)
+  const { data } = await api.get(`/auth/verify-email?token=${encodeURIComponent(token)}`)
   return data
 }
 

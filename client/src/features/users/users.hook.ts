@@ -13,11 +13,16 @@ import type {
 
 
 export const useGetMe = () => {
+  const isAuthenticated = useAuthStore((state) => (
+    state.isAuthenticated && Boolean(state.user && state.accessToken)
+  ));
+
   return useQuery<UserProfile>({
     queryKey: ["users", "me"],
     queryFn: getMeRequest,
     staleTime: 1000 * 60 * 5,
     retry: 1,
+    enabled: isAuthenticated,
   });
 };
 
@@ -38,15 +43,13 @@ export const useUpdateProfile = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["users", "me"] });
       
-      const currentUser = queryClient.getQueryData(["users", "me"]) as any;
+      const currentUser = queryClient.getQueryData<UserProfile>(["users", "me"]);
       if (currentUser && currentToken) {
         setAuth({ ...currentUser, ...variables }, currentToken);
       }
     },
   });
 };
-
-
 
 
 

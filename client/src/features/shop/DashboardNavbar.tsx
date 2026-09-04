@@ -102,7 +102,7 @@ export function DashboardNavbar() {
                     <Button
                         size="sm"
                         className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full font-bold h-9 px-4 shadow-sm shadow-emerald-500/20 transition-all hover:shadow-emerald-500/40 hover:-translate-y-0.5 hidden sm:flex gap-1.5"
-                        onClick={() => navigate("/dashboard/shops/new")}
+                        onClick={() => navigate("/create-shop")}
                     >
                         <Plus className="size-4" />
                         <span>Create Shop</span>
@@ -146,7 +146,7 @@ export function DashboardNavbar() {
                             render={
                                 <button className="outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full ml-1">
                                     <Avatar className="size-9 ring-2 ring-emerald-500/20 ring-offset-2 ring-offset-white shadow-sm">
-                                        <AvatarImage src={user?.profile?.avatar} alt={user?.name} />
+                                        <AvatarImage src={user?.profile?.avatar ?? undefined} alt={user?.name} />
                                         <AvatarFallback className="bg-slate-900 text-white text-xs font-black">
                                             {initials}
                                         </AvatarFallback>
@@ -157,7 +157,7 @@ export function DashboardNavbar() {
                         <DropdownMenuContent align="end" className="w-64 mt-2 p-2 rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
                             <div className="px-4 py-3 bg-slate-50 rounded-2xl border border-slate-100 mb-2 flex items-center gap-3">
                                 <Avatar className="size-10">
-                                    <AvatarImage src={user?.profile?.avatar} alt={user?.name} />
+                                    <AvatarImage src={user?.profile?.avatar ?? undefined} alt={user?.name} />
                                     <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs font-black">
                                         {initials}
                                     </AvatarFallback>
@@ -168,7 +168,7 @@ export function DashboardNavbar() {
                                 </div>
                             </div>
                             <DropdownMenuGroup>
-                                <DropdownMenuItem onClick={() => navigate("/dashboard/account/settings")} className="cursor-pointer gap-3 py-2.5 px-3 rounded-2xl text-xs font-bold text-slate-700 focus:bg-slate-100 focus:text-slate-900">
+                                <DropdownMenuItem onClick={() => navigate("/account/settings")} className="cursor-pointer gap-3 py-2.5 px-3 rounded-2xl text-xs font-bold text-slate-700 focus:bg-slate-100 focus:text-slate-900">
                                     <UserIcon className="size-4 text-slate-400" /> Account Settings
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => navigate("/dashboard/settings")} className="cursor-pointer gap-3 py-2.5 px-3 rounded-2xl text-xs font-bold text-slate-700 focus:bg-slate-100 focus:text-slate-900">

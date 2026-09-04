@@ -30,7 +30,10 @@ const isAuthEndpoint = (url?: string) =>
     url?.includes("/auth/login") ||
     url?.includes("/auth/register") ||
     url?.includes("/auth/refresh-token") ||
-    url?.includes("/auth/verify-email");
+    url?.includes("/auth/verify-email") ||
+    url?.includes("/auth/forgot-password") ||
+    url?.includes("/auth/reset-password") ||
+    url?.includes("/auth/logout");
 
 api.interceptors.response.use(
     (response) => response,

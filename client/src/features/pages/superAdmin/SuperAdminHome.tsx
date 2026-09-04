@@ -1,162 +1,23 @@
-import React from 'react';
-import { 
-  Users, 
-  Store, 
-  CreditCard, 
-  Activity, 
-  TrendingUp,
-  MoreVertical,
-  AlertCircle
-} from 'lucide-react';
+import type { ElementType } from "react";
+import { Activity, AlertTriangle, ArrowUpRight, CreditCard, Store, TrendingUp } from "lucide-react";
 
-// --- Subcomponents ---
+type Metric = { title: string; value: string; trend: string; trendUp: boolean; icon: ElementType };
+const metrics: Metric[] = [
+  { title: "Global MRR", value: "$1.24M", trend: "12.5%", trendUp: true, icon: CreditCard },
+  { title: "Active stores", value: "14,205", trend: "4.2%", trendUp: true, icon: Store },
+  { title: "Platform GMV", value: "$84.5M", trend: "8.1%", trendUp: true, icon: TrendingUp },
+  { title: "Error rate", value: "0.01%", trend: "0.04%", trendUp: false, icon: Activity },
+];
+const stores = [
+  ["Nova Athletics", "Enterprise", "$2,499", "Active"], ["Lumina Coffee", "Pro", "$299", "Trial"],
+  ["TechGear Pro", "Basic", "$29", "Active"], ["Botanica", "Pro", "$0", "Churned"],
+];
 
-const MetricCard = ({ title, value, trend, trendUp, icon: Icon }) => (
-  <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col gap-4">
-    <div className="flex justify-between items-center">
-      <h3 className="text-sm font-medium text-gray-500">{title}</h3>
-      <div className="p-2 bg-gray-50 rounded-lg text-gray-600">
-        <Icon size={20} />
-      </div>
-    </div>
-    <div>
-      <p className="text-3xl font-semibold text-gray-900">{value}</p>
-      <div className="flex items-center gap-2 mt-2">
-        <span className={`text-sm font-medium ${trendUp ? 'text-emerald-600' : 'text-rose-600'}`}>
-          {trendUp ? '+' : '-'}{trend}
-        </span>
-        <span className="text-sm text-gray-500">vs last month</span>
-      </div>
-    </div>
+export const SuperAdminHome = () => <div className="space-y-8">
+  <div><p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-600">Command center</p><h1 className="mt-2 text-3xl font-black tracking-tight">Platform overview</h1><p className="mt-1 text-sm text-slate-500">A clear view of health, growth, and the work that needs attention.</p></div>
+  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{metrics.map(({ title, value, trend, trendUp, icon: Icon }) => <div key={title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center justify-between"><span className="text-xs font-bold uppercase tracking-wider text-slate-400">{title}</span><span className="grid size-9 place-items-center rounded-xl bg-slate-100 text-slate-600"><Icon className="size-4" /></span></div><p className="mt-5 text-2xl font-black">{value}</p><p className={`mt-1 text-xs font-bold ${trendUp ? "text-emerald-600" : "text-rose-600"}`}>{trendUp ? "+" : "-"}{trend} <span className="font-medium text-slate-400">vs last month</span></p></div>)}</div>
+  <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><div className="flex items-center justify-between border-b border-slate-100 px-5 py-4"><div><h2 className="font-black">Recent store signups</h2><p className="text-xs text-slate-500">Latest businesses joining the network</p></div><button className="text-xs font-bold text-emerald-600">View all <ArrowUpRight className="ml-1 inline size-3.5" /></button></div><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-400"><tr><th className="px-5 py-3">Store</th><th className="px-5 py-3">Plan</th><th className="px-5 py-3">MRR</th><th className="px-5 py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{stores.map(([name, plan, mrr, status]) => <tr key={name} className="hover:bg-slate-50"><td className="px-5 py-4 font-bold">{name}</td><td className="px-5 py-4 text-slate-500">{plan}</td><td className="px-5 py-4 text-slate-500">{mrr}</td><td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${status === "Active" ? "bg-emerald-50 text-emerald-700" : status === "Trial" ? "bg-blue-50 text-blue-700" : "bg-slate-100 text-slate-500"}`}>{status}</span></td></tr>)}</tbody></table></div></section>
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="font-black">Action required</h2><p className="mt-1 text-xs text-slate-500">Keep the platform running smoothly.</p><div className="mt-5 space-y-3">{[["Pending KYC verifications", 12], ["High-risk transactions", 3], ["Database shard warnings", 1]].map(([label, count]) => <div key={String(label)} className="flex items-center justify-between rounded-xl border border-rose-100 bg-rose-50/60 p-3"><span className="flex items-center gap-2 text-xs font-bold text-rose-800"><AlertTriangle className="size-4" /> {label}</span><span className="rounded-lg bg-white px-2 py-1 text-xs font-black text-rose-700">{count}</span></div>)}</div></section>
   </div>
-);
-
-const StatusBadge = ({ status }) => {
-  const styles = {
-    active: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-    trial: "bg-blue-50 text-blue-700 ring-blue-600/20",
-    churned: "bg-rose-50 text-rose-700 ring-rose-600/20"
-  };
-  
-  return (
-    <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${styles[status]}`}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
-    </span>
-  );
-};
-
-// --- Main Dashboard ---
-
-export const SuperAdminHome = () => {
-  // Mock data for the presentation layer
-  const recentStores = [
-    { id: '1', name: 'Nova Athletics', plan: 'Enterprise', mrr: '$2,499', status: 'active', date: 'Oct 12' },
-    { id: '2', name: 'Lumina Coffee', plan: 'Pro', mrr: '$299', status: 'trial', date: 'Oct 12' },
-    { id: '3', name: 'TechGear Pro', plan: 'Basic', mrr: '$29', status: 'active', date: 'Oct 11' },
-    { id: '4', name: 'Botanica', plan: 'Pro', mrr: '$0', status: 'churned', date: 'Oct 10' },
-  ];
-
-  return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
-      
-      {/* Header Shell */}
-      <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
-        <div>
-          <h1 className="text-xl font-semibold">Platform Overview</h1>
-          <p className="text-sm text-gray-500">Global metrics across all tenants</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-sm font-medium">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            All Systems Operational
-          </div>
-          <button className="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center font-medium">
-            SA
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="p-8 max-w-7xl mx-auto space-y-8">
-        
-        {/* Top Level Metrics */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <MetricCard title="Global MRR" value="$1.24M" trend="12.5%" trendUp={true} icon={CreditCard} />
-          <MetricCard title="Total Active Stores" value="14,205" trend="4.2%" trendUp={true} icon={Store} />
-          <MetricCard title="Platform GMV (30d)" value="$84.5M" trend="8.1%" trendUp={true} icon={TrendingUp} />
-          <MetricCard title="System Error Rate" value="0.01%" trend="0.04%" trendUp={false} icon={Activity} />
-        </section>
-
-        {/* Complex Data Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Main Table Area */}
-          <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center">
-              <h2 className="text-base font-semibold">Recent Store Signups</h2>
-              <button className="text-sm font-medium text-blue-600 hover:text-blue-700">View All</button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-gray-500 uppercase bg-gray-50/50 border-b border-gray-100">
-                  <tr>
-                    <th className="px-6 py-4 font-medium">Store Name</th>
-                    <th className="px-6 py-4 font-medium">Plan</th>
-                    <th className="px-6 py-4 font-medium">MRR</th>
-                    <th className="px-6 py-4 font-medium">Status</th>
-                    <th className="px-6 py-4 font-medium">Joined</th>
-                    <th className="px-6 py-4 text-right font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {recentStores.map((store) => (
-                    <tr key={store.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-gray-900">{store.name}</td>
-                      <td className="px-6 py-4 text-gray-600">{store.plan}</td>
-                      <td className="px-6 py-4 text-gray-600">{store.mrr}</td>
-                      <td className="px-6 py-4"><StatusBadge status={store.status} /></td>
-                      <td className="px-6 py-4 text-gray-500">{store.date}</td>
-                      <td className="px-6 py-4 text-right">
-                        <button className="text-gray-400 hover:text-gray-600">
-                          <MoreVertical size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Secondary Panel */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm flex flex-col">
-            <div className="px-6 py-5 border-b border-gray-100">
-              <h2 className="text-base font-semibold">Action Required</h2>
-            </div>
-            <div className="p-6 flex-1 flex flex-col gap-4">
-              {[
-                { label: 'Pending KYC Verifications', count: 12 },
-                { label: 'High-Risk Transactions', count: 3 },
-                { label: 'Database Shard Warnings', count: 1 }
-              ].map((alert, i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-rose-50/50 rounded-lg border border-rose-100">
-                  <div className="flex items-center gap-3">
-                    <AlertCircle size={18} className="text-rose-600" />
-                    <span className="text-sm font-medium text-rose-900">{alert.label}</span>
-                  </div>
-                  <span className="bg-white px-2 py-1 rounded text-xs font-bold text-rose-700 shadow-sm">
-                    {alert.count}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-          
-        </div>
-      </main>
-    </div>
-  );
-};
+</div>;

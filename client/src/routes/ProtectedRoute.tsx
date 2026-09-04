@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuthStore } from "../store/auth.store";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -13,6 +13,7 @@ export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
    const isInitializing = useAuthStore((state) => state.isInitializing);
 
    const user = useAuthStore((state) => state.user);
+   const location = useLocation();
 
    if (isInitializing) {
       return (
@@ -23,7 +24,7 @@ export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
    }
 
    if (!isAuthenticated) {
-      return <Navigate to="/login" replace />;
+      return <Navigate to="/login" replace state={{ from: location }} />;
    }
 
    if (allowedRoles && (!user || !allowedRoles.includes(user.role as Role))) {

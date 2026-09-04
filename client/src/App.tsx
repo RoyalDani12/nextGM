@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AppRoutes } from "./routes/AppRoutes";
 import { useAuthStore } from "./store/auth.store";
 import { refreshTokenRequest, getMeRequest } from "./api/auth.api";
@@ -9,6 +10,7 @@ function App() {
    const clearAuth = useAuthStore((state) => state.clearAuth);
    const setInitializing = useAuthStore((state) => state.setInitializing);
    const isInitializing = useAuthStore((state) => state.isInitializing);
+   const queryClient = useQueryClient();
 
    // 1. Create a ref to track if we've already started restoring the session
    const hasAttemptedRestore = useRef(false);
@@ -26,13 +28,14 @@ function App() {
             setAuth(user, accessToken);
          } catch {
             clearAuth();
+            queryClient.clear();
          } finally {
             setInitializing(false);
          }
       };
 
       restoreSession();
-   }, [clearAuth, setAuth, setInitializing]);
+   }, [clearAuth, queryClient, setAuth, setInitializing]);
 
    if (isInitializing) {
       return (

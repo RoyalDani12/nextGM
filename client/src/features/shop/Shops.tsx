@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import type { MouseEvent } from "react";
 import { useMyShops } from "@/features/shop/shop.hooks";
 import {
   Store,
@@ -27,7 +28,7 @@ import { cn } from "@/lib/utils";
 const CopySlugButton = ({ slug }: { slug: string }) => {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = (e: React.MouseEvent) => {
+  const handleCopy = (e: MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     if (!slug) return;
@@ -175,7 +176,7 @@ export const Shops = () => {
                     </p>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <span className="text-muted-foreground text-[11px]">Slug:</span>
-                      <CopySlugButton slug={topShop.slug || topShop.profile?.slug || topShop.id} />
+                      <CopySlugButton slug={topShop.slug || topShop.id} />
                     </div>
                   </div>
                 </div>
@@ -225,7 +226,7 @@ export const Shops = () => {
               <CardFooter className="flex flex-col p-4 pt-0 space-y-3 border-t mt-auto">
                 <div className="flex items-center justify-between w-full pt-3 text-xs">
                   <span className="text-[11px] text-muted-foreground">Slug</span>
-                  <CopySlugButton slug={shop.slug || shop.profile?.slug || shop.id} />
+                  <CopySlugButton slug={shop.slug || shop.id} />
                 </div>
 
                 {/* Pure HTML Anchor Styled With Shadcn buttonVariants */}

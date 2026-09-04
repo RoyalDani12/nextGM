@@ -24,7 +24,8 @@ export default function RoleRedirect() {
 
     case "SHOP_OWNER":
       return <Navigate to ="/dashboard" replace/>
-    // case "SHOP_EMPLOYEE":
+    case "SHOP_EMPLOYEE":
+      return <Navigate to="/employee" replace />;
     case "CUSTOMER":
     default:
       // Everyone defaults to the storefront home

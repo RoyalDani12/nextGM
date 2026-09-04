@@ -52,7 +52,7 @@ export function DashboardHome({
                 "Add your logo, banner, and business details.",
             icon: Store,
             isCompleted: true,
-            link: "/dashboard/shop/profile",
+            link: "/account/settings",
         },
         {
             id: 2,
@@ -61,7 +61,7 @@ export function DashboardHome({
                 "Create your first listing with images, pricing, and variants.",
             icon: PackagePlus,
             isCompleted: false,
-            link: "/dashboard/products/new",
+            link: "/dashboard/products",
         },
         {
             id: 3,
@@ -70,7 +70,7 @@ export function DashboardHome({
                 "Connect your bank account or wallet to receive payouts.",
             icon: Wallet,
             isCompleted: false,
-            link: "/dashboard/settings/payouts",
+            link: "/dashboard/settings",
         },
     ];
 

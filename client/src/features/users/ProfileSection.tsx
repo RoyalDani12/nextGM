@@ -1,4 +1,5 @@
-import React, { useRef } from "react";
+import { useRef } from "react";
+import type { ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Upload, CheckCircle2, AlertCircle } from "lucide-react";
@@ -47,7 +48,7 @@ export default function ProfileSection() {
     }
   });
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -67,7 +68,7 @@ export default function ProfileSection() {
   function onSubmit(data: UpdateProfileFormValues) {
     // Filter out empty strings so only filled/changed profile sections are transmitted
     const payload = Object.fromEntries(
-      Object.entries(data).filter(([_, value]) => value !== "" && value !== null && value !== undefined)
+      Object.entries(data).filter(([, value]) => value !== "" && value !== null && value !== undefined)
     );
 
     updateProfile(payload);
@@ -82,7 +83,7 @@ export default function ProfileSection() {
   }
 
   // Extract custom error messages coming from backend response if applicable
-  const errorMessage = error ? (error as any)?.response?.data?.message : null;
+  const errorMessage = error instanceof Error ? error.message : null;
 
   return (
     <Form {...form}>
@@ -115,7 +116,7 @@ export default function ProfileSection() {
         {/* Avatar Section */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
           <Avatar className="h-20 w-20 border-2 border-slate-100 shadow-sm">
-            <AvatarImage src={form.watch("avatar") || user?.profile?.avatar || ""} alt="Profile picture" />
+            <AvatarImage src={user?.profile?.avatar || ""} alt="Profile picture" />
             <AvatarFallback className="bg-amber-100 text-amber-700 text-xl font-semibold">
               {user?.name?.charAt(0).toUpperCase() || "U"}
             </AvatarFallback>
