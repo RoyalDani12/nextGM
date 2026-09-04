@@ -47,7 +47,7 @@ const Hero = () => {
               <span className="text-primary">delivered from millions of stores.</span>
             </h1>
 
-            <p className="text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0">
+            <p className="hidden sm:block text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0">
               Explore thousands of independent merchant storefronts under one unified marketplace. Fast checkout, prime shipping, and infinite product variety.
             </p>
 

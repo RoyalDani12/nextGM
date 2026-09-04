@@ -18,6 +18,7 @@ import { CreateShopPage } from "@/features/shop/CreateShopPage";
 import Pricing from "@/features/pages/public/Pricing";
 import { Shops } from "@/features/shop/Shops";
 import ShopDetail from "@/components/layout/shop/ShopDetail";
+import { CartPage } from "@/features/cart/CartPage";
 
 const DashboardOrders = () => <div className="p-6 font-semibold">Orders Page</div>;
 const DashboardProducts = () => <div className="p-6 font-semibold">Products Page</div>;
@@ -34,13 +35,14 @@ export function AppRoutes() {
       <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="/forgot-password" element={<ForgetPassword />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
-       <Route path ="/create-shop" element={<CreateShopPage/>}/>
       <Route path="/pricing" element={<Pricing/>}/>
 
       {/* 2. SHARED PROTECTED ROUTES */}
       <Route element={<ProtectedRoute />}>
         <Route path="/role-redirect" element={<RoleRedirect />} />
         <Route path="/account/settings" element={<SettingsPage />} />
+        <Route path="/create-shop" element={<CreateShopPage />} />
+        <Route path="/cart" element={<CartPage />} />
       </Route>
 
       {/* 3. SHOP OWNER ROUTES */}

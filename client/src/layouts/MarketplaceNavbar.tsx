@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
-    Search, Menu, Zap, Package, 
+    Search, Menu, Zap, Package, ShoppingBag,
     User, LogOut, Command, Store, HelpCircle, 
     Tag, Compass, ChevronDown, Sparkles, Languages, Check,
     ArrowRight, TrendingUp, ShieldCheck, Flame, Shirt, Laptop, Home, HeartPulse, Trophy, Sparkle
@@ -24,11 +24,13 @@ import {
     NavigationMenuTrigger,
     navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
+import { useAuthStore } from "@/store/auth.store";
+import { useLogout } from "@/features/auth/auth.hooks";
 
 interface MarketplaceProps {
-    isAuthenticated: boolean;
-    user: { name: string; email: string; avatarUrl?: string } | null;
-    onLogout: () => void;
+    isAuthenticated?: boolean;
+    user?: { name: string; email: string; avatarUrl?: string } | null;
+    onLogout?: () => void;
 }
 
 const LANGUAGES = [
@@ -90,8 +92,14 @@ const CATEGORIES_MEGA_MENU = [
     }
 ];
 
-export const MarketplaceNavbar = ({ isAuthenticated, user, onLogout }: MarketplaceProps) => {
+export const MarketplaceNavbar = (props: MarketplaceProps = {}) => {
     const navigate = useNavigate();
+    const storeUser = useAuthStore((state) => state.user);
+    const accessToken = useAuthStore((state) => state.accessToken);
+    const logout = useLogout();
+    const user = props.user === undefined ? storeUser : props.user;
+    const isAuthenticated = props.isAuthenticated ?? Boolean(user && accessToken);
+    const onLogout = props.onLogout ?? (() => logout.mutate());
     const [isScrolled, setIsScrolled] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -339,6 +347,19 @@ export const MarketplaceNavbar = ({ isAuthenticated, user, onLogout }: Marketpla
 
                     {/* Actions & Language Selector */}
                     <div className="flex items-center gap-4">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Open shopping cart"
+                            onClick={() => navigate("/cart")}
+                            className="relative text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                        >
+                            <ShoppingBag className="size-5" />
+                            <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-orange-500 text-[10px] font-bold text-white">
+                                0
+                            </span>
+                        </Button>
                         <DropdownMenu>
                             <DropdownMenuTrigger className="hidden lg:flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-slate-900 transition-colors outline-none px-2 py-1.5 rounded-md hover:bg-slate-100 cursor-pointer">
                                 <img 

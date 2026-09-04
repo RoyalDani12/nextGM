@@ -1,10 +1,19 @@
-import axios from "axios";
+import axios, {
+    type AxiosError,
+    type InternalAxiosRequestConfig,
+} from "axios";
 import { useAuthStore } from "../store/auth.store";
 
 export const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
     withCredentials: true,
 });
+
+type RetryableRequest = InternalAxiosRequestConfig & { _retry?: boolean };
+type QueuedRequest = {
+    resolve: (token: string) => void;
+    reject: (error: unknown) => void;
+};
 
 api.interceptors.request.use((config) => {
     const token = useAuthStore.getState().accessToken;
@@ -15,32 +24,44 @@ api.interceptors.request.use((config) => {
 });
 
 let isRefreshing = false;
-// FIX 1: Queue must hold both resolve and reject
-let refreshQueue: Array<{ resolve: (token: string) => void; reject: (error: any) => void }> = [];
+let refreshQueue: QueuedRequest[] = [];
+
+const isAuthEndpoint = (url?: string) =>
+    url?.includes("/auth/login") ||
+    url?.includes("/auth/register") ||
+    url?.includes("/auth/refresh-token") ||
+    url?.includes("/auth/verify-email");
 
 api.interceptors.response.use(
     (response) => response,
-    async (error) => {
-        const originalRequest = error.config;
-              
-        const isAuthEndpoint = originalRequest.url?.includes("/auth/login")
-            || originalRequest.url?.includes("/auth/register")
-            || originalRequest.url?.includes("/auth/refresh-token")
-            || originalRequest.url?.includes("/auth/verify-email"); // FIX 2: Do not try to refresh tokens on verify-email failures
+    async (error: AxiosError) => {
+        const originalRequest = error.config as RetryableRequest | undefined;
+        if (!originalRequest) {
+            return Promise.reject(error);
+        }
 
-        if (error.response?.status !== 401 || originalRequest._retry || isAuthEndpoint) {
+        if (error.response?.status === 403 && !isAuthEndpoint(originalRequest.url)) {
+            useAuthStore.getState().clearAuth();
+            window.location.assign("/login");
+            return Promise.reject(error);
+        }
+
+        if (
+            error.response?.status !== 401 ||
+            originalRequest._retry ||
+            isAuthEndpoint(originalRequest.url)
+        ) {
             return Promise.reject(error);
         }
 
         if (isRefreshing) {
             return new Promise((resolve, reject) => {
-                // FIX 3: Push both resolve and reject to the queue
                 refreshQueue.push({
-                    resolve: (token: string) => {
+                    resolve: (token) => {
                         originalRequest.headers.Authorization = `Bearer ${token}`;
                         resolve(api(originalRequest));
                     },
-                    reject: (err: any) => reject(err)
+                    reject,
                 });
             });
         }
@@ -50,26 +71,20 @@ api.interceptors.response.use(
 
         try {
             const { data } = await api.post("/auth/refresh-token");
-            const newToken = data.data.accessToken;
-
-            useAuthStore.getState().setAuth(useAuthStore.getState().user!, newToken);
-
-            // Resolve all queued requests
-            refreshQueue.forEach((prom) => prom.resolve(newToken));
+            const newToken: string = data.data.accessToken;
+            useAuthStore.getState().setAccessToken(newToken);
+            refreshQueue.forEach(({ resolve }) => resolve(newToken));
             refreshQueue = [];
-
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
             return api(originalRequest);
         } catch (refreshError) {
             useAuthStore.getState().clearAuth();
-            
-            // FIX 4: Explicitly reject hanging promises so the app doesn't freeze
-            refreshQueue.forEach((prom) => prom.reject(refreshError));
+            refreshQueue.forEach(({ reject }) => reject(refreshError));
             refreshQueue = [];
-            
+            window.location.assign("/login");
             return Promise.reject(refreshError);
         } finally {
             isRefreshing = false;
         }
-    }
+    },
 );
