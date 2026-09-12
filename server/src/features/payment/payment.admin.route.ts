@@ -1,15 +1,15 @@
 import express from "express"
 import { authenticate } from "../../middleware/auth.middleware.js";
 import { authorizeSuperAdmin } from "../../middleware/authorizeSuperAdmin.middleware.js";
-import { initializeRefundController } from "./payment.controller.js";
+import { initiateCheckoutRefundController } from "./payment.controller.js";
 
 const router = express.Router()
 
 router.post(
-  "/:orderId/refund",
-  authenticate,
-  authorizeSuperAdmin,
-  initializeRefundController
-)
+    "/checkout/:checkoutId/refund",
+    authenticate,
+    authorizeSuperAdmin,
+    initiateCheckoutRefundController,
+);
 
 export default router

@@ -15,6 +15,12 @@ export const createShopSchema = z.object({
 export const updateShopProfileSchema = z.object({
     body: z
         .object({
+        name: z
+        .string()
+        .trim()
+        .min(1, "Shop name cannot be empty.")
+        .max(100, "Shop name cannot exceed 100 characters.")
+        .optional(),
             description: z
                 .string()
                 .trim()

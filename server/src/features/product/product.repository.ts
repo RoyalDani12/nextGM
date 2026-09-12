@@ -1,8 +1,9 @@
 import { StringDecoder } from "node:string_decoder";
 import { prisma } from "../../config/db.js";
 import {
-    CreateProductData,
+    
     GetShopProductsOptions,
+    CreateProductRepositoryInput,
     BrowseProductsOptions,
 } from "./product.types.js";
 
@@ -32,21 +33,34 @@ export const findProductBySkuInShop = async (shopId: string, sku: string) => {
     });
 };
 
-export const createProductRepository = async (data: CreateProductData) => {
-    return prisma.product.create({
-        data: {
-            shopId: data.shopId,
-            categoryId: data.categoryId,
-            name: data.name,
-            slug: data.slug,
-            description: data.description,
-            sku: data.sku,
-            basePrice: data.basePrice,
-            stock: data.stock,
-            type: data.type,
-            status: "DRAFT",
-        },
-    });
+export const createProductRepository = async (data: CreateProductRepositoryInput) => {
+  return prisma.product.create({
+    data: {
+      shopId: data.shopId,
+      categoryId: data.categoryId,
+      name: data.name,
+      slug: data.slug,
+      description: data.description,
+      sku: data.sku,
+      basePrice: data.basePrice,
+      stock: data.stock,
+      type: data.type ?? "PHYSICAL",
+      status: "DRAFT",
+
+      // Write to ProductImage table using nested write
+      images: data.images && data.images.length > 0
+        ? {
+            create: data.images.map((url, index) => ({
+              url,
+              isPrimary: index === 0, // Set first image as primary automatically
+            })),
+          }
+        : undefined,
+    },
+    include: {
+      images: true, // Return the attached image objects back to controller
+    },
+  });
 };
 
 export const getShopProductsRepository = async (options: GetShopProductsOptions) => {
@@ -69,13 +83,15 @@ export const getShopProductsRepository = async (options: GetShopProductsOptions)
                 basePrice: true,
                 stock: true,
                 type: true,
+                description:true,
+                variants:true,
                 status: true,
                 categoryId: true,
                 createdAt: true,
                 images: {
-                    where: { isPrimary: true },
-                    select: { url: true },
-                    take: 1,
+                    // where: {},
+                    select: {  isPrimary: true ,url: true },
+                    // take: 1,
                 },
             },
             orderBy: { [sort]: order },
@@ -99,8 +115,14 @@ export const findProductById = async (productId: string) => {
             sku: true,
             status: true,
             deletedAt: true,
+            variants: true,
         },
     });
+};
+
+export type ImageInput = {
+    url: string;
+    isPrimary?: boolean;
 };
 
 export const updateProductRepository = async (
@@ -114,10 +136,39 @@ export const updateProductRepository = async (
         categoryId: string | null;
         sku: string;
     }>,
+    images?: ImageInput[]
 ) => {
-    return prisma.product.update({
-        where: { id: productId },
-        data,
+    return prisma.$transaction(async (tx) => {
+        // 1. Sync images if passed
+        if (images !== undefined) {
+            await tx.productImage.deleteMany({
+                where: { productId },
+            });
+
+            if (images.length > 0) {
+                await tx.productImage.createMany({
+                    data: images.map((img, index) => ({
+                        productId,
+                        url: img.url,
+                        isPrimary: img.isPrimary ?? index === 0,
+                    })),
+                });
+            }
+        }
+
+        // 2. Update scalar fields & return with images
+        return tx.product.update({
+            where: { id: productId },
+            data,
+            include: {
+                images: {
+                    select: {
+                        url: true,
+                        isPrimary: true,
+                    },
+                },
+            },
+        });
     });
 };
 

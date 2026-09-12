@@ -1,8 +1,30 @@
 import { prisma } from "../../config/db.js";
 
-export const findVariantById = async (variantId: string, productId: string) => {
+// ─────────────────────────────────────────
+// AUTHENTICATED CART
+// ─────────────────────────────────────────
+
+export const getOrCreateUserCart = async (userId: string) => {
+    return prisma.cart.upsert({
+        where: {
+            userId,
+        },
+        update: {},
+        create: {
+            userId,
+        },
+    });
+};
+
+export const findVariantById = async (
+    variantId: string,
+    productId: string,
+) => {
     return prisma.productVariant.findFirst({
-        where: { id: variantId, productId },
+        where: {
+            id: variantId,
+            productId,
+        },
         select: {
             id: true,
             stock: true,
@@ -12,13 +34,41 @@ export const findVariantById = async (variantId: string, productId: string) => {
     });
 };
 
-export const getOrCreateCart = async (userId: string) => {
-    return prisma.cart.upsert({
-        where: { userId },
-        update: {},
-        create: { userId },
+// ─────────────────────────────────────────
+// GUEST CART
+// ─────────────────────────────────────────
+
+export const findGuestCart = async (guestToken: string) => {
+    return prisma.cart.findUnique({
+        where: {
+            guestToken,
+        },
     });
 };
+
+export const createGuestCart = async (guestToken: string) => {
+    return prisma.cart.create({
+        data: {
+            guestToken,
+        },
+    });
+};
+
+export const getOrCreateGuestCart = async (guestToken: string) => {
+    return prisma.cart.upsert({
+        where: {
+            guestToken,
+        },
+        update: {},
+        create: {
+            guestToken,
+        },
+    });
+};
+
+// ─────────────────────────────────────────
+// CART ITEM
+// ─────────────────────────────────────────
 
 export const upsertCartItem = async (
     cartId: string,
@@ -26,23 +76,24 @@ export const upsertCartItem = async (
     quantity: number,
     variantId?: string,
 ) => {
-    // Scenario 1: Product with a specific variant
     if (variantId) {
         return prisma.cartItem.upsert({
             where: {
                 cartId_productId_variantId: {
                     cartId,
                     productId,
-                    variantId: variantId,
+                    variantId,
                 },
             },
             update: {
-                quantity: { increment: quantity },
+                quantity: {
+                    increment: quantity,
+                },
             },
             create: {
                 cartId,
                 productId,
-                variantId: variantId ?? null,
+                variantId,
                 quantity,
             },
             select: {
@@ -53,7 +104,7 @@ export const upsertCartItem = async (
             },
         });
     }
-    // Scenario 2: Standard Product without a variant
+
     return prisma.cartItem.upsert({
         where: {
             cartId_productId: {
@@ -62,20 +113,33 @@ export const upsertCartItem = async (
             },
         },
         update: {
-            quantity: { increment: quantity },
+            quantity: {
+                increment: quantity,
+            },
         },
         create: {
             cartId,
             productId,
             quantity,
         },
-        select: { id: true, productId: true, quantity: true },
+        select: {
+            id: true,
+            productId: true,
+            variantId: true,
+            quantity: true,
+        },
     });
 };
 
-export const getCartWithItems = async (userId: string) => {
+// ─────────────────────────────────────────
+// GET CART
+// ─────────────────────────────────────────
+
+export const getCartWithItemsByUserId = async (userId: string) => {
     return prisma.cart.findUnique({
-        where: { userId },
+        where: {
+            userId,
+        },
         include: {
             items: {
                 include: {
@@ -86,26 +150,35 @@ export const getCartWithItems = async (userId: string) => {
                             slug: true,
                             basePrice: true,
                             status: true,
-                            stock:true,
-                            shopId:true,
+                            stock: true,
+                            shopId: true,
+
                             shop: {
                                 select: {
                                     slug: true,
                                     status: true,
+
                                     profile: {
-                                        select: { name: true,
-                                            logo:true
-                                         },
+                                        select: {
+                                            name: true,
+                                            logo: true,
+                                        },
                                     },
                                 },
                             },
+
                             images: {
-                                where: { isPrimary: true },
-                                select: { url: true },
+                                where: {
+                                    isPrimary: true,
+                                },
+                                select: {
+                                    url: true,
+                                },
                                 take: 1,
                             },
                         },
                     },
+
                     variant: {
                         select: {
                             id: true,
@@ -115,37 +188,157 @@ export const getCartWithItems = async (userId: string) => {
                         },
                     },
                 },
-                orderBy: { createdAt: "asc" },
+
+                orderBy: {
+                    createdAt: "asc",
+                },
             },
         },
     });
 };
 
-export const findCartItemById = async (itemId: string, userId: string) => {
+export const getCartWithItemsByGuestToken = async (guestToken: string) => {
+    return prisma.cart.findUnique({
+        where: {
+            guestToken,
+        },
+        include: {
+            items: {
+                include: {
+                    product: {
+                        select: {
+                            id: true,
+                            name: true,
+                            slug: true,
+                            basePrice: true,
+                            status: true,
+                            stock: true,
+                            shopId: true,
+
+                            shop: {
+                                select: {
+                                    slug: true,
+                                    status: true,
+
+                                    profile: {
+                                        select: {
+                                            name: true,
+                                            logo: true,
+                                        },
+                                    },
+                                },
+                            },
+
+                            images: {
+                                where: {
+                                    isPrimary: true,
+                                },
+                                select: {
+                                    url: true,
+                                },
+                                take: 1,
+                            },
+                        },
+                    },
+
+                    variant: {
+                        select: {
+                            id: true,
+                            name: true,
+                            price: true,
+                            stock: true,
+                        },
+                    },
+                },
+
+                orderBy: {
+                    createdAt: "asc",
+                },
+            },
+        },
+    });
+};
+
+// ─────────────────────────────────────────
+// FIND ITEM
+// ─────────────────────────────────────────
+
+export const findCartItemByUser = async (itemId: string, userId: string) => {
     return prisma.cartItem.findFirst({
         where: {
             id: itemId,
-            cart: { userId }, // owner ship via cart relationship
+            cart: {
+                userId,
+            },
         },
+
         select: {
             id: true,
             quantity: true,
             productId: true,
             variantId: true,
+
             product: {
-                select: { stock: true, status: true },
+                select: {
+                    stock: true,
+                    status: true,
+                },
             },
+
             variant: {
-                select: { stock: true },
+                select: {
+                    stock: true,
+                },
             },
         },
     });
 };
 
+export const findCartItemByGuestToken = async (itemId: string, guestToken: string) => {
+    return prisma.cartItem.findFirst({
+        where: {
+            id: itemId,
+            cart: {
+                guestToken,
+            },
+        },
+
+        select: {
+            id: true,
+            quantity: true,
+            productId: true,
+            variantId: true,
+
+            product: {
+                select: {
+                    stock: true,
+                    status: true,
+                },
+            },
+
+            variant: {
+                select: {
+                    stock: true,
+                },
+            },
+        },
+    });
+};
+
+// ─────────────────────────────────────────
+// UPDATE
+// ─────────────────────────────────────────
+
 export const updateCartItemQuantity = async (itemId: string, quantity: number) => {
     return prisma.cartItem.update({
-        where: { id: itemId },
-        data: { quantity },
+        where: {
+            id: itemId,
+        },
+
+        data: {
+            quantity,
+        },
+
         select: {
             id: true,
             quantity: true,
@@ -153,21 +346,124 @@ export const updateCartItemQuantity = async (itemId: string, quantity: number) =
     });
 };
 
-export const deleteCartItem = async(itemId:string)=>{
+// ─────────────────────────────────────────
+// DELETE
+// ─────────────────────────────────────────
+
+export const deleteCartItem = async (itemId: string) => {
     return prisma.cartItem.delete({
-        where:{ id:itemId }
-    })
-}
+        where: {
+            id: itemId,
+        },
+    });
+};
 
-export const clearCart = async (userId:string)=>{
-     const cart = await prisma.cart.findUnique({
-        where: { userId },
-        select: { id: true }
-     })
-     
-     if(!cart) return { count : 0 }
+// ─────────────────────────────────────────
+// CLEAR
+// ─────────────────────────────────────────
 
-     return prisma.cartItem.deleteMany({
-        where :{ cartId :cart.id }
-     })
-}
+export const clearUserCart = async (userId: string) => {
+    const cart = await prisma.cart.findUnique({
+        where: {
+            userId,
+        },
+        select: {
+            id: true,
+        },
+    });
+
+    if (!cart) {
+        return {
+            count: 0,
+        };
+    }
+
+    return prisma.cartItem.deleteMany({
+        where: {
+            cartId: cart.id,
+        },
+    });
+};
+
+export const clearGuestCart = async (guestToken: string) => {
+    const cart = await prisma.cart.findUnique({
+        where: {
+            guestToken,
+        },
+        select: {
+            id: true,
+        },
+    });
+
+    if (!cart) {
+        return {
+            count: 0,
+        };
+    }
+
+    return prisma.cartItem.deleteMany({
+        where: {
+            cartId: cart.id,
+        },
+    });
+};export const mergeGuestCartIntoUserCart = async (
+  guestToken: string,
+  userId: string,
+) => {
+  return prisma.$transaction(async (tx) => {
+    const guestCart = await tx.cart.findUnique({
+      where: { guestToken },
+      include: { items: true },
+    });
+
+    if (!guestCart) {
+      return { merged: false, itemsMerged: 0 };
+    }
+
+    const userCart = await tx.cart.upsert({
+      where: { userId },
+      update: {},
+      create: { userId },
+    });
+
+    let itemsMerged = 0;
+
+    for (const guestItem of guestCart.items) {
+      const existingItem = await tx.cartItem.findFirst({
+        where: {
+          cartId: userCart.id,
+          productId: guestItem.productId,
+          variantId: guestItem.variantId ?? null,
+        },
+      });
+
+      if (existingItem) {
+        await tx.cartItem.update({
+          where: { id: existingItem.id },
+          data: { quantity: { increment: guestItem.quantity } },
+        });
+      } else {
+        await tx.cartItem.create({
+          data: {
+            cartId: userCart.id,
+            productId: guestItem.productId,
+            variantId: guestItem.variantId ?? undefined,
+            quantity: guestItem.quantity,
+          },
+        });
+      }
+
+      itemsMerged++;
+    }
+
+    await tx.cartItem.deleteMany({
+      where: { cartId: guestCart.id },
+    });
+
+    await tx.cart.delete({
+      where: { id: guestCart.id },
+    });
+
+    return { merged: true, itemsMerged };
+  });
+};

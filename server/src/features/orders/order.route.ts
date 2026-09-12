@@ -21,7 +21,7 @@ router.post(
     validate(checkoutSchema),
     checkoutController
 )
-
+//   coustomer  order route
 router.get(
     "/",
     authenticate,
@@ -40,6 +40,7 @@ router.post(
     cancelOrderController
 )
 
+//  shop owner order route
 router.get(
     "/:shopId/orders",
     authenticate,

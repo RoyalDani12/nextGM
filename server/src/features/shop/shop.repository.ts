@@ -58,6 +58,7 @@ export const findShopById = async (shopId: string) => {
             id: true,
             ownerId: true,
             status:true,
+            stripeConnectedAccountId:true
         },
     });
 };
@@ -207,5 +208,78 @@ export const getWalletTransactions = async (shopId: string) => {
         where: { shopId },
         orderBy: { createdAt: "desc" },
         take: 50,
+    });
+};
+
+// shop.repository.ts — add
+export const setStripeConnectedAccountId = async (shopId: string, accountId: string) => {
+    return prisma.shop.update({ where: { id: shopId }, data: { stripeConnectedAccountId: accountId } });
+};
+
+export const markPayoutOnboardingComplete = async (shopId: string) => {
+    return prisma.shop.update({ where: { id: shopId }, data: { payoutOnboardingComplete: true } });
+};
+
+
+export const getShopForPayout = async (shopId: string) => {
+    return prisma.shop.findUnique({
+        where: { id: shopId },
+        select: {
+            id: true,
+            stripeConnectedAccountId: true,
+            payoutOnboardingComplete: true,
+        },
+    });
+};
+
+export const debitWalletForPayout = async (shopId: string, amount: number) => {
+    return prisma.$transaction(async (tx) => {
+        // atomic guard — only debit if the wallet actually has enough balance,
+        // same gte-guard shape as stock decrements. Prevents a double-click
+        // payout request from draining the wallet below zero.
+        const guard = await tx.shopWallet.updateMany({
+            where: { shopId, balance: { gte: amount } },
+            data: { balance: { decrement: amount } },
+        });
+
+        if (guard.count === 0) {
+            return { success: false as const };
+        }
+
+        const wallet = await tx.shopWallet.findUnique({ where: { shopId } });
+
+        await tx.walletTransaction.create({
+            data: {
+                shopId,
+                type: "DEBIT",
+                amount,
+                balanceAfter: wallet!.balance,
+                note: "Payout to connected Stripe account",
+            },
+        });
+
+        return { success: true as const };
+    });
+};
+
+// shop.repository.ts — add
+export const creditWalletBack = async (shopId: string, amount: number, note: string) => {
+    return prisma.$transaction(async (tx) => {
+        const wallet = await tx.shopWallet.update({
+            where: { shopId },
+            data: { balance: { increment: amount } },
+        });
+
+        await tx.walletTransaction.create({
+            data: {
+                shopId,
+                type: "CREDIT",
+                amount,
+                balanceAfter: wallet.balance,
+                note,
+            },
+        });
+
+        return wallet;
     });
 };

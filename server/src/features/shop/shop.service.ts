@@ -13,9 +13,17 @@ import {
     findShopForPublishCheck,
     publishShopRepository,
     getShopWallet,
-    getWalletTransactions
+    getWalletTransactions,
+    setStripeConnectedAccountId,
+    debitWalletForPayout,
+    getShopForPayout,
+    creditWalletBack
 } from "./shop.repository.js";
 import { deleteUserSession } from "../../infrastructure/cache/session.cache.js";
+import Stripe from "stripe";
+import { env } from "../../config/env.js";
+const stripe = new Stripe(env.STRIPE_SECRET_KEY);
+import { logger } from "../../config/logger.js";
 
 export const createShopService = async (ownerId: string, name: string) => {
     // const existingShop = await findShopByOwnerId(ownerId);
@@ -261,4 +269,74 @@ export const getShopWalletService = async (shopId: string) => {
         balance: wallet?.balance ?? 0,
         transactions,
     };
+};
+
+// shop.service.ts — add
+
+
+export const createConnectOnboardingLinkService = async (shopId: string) => {
+    const shop = await findShopById(shopId); // already exists, extend select to include stripeConnectedAccountId if not there
+
+    if (!shop) throw new AppError("Shop not found.", 404);
+
+    let accountId = shop.stripeConnectedAccountId;
+
+    if (!accountId) {
+        const account = await stripe.accounts.create({ type: "express" });
+        accountId = account.id;
+        await setStripeConnectedAccountId(shopId, accountId);
+    }
+
+    const accountLink = await stripe.accountLinks.create({
+        account: accountId,
+        refresh_url: `${env.CLIENT_URL}/dashboard/payouts?refresh=true`,
+        return_url: `${env.CLIENT_URL}/dashboard/payouts?onboarded=true`,
+        type: "account_onboarding",
+    });
+
+    return { onboardingUrl: accountLink.url };
+};
+
+
+
+export const initiatePayoutService = async (shopId: string) => {
+    const shop = await getShopForPayout(shopId);
+
+    if (!shop) {
+        throw new AppError("Shop not found.", 404);
+    }
+
+    if (!shop.stripeConnectedAccountId || !shop.payoutOnboardingComplete) {
+        throw new AppError("Shop has not completed payout onboarding.", 400);
+    }
+
+    const wallet = await getShopWallet(shopId); // already exists from earlier wallet work
+    const balance = Number(wallet?.balance ?? 0);
+
+    if (balance <= 0) {
+        throw new AppError("No balance available to pay out.", 400);
+    }
+
+    // debit first, atomically — if this fails, we never call Stripe at all
+    const guard = await debitWalletForPayout(shopId, balance);
+
+    if (!guard.success) {
+        throw new AppError("Payout failed — balance changed before it could complete.", 409);
+    }
+
+    try {
+        const transfer = await stripe.transfers.create({
+            amount: Math.round(balance * 100),
+            currency: "usd",
+            destination: shop.stripeConnectedAccountId,
+        });
+
+        logger.info({ shopId, transferId: transfer.id, amount: balance }, "Payout transferred to connected account");
+
+        return { transferId: transfer.id, amount: balance.toFixed(2) };
+    } catch (err) {
+    await creditWalletBack(shopId, balance, "Payout reversal — Stripe transfer failed");
+    logger.error({ err, shopId, amount: balance }, "Stripe transfer failed, wallet balance restored");
+    throw new AppError("Payout failed. Your balance has been restored.", 502);
+}
 };

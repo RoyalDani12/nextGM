@@ -11,7 +11,9 @@ import {
     updateShopLegalInfoService,
     getPublishReadinessService,
     publishShopService,
-    getShopWalletService
+    getShopWalletService,
+     createConnectOnboardingLinkService,
+     initiatePayoutService,
 } from "./shop.service.js";
 
 export const createShopController = asyncHandler(async (req: Request, res: Response) => {
@@ -157,4 +159,25 @@ export const getShopWalletController = asyncHandler(async (req: Request, res: Re
          message: "Wallet fetched.",
          data: result
          });
+});
+export const createConnectOnboardingLinkController = asyncHandler(async (req: Request, res: Response) => {
+    const result = await  createConnectOnboardingLinkService(req.shop!.id);
+    res.status(200).json({ 
+        success: true,
+         statusCode: 200,
+         message: "Create Onboarding Successfully.",
+         data: result
+         });
+});
+
+export const initiatePayoutController = asyncHandler(async (req: Request, res: Response) => {
+    const { shopId } = req.params as { shopId: string };
+    const result = await initiatePayoutService(shopId);
+
+    res.status(200).json({
+        success: true,
+        statusCode: 200,
+        message: "Payout initiated successfully.",
+        data: result,
+    });
 });

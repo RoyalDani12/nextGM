@@ -1,23 +1,19 @@
 import { Request, Response } from "express";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { AppError } from "../../middleware/appError.js";
-import { createPaymentIntentService,constructStripeEvent,handleStripeWebhookEvent, initiateRefundService } from "./payment.service.js";
+import { createCheckoutSessionService,constructStripeEvent,handleStripeWebhookEvent,initiateCheckoutRefundService } from "./payment.service.js";
 
-
-export const createPaymentIntentController = asyncHandler(async (req: Request, res: Response) => {
+export const createCheckoutSessionController = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;
-    if (!userId) {
-        throw new AppError("Unauthorized.", 401);
-    }
+    if (!userId) throw new AppError("Unauthorized.", 401);
 
-    const { orderId } = req.params as { orderId: string };
-
-    const result = await createPaymentIntentService(orderId, userId);
+    const { checkoutId } = req.params as { checkoutId: string };
+    const result = await createCheckoutSessionService(checkoutId, userId);
 
     res.status(200).json({
         success: true,
         statusCode: 200,
-        message: "Payment intent created successfully.",
+        message: "Checkout session created successfully.",
         data: result,
     });
 });
@@ -35,11 +31,10 @@ export const stripeWebhookController = asyncHandler( async ( req:Request,res:Res
 
      res.status(200).json({ received:true})
 })
+export const initiateCheckoutRefundController = asyncHandler(async (req: Request, res: Response) => {
+    const { checkoutId } = req.params as { checkoutId: string };
 
-export const initializeRefundController = asyncHandler( async ( req:Request,res:Response)=>{
-    const { orderId } = req.params as { orderId:string }
-
-    const result = await initiateRefundService(orderId)
+    const result = await initiateCheckoutRefundService(checkoutId);
 
     res.status(200).json({
         success: true,
@@ -47,4 +42,4 @@ export const initializeRefundController = asyncHandler( async ( req:Request,res:
         message: "Refund initiated successfully.",
         data: result,
     });
-})
+});

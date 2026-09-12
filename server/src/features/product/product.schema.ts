@@ -80,7 +80,10 @@ export const getShopProductsSchema = z.object({
             .optional(),
     })
 })
-
+const imageItemSchema = z.object({
+  url: z.string().url("Invalid image URL"),
+  isPrimary: z.boolean().optional().default(false),
+});
 export const updateProductSchema = z.object({
     body: z.object({
         name: z
@@ -117,7 +120,7 @@ export const updateProductSchema = z.object({
             .trim()
             .max(100, "SKU cannot exceed 100 characters.")
             .optional(),
-
+      images: z.array(imageItemSchema).optional(),
     }).strict()
 })
 

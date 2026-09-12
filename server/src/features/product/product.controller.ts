@@ -48,6 +48,7 @@ export const getShopProductsController = asyncHandler(async (req: Request, res: 
         statusCode: 200,
         message: "Products fetched successfully.",
         data: result,
+        // variants:result.variant
     });
 });
 

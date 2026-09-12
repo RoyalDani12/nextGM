@@ -1,43 +1,75 @@
-import express from "express"
-import { authenticate } from "../../middleware/auth.middleware.js"
-import { validate } from "../../middleware/validate.middleware.js"
-import { addToCartSchema, updateCartItemSchema } from "./cart.schema.js"
+import express from "express";
+
 import {
-     addToCartController,
-     getCartController,
-     updateCartItemController,
-     removeCartItemController,
-     clearCartController,
-     } from "./cart.controller.js"
+    addToCartController,
+    getCartController,
+    updateCartItemController,
+    removeCartItemController,
+    clearCartController,
+    mergeCartController,
+} from "./cart.controller.js";
 
-const router = express.Router()
+import { authenticate } from "../../middleware/auth.middleware.js";
+import { validate } from "../../middleware/validate.middleware.js";
+import {
+    addToCartSchema,
+    updateCartItemSchema,
+} from "./cart.schema.js";
 
+import {
+    optionalAuthenticate,
+} from "../../middleware/optional-auth.middleware.js";
+
+const router = express.Router();
+
+
+// Guest OR authenticated
 router.post(
     "/items",
-    authenticate,
+    optionalAuthenticate,
     validate(addToCartSchema),
-    addToCartController
-)
+    addToCartController,
+);
+
+
+// Guest OR authenticated
 router.get(
     "/view-cart-items",
-    authenticate,
-    getCartController
-)
+    optionalAuthenticate,
+    getCartController,
+);
+
+
+// Guest OR authenticated
 router.patch(
     "/items/:itemId",
-    authenticate,
+    optionalAuthenticate,
     validate(updateCartItemSchema),
-    updateCartItemController
-)
+    updateCartItemController,
+);
+
+
+// Guest OR authenticated
 router.delete(
     "/items/:itemId",
-    authenticate,
-    removeCartItemController
-)
+    optionalAuthenticate,
+    removeCartItemController,
+);
+
+
+// Guest OR authenticated
 router.delete(
     "/clear",
-    authenticate,
-    clearCartController
-)
+    optionalAuthenticate,
+    clearCartController,
+);
 
-export default router
+
+// Authenticated only
+router.post(
+    "/merge",
+    authenticate,
+    mergeCartController,
+);
+
+export default router;

@@ -153,6 +153,15 @@ export const getCustomerOrdersRepository = async (options: GetCustomerOrdersOpti
     return { orders, total };
 };
 
+
+
+
+
+
+
+
+
+
 export const getCustomerOrderByIdRepository = async (orderId: string, customerId: string) => {
     return prisma.order.findFirst({
         where: {
@@ -235,6 +244,16 @@ export const getCustomerOrderByIdRepository = async (orderId: string, customerId
         },
     });
 };
+
+
+
+
+
+
+
+
+
+
 
 export const findOrderForCancelRepository = async (orderId: string, customerId: string) => {
     return prisma.order.findFirst({

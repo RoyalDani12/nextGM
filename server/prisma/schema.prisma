@@ -73,6 +73,7 @@ enum PaymentStatus {
   COMPLETED
   FAILED
   REFUNDED
+  REFUND_PENDING
 }
 
 enum WalletTransactionType {
@@ -141,6 +142,7 @@ model User {
   ownedShops           Shop[]               @relation("ShopOwner")
   employeeOf           ShopEmployee[]
   orders               Order[]
+   checkouts          Checkout[]
   reviews              Review[]
   notifications        Notification[]
   notificationPref     NotificationPreference?
@@ -233,6 +235,8 @@ model Shop {
   legalInfo          ShopLegalInfo?
   wallet             ShopWallet?
   walletTransactions WalletTransaction[]
+  stripeConnectedAccountId String?
+  payoutOnboardingComplete Boolean @default(false)
 
   @@index([ownerId])
   @@index([slug])
@@ -265,6 +269,43 @@ model ShopLegalInfo {
   entityType        String   // free text for now — "individual", "llc", etc. Not enum-constrained, kept minimal per scope.
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
+
+model Checkout {
+  id                String        @id @default(cuid())
+  customerId        String
+  customer          User          @relation(fields: [customerId], references: [id])
+  totalAmount       Decimal
+  checkoutSessionId String?       @unique
+  providerPaymentId String?       @unique
+  status            PaymentStatus @default(PENDING)
+  idempotencyKey    String        @unique
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  orders Order[]
+
+  @@index([customerId])
+  @@index([status])
+}
+
+model PlatformWallet {
+  id        String   @id @default(cuid())
+  balance   Decimal  @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+model PlatformWalletTransaction {
+  id           String                @id @default(cuid())
+  orderId      String?
+  order        Order?                @relation(fields: [orderId], references: [id])
+  type         WalletTransactionType
+  amount       Decimal
+  balanceAfter Decimal
+  note         String?
+  createdAt    DateTime              @default(now())
+
+  @@index([orderId])
 }
 
 model ShopWallet {
@@ -428,13 +469,22 @@ model ProductImage {
   @@index([productId])
 }
 model Cart {
-  id        String     @id @default(cuid())
-  userId    String     @unique
-  user      User       @relation(fields: [userId], references: [id])
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id         String   @id @default(cuid())
+
+  // Logged-in user's cart
+  userId     String?  @unique
+  user       User?    @relation(fields: [userId], references: [id])
+
+  // Guest cart identifier stored in HttpOnly cookie
+  guestToken String?  @unique
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   items CartItem[]
+
+  @@index([userId])
+  @@index([guestToken])
 }
 
 model CartItem {
@@ -493,6 +543,11 @@ model Order {
   statusHistory   OrderStatusHistory[]
   shippingAddress ShippingAddress?
   payment         Payment?
+  checkoutId      String?
+  checkout       Checkout? @relation(fields: [checkoutId], references: [id])
+  platformWalletTransactions PlatformWalletTransaction[]
+
+  @@index([checkoutId])
 
   @@index([shopId])
   @@index([customerId])
@@ -556,10 +611,11 @@ model Payment {
   currency          String          @default("USD")
   status            PaymentStatus   @default(PENDING)
   provider          PaymentProvider
-  providerPaymentId String?         @unique
+  providerPaymentId String?         
   idempotencyKey    String          @unique
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
+  checkoutSessionId String? @unique 
 
   @@index([status])
   @@index([providerPaymentId])

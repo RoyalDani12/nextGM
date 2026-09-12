@@ -1,6 +1,6 @@
 import { OrderStatus } from "@prisma/client";
 import { AppError } from "../../middleware/appError.js";
-import { getCartWithItems, clearCart } from "../cart/cart.repository.js";
+import { getCartWithItemsByUserId  as getCartWithItems,clearUserCart as clearCart } from "../cart/cart.repository.js";
 import { logger } from "../../config/logger.js";
 import {
     cancelOrderRepository,
@@ -16,6 +16,8 @@ import { GetOrdersQuery, shipAddressInput } from "./order.types.js";
 import { scheduleOrderExpiration } from "../../infrastructure/queue/orderExpiration.helpers.js";
 import { notifyUser } from "../notification/notification.service.js";
 import { renderOrderPlacedEmail } from "../../services/email.templates.js";
+import { createCheckoutFromCart } from "../payment/payment.repository.js";
+
 
 export const checkoutService = async (customerId: string, shippingAddress: shipAddressInput) => {
     const cart = await getCartWithItems(customerId);
@@ -24,102 +26,39 @@ export const checkoutService = async (customerId: string, shippingAddress: shipA
         throw new AppError("Your cart is empty.", 400);
     }
 
-    // fitter to avaliable items only
-    const availableItems = cart.items.filter((item) => {
-        return item.product.status === "ACTIVE" && item.product.shop.status === "ACTIVE";
-    });
+    const availableItems = cart.items.filter((item) =>
+        item.product.status === "ACTIVE" && item.product.shop.status === "ACTIVE"
+    );
 
     if (availableItems.length === 0) {
-        throw new AppError("No avaliable item in cart.", 400);
+        throw new AppError("No available items in cart.", 400);
     }
-
-    // validate stock for all items befor creating anything
 
     for (const item of availableItems) {
-        const avaliableStosk = item.variant ? item.variant.stock : item.product.stock;
-
-        if (avaliableStosk < item.quantity) {
-            throw new AppError(
-                `Insufficint stock for ${item.product.name}.only ${avaliableStosk} available.`,
-                400,
-            );
+        const availableStock = item.variant ? item.variant.stock : item.product.stock;
+        if (availableStock < item.quantity) {
+            throw new AppError(`Insufficient stock for ${item.product.name}. Only ${availableStock} available.`, 400);
         }
     }
 
-    //  group available items by shopId
-
-    const shopGroupMap: Record<
-        string,
-        {
-            shopId: string;
-            shopSlug: string;
-            items: typeof availableItems;
-        }
-    > = {};
-
+    const shopGroupMap: Record<string, { shopId: string; shopSlug: string; items: typeof availableItems }> = {};
     for (const item of availableItems) {
         const shopId = item.product.shopId;
-
         if (!shopGroupMap[shopId]) {
-            shopGroupMap[shopId] = {
-                shopId,
-                shopSlug: item.product.shop.slug,
-                items: [],
-            };
+            shopGroupMap[shopId] = { shopId, shopSlug: item.product.shop.slug, items: [] };
         }
         shopGroupMap[shopId].items.push(item);
     }
-
     const shopGroups = Object.values(shopGroupMap);
 
-    //create all orders in one transaction
-    const createdOrders = await createOrdersFromCart(customerId, shopGroups, shippingAddress);
+    // ← the swap: createCheckoutFromCart instead of createOrdersFromCart
+    const result = await createCheckoutFromCart(customerId, shopGroups, shippingAddress);
 
-    try {
-        await Promise.all(createdOrders.map((order) => scheduleOrderExpiration(order.id)));
-    } catch (err) {
-        (logger.error({ err, customerId, orderIds: createdOrders.map((o) => o.id) }),
-            "Failed to schedule order expiration jobs");
-    }
+    // note: cart-clearing already happens inside the payment webhook now
+    // (we moved it there earlier), so it's NOT needed here anymore —
+    // remove the old clearCart(customerId) call if it's still present
 
-    try {
-        await Promise.all(
-            createdOrders.map((order) =>
-                notifyUser({
-                    userId: customerId,
-                    type: "ORDER_PLACED",
-                    title: "Order palced",
-                    body: `Your order at ${order.shopSlug} has been placed sucessfully.`,
-                    shopId:order.shopId,
-                     meta: {
-                        orderId: order.id,
-                        shopName: order.shopSlug, 
-                        totalAmount: order.totalAmount,
-                        itemCount: order.itemCount,
-                    },
-                }),
-            ),
-        );
-    } catch (err) {
-        logger.error({ err, customerId }, "Failed to send order-placed notifications");
-    }
-
-    try {
-        await clearCart(customerId);
-    } catch (err) {
-        logger.error({ err, customerId }, "Failed to clear cart after checkout");
-    }
-
-    //  — build response
-    const grandTotal = createdOrders
-        .reduce((sum, order) => sum + Number(order.totalAmount), 0)
-        .toFixed(2);
-
-    return {
-        orders: createdOrders,
-        totalOrders: createdOrders.length,
-        grandTotal,
-    };
+    return result; // { checkoutId, orders, grandTotal }
 };
 
 export const getCustomerOrdersService = async (customerId: string, query: GetOrdersQuery) => {

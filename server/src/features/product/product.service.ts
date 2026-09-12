@@ -22,7 +22,7 @@ import {
     deleteVariantRepository,
 } from "./product.repository.js";
 import {
-    CreateProductData,
+    CreateProductRepositoryInput,
     GetShopProductsQuery,
     UpdateProductInput,
     BrowseProductsQuery,
@@ -31,7 +31,7 @@ import {
 export const createProductService = async (
     userId: string,
     shopId: string,
-    body: CreateProductData,
+    body:CreateProductRepositoryInput,
 ) => {
     const shop = await findShopById(shopId);
     if (!shop) {
@@ -75,6 +75,7 @@ export const createProductService = async (
         basePrice: body.basePrice,
         stock: body.stock,
         type: body.type ?? "PHYSICAL",
+        images: body.images ?? [],
     });
 
     return {
@@ -125,6 +126,7 @@ export const getShopProductsService = async (
 
     return {
         products,
+        // products.variants,
         pagination: {
             total,
             page,
@@ -135,7 +137,6 @@ export const getShopProductsService = async (
         },
     };
 };
-
 export const updateProductService = async (
     userId: string,
     shopId: string,
@@ -160,7 +161,16 @@ export const updateProductService = async (
         throw new AppError("No update data provided.", 400);
     }
 
-    const updateData: Record<string, unknown> = {};
+    const updateData: Partial<{
+        name: string;
+        slug: string;
+        description: string;
+        basePrice: string;
+        stock: number;
+        categoryId: string | null;
+        sku: string;
+    }> = {};
+
     if (body.name !== undefined && body.name !== product.name) {
         updateData.name = body.name;
         updateData.slug = await generateUniqueSlug(body.name, async (candidateSlug) => {
@@ -170,17 +180,21 @@ export const updateProductService = async (
     }
 
     if (body.categoryId !== undefined) {
-        const category = await findCategoryById(body.categoryId);
-        if (!category || category.shopId !== shopId) {
-            throw new AppError("Invalid category.", 400);
+        if (body.categoryId !== null) {
+            const category = await findCategoryById(body.categoryId);
+            if (!category || category.shopId !== shopId) {
+                throw new AppError("Invalid category.", 400);
+            }
         }
         updateData.categoryId = body.categoryId;
     }
 
     if (body.sku !== undefined) {
-        const existingSku = await findProductBySkuInShop(shopId, body.sku);
-        if (existingSku && existingSku.id !== productId) {
-            throw new AppError("SKU is already in use in this shop", 409);
+        if (body.sku !== null) {
+            const existingSku = await findProductBySkuInShop(shopId, body.sku);
+            if (existingSku && existingSku.id !== productId) {
+                throw new AppError("SKU is already in use in this shop", 409);
+            }
         }
         updateData.sku = body.sku;
     }
@@ -189,7 +203,8 @@ export const updateProductService = async (
     if (body.basePrice !== undefined) updateData.basePrice = body.basePrice;
     if (body.stock !== undefined) updateData.stock = body.stock;
 
-    const updated = await updateProductRepository(productId, updateData);
+    // Pass body.images as the 3rd argument to repository
+    const updated = await updateProductRepository(productId, updateData, body.images);
 
     return {
         id: updated.id,
@@ -201,8 +216,11 @@ export const updateProductService = async (
         stock: updated.stock,
         categoryId: updated.categoryId,
         status: updated.status,
+        images: updated.images, // 👈 Now returned to frontend
     };
 };
+
+
 
 const ALLOWED_PRODUCT_TRANSITIONS: Record<string, string[]> = {
     DRAFT: ["ACTIVE", "ARCHIVED"],
@@ -372,7 +390,7 @@ export const createVaraintService = async (
     }
 
     const shop = await findShopById(shopId);
-
+    console.log("DEBUG CHECK:", { shopId, productId, productShopId: product?.shopId, deletedAt: product?.deletedAt });
     if (!shop || shop.ownerId !== userId) {
         throw new AppError("You do not own this shop.", 403);
     }

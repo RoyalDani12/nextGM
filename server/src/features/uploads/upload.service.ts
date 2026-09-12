@@ -41,20 +41,19 @@ export const generateUploadSignatureService = async ({
             folder = `shop_assets/${resourceId}/${assetType}`;
             break;
         }
-        case "product_image": {
-            const product = await findProductWithShop(resourceId);
+       case "product_image": {
+  // During creation, resourceId is shopId because productId doesn't exist yet
+  const shop = await findShopById(resourceId);
+  if (!shop) {
+    throw new AppError("Shop not found.", 404);
+  }
+  if (shop.ownerId !== userId) {
+    throw new AppError("You do not own this shop.", 403);
+  }
 
-            if (!product || product.deletedAt) {
-                throw new AppError("Product not found.", 404);
-            }
-
-            if (product.shop.ownerId !== userId) {
-                throw new AppError("You do not own this product's shop.", 403);
-            }
-
-            folder = `product_images/${resourceId}`;
-            break;
-        }
+  folder = `shops/${resourceId}/products`;
+  break;
+}
         default: {
             throw new AppError("Invalid resource type.", 400);
         }
@@ -67,8 +66,8 @@ export const generateUploadSignatureService = async ({
         {
             timestamp,
             folder,
-            allowed_formats: [allowedFormat],
-            max_file_size: 5_000_000,
+            // allowed_formats: [allowedFormat],
+            // max_file_size: 5_000_000,
         },
         env.CLOUDINARY_API_SECRET,
     );

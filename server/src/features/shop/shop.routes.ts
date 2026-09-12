@@ -10,7 +10,9 @@ import { createShopController,
          updateShopLegalInfoController,
          publishShopController,
          getPublishReadinessController,
-         getShopWalletController
+         getShopWalletController,
+         createConnectOnboardingLinkController,
+         initiatePayoutController
      } from "./shop.controller.js"
 import { createShopSchema,updateShopProfileSchema,updateShopStatusSchema,closeShopSchema,updateShopLegalInfoSchema } from "./shop.schema.js"
 import { authorizeShopAccess } from "../../middleware/authorizeShopAccess.middleware.js"
@@ -46,6 +48,8 @@ router.delete(
     validate(closeShopSchema),
     closeShopController
 )
+
+//  thisone is for public user  store front
 router.get(
     "/:slug",
     getShopBySlugController
@@ -77,5 +81,19 @@ router.get(
     authorizeShopAccess,
     getShopWalletController,
 )
+
+router.post(
+    "/:shopId/connect/onboard",
+     authenticate,
+     authorizeShopAccess, 
+     createConnectOnboardingLinkController
+    )
+
+    router.post(
+    "/:shopId/payout",
+    authenticate,
+    authorizeShopAccess,
+    initiatePayoutController,
+);
 export default router
 

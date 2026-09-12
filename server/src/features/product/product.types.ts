@@ -1,13 +1,14 @@
-export interface CreateProductData {
-    shopId:      string
-    categoryId:  string | null
-    name:        string
-    slug:        string
-    description?: string
-    sku?:        string
-    basePrice:   string
-    stock:       number
-    type:        "PHYSICAL" | "DIGITAL"
+export interface CreateProductRepositoryInput {
+  shopId: string;
+  categoryId?: string | null;
+  name: string;
+  slug: string;
+  description?: string | null;
+  sku?: string | null;
+  basePrice: string | number;
+  stock: number;
+  type?: "PHYSICAL" | "DIGITAL";
+  images?: string[]; // Cloudinary HTTPS URLs sent from frontend
 }
 
 export interface GetShopProductsOptions {
@@ -34,6 +35,7 @@ export interface UpdateProductInput {
     stock?:       number
     categoryId?:  string
     sku?:         string
+    images?:string
 }
 
 export interface BrowseProductsOptions {
