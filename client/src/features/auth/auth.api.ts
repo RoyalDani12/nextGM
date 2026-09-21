@@ -1,4 +1,4 @@
-import { api } from "./axios";
+import { api } from "../../lib/axios";
 import type {
     LoginPayload,
     RegisterPayload,
@@ -7,7 +7,7 @@ import type {
     DeactivatedResponse,
     ForgetPayload,
    resetPasswordPayload 
-} from "../features/auth/auth.types";
+} from "./auth.types";
 
 
 

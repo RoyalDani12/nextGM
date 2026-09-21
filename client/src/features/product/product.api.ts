@@ -13,7 +13,7 @@ import type {
    CreateVariantPayload,
    CreateVariantResponse,
    UpdateVariantResponse
-} from "../features/product/product.types";
+} from "./product.types";
 
 // export type ProductStatus = "DRAFT" | "ACTIVE" | "INACTIVE";
 

@@ -5,7 +5,7 @@ import {
     getMeRequest, 
     getUploadSignatureRequest, 
     updateProfileRequest, 
-} from "../../api/users.api";
+} from "./users.api";
 import { useAuthStore } from "../../store/auth.store";
 import type { 
     UpdateProfilePayload, 

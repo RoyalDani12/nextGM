@@ -1,4 +1,4 @@
-import { api } from "../api/axios"; // Adjust path if your axios instance is elsewhere
+import { api } from "../../lib/axios"; // Adjust path if your axios instance is elsewhere
 export interface UserProfile {
     id: string;
     name: string;

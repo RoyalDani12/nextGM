@@ -1,6 +1,6 @@
 import { useMutation,useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { loginRequest, registerRequest, logoutRequest,verifyEmailRequest,forgetPasswordRequest, resetPasswordRequest } from "../../api/auth.api";
+import { loginRequest, registerRequest, logoutRequest,verifyEmailRequest,forgetPasswordRequest, resetPasswordRequest } from "./auth.api";
 import { useAuthStore } from "../../store/auth.store";
 import { isDeactivatedResponse } from "./auth.types";
 import type { LoginPayload, RegisterPayload,ForgetPayload,resetPasswordPayload  } from "./auth.types";

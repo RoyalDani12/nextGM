@@ -1,6 +1,6 @@
 import { api } from "@/api/axios"
 
-import type { CreateShopPayload,CreateShopResponse,GetMyShopResponse,  UpdateShopProfilePayload } from "../features/shop/shop.types"
+import type { CreateShopPayload,CreateShopResponse,GetMyShopResponse,  UpdateShopProfilePayload } from "./shop.types"
 
 export const  createShopRequest = async (paylod:CreateShopPayload):Promise<CreateShopResponse>=>{
   const { data } = await api.post("/shops",paylod)

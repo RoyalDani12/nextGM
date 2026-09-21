@@ -1,11 +1,11 @@
 import { useQuery,useMutation,useQueryClient } from "@tanstack/react-query";
 
-import { createShopRequest,getMyShopRequest ,updateShopStatusRequest,updateShopProfileRequest,closeShopRequest} from "../../api/shop.api";
+import { createShopRequest,getMyShopRequest ,updateShopStatusRequest,updateShopProfileRequest,closeShopRequest} from "./shop.api";
 import {
   getUploadSignatureRequest,
   uploadToCloudinary,
   type UploadResourceType,
-} from "../../api/upload.api";
+} from "../upload/upload.api";
 import { getShopOrdersRequest ,getShopOrderByIdRequest ,  updateShopOrderStatusRequest,} from "@/api/order.api";
 
 import type { CreateShopPayload, UpdateShopProfilePayload, } from "./shop.types";

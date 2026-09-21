@@ -68,7 +68,7 @@ export const googleLoginService = async (profile: { email: string; name: string 
     if (!user) {
         user = await createGoogleUser({
             email: profile.email,
-            name: profile.name || profile.email.split("@")[0],
+            name: profile.name ?? profile.email.split("@")[0],
             password: await hashPassword(crypto.randomBytes(32).toString("hex")),
         });
     }

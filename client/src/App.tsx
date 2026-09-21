@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { AppRoutes } from "./routes/AppRoutes";
 import { useAuthStore } from "./store/auth.store";
-import { refreshTokenRequest, getMeRequest } from "./api/auth.api";
+import { refreshTokenRequest, getMeRequest } from "./features/auth/auth.api";
 import { Spinner } from "./components/ui/spinner";
 
 function App() {

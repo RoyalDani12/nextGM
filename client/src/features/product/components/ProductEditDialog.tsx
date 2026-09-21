@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import type { Product, UpdateProductPayload } from "../../../features/product/product.types";
+import type { Product, UpdateProductPayload } from "../product.types";
 import { getUploadSignatureRequest, uploadToCloudinary } from "@/api/upload.api";
 import { useUpdateProduct } from "@/features/product/product.hooks";
 

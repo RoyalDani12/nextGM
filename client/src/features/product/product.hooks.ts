@@ -7,7 +7,7 @@ import { createProductRequest ,
   createVariantRequest,
   updateVariantRequest,
   deleteVariantRequest,
-} from "../../api/product.api";
+} from "./product.api";
 import type { 
   CreateProductPayload,
   FetchProductsParams ,
