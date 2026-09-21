@@ -1,3 +1,9 @@
+export type ShopStatus =
+  | "PENDING"
+  | "ACTIVE"
+  | "PAUSED"
+  | "SUSPENDED"
+  | "CLOSED";
 
 export interface ShopProfile {
   name: string;
@@ -15,25 +21,37 @@ export interface ShopProfile {
 export interface Shop {
   id: string;
   slug: string;
-  status: "PENDING" | "ACTIVE" | "PAUSED" | "SUSPENDED" | "CLOSED";
+  status: ShopStatus;
   createdAt: string;
- profile: ShopProfile;
+  profile: ShopProfile;
 }
 
 export interface CreateShopPayload {
-  name :string;
+  name: string;
 }
 
 export interface CreateShopResponse {
-  success:boolean;
-  statusCode:number;
-  message:string;
+  success: boolean;
+  statusCode: number;
+  message: string;
   data: Shop[];
 }
 
-export  interface GetMyShopResponse {
- success: boolean;
-    statusCode: number;
-    message: string;
-    data: Shop[];
+export interface GetMyShopResponse {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: Shop[];
+}
+export interface UpdateShopProfilePayload {
+  name?: string;
+  description?: string;
+  logo?: string;
+  banner?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  website?: string;
 }

@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import LoginPage from "../features/auth/LoginPage";
+// import { LoginPage } from "../features/auth/LoginPage";
 import RegisterPage from "../features/auth/RegisterPage";
 import VerifyEmailNotice from "../features/auth/VerifyEmailNotice";
 import VerifyEmailPage from "@/features/auth/VerifyEmailPage";
@@ -18,59 +19,76 @@ import { CreateShopPage } from "@/features/shop/CreateShopPage";
 import Pricing from "@/features/pages/public/Pricing";
 import { Shops } from "@/features/shop/Shops";
 import ShopDetail from "@/components/layout/shop/ShopDetail";
-
-const DashboardOrders = () => <div className="p-6 font-semibold">Orders Page</div>;
-const DashboardProducts = () => <div className="p-6 font-semibold">Products Page</div>;
+import ProductPage from "@/features/product/ProductPage";
+import ProductDetailPage from "@/features/product/ProductDetailPage";
+import { CartPage } from "@/features/cart/CartPage";
+import { CheckoutPage } from "@/features/order/CheckoutPage";
+import PaymentPage from "@/features/payment/PaymentPage";
+import { OrderConfirmationPage } from "@/features/order/OrderConfirmationPage";
+import CustomerOrderDetailPage from "@/features/customer/CustomerOrderDetailPage";
+import { ShopOrdersPage } from "@/features/shop/ShopOrdersPage";
 const DashboardSettings = () => <div className="p-6 font-semibold">Settings Page</div>;
-
+const DashboardAnalytics = () => <div className="p-6 font-semibold">Analitics Page</div>;
+import { PayoutDashboard as DashboardPayouts } from "@/features/shop/payouts/PayoutDashboard";
+const DashboardDiscounts = () => <div className="p-6 font-semibold">discount Page</div>;
+import OrdersPage from "@/features/customer/CustomerOrder";
+import ShopSelectionPage from "@/features/shop/ShopSelectionPage";
+import ShopOrderDetailPage from "@/components/layout/shop/ShopOrderDetailPage";
 export function AppRoutes() {
-  return (
-    <Routes>
-      {/* 1. PUBLIC & AUTH ROUTES */}
-      <Route path="/" element={<Home />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/verify-email-notice" element={<VerifyEmailNotice />} />
-      <Route path="/verify-email" element={<VerifyEmailPage />} />
-      <Route path="/forgot-password" element={<ForgetPassword />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
-       <Route path ="/create-shop" element={<CreateShopPage/>}/>
-      <Route path="/pricing" element={<Pricing/>}/>
+   return (
+      <Routes>
+         {/* 1. PUBLIC & AUTH ROUTES */}
+         <Route path="/" element={<Home />} />
+         <Route path="/login" element={<LoginPage />} />
+         <Route path="/register" element={<RegisterPage />} />
+         <Route path="/verify-email-notice" element={<VerifyEmailNotice />} />
+         <Route path="/verify-email" element={<VerifyEmailPage />} />
+         <Route path="/forgot-password" element={<ForgetPassword />} />
+         <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-      {/* 2. SHARED PROTECTED ROUTES */}
-      <Route element={<ProtectedRoute />}>
-        <Route path="/role-redirect" element={<RoleRedirect />} />
-        <Route path="/account/settings" element={<SettingsPage />} />
-      </Route>
+         <Route path="/pricing" element={<Pricing />} />
+         <Route path="/cart" element={<CartPage />} />
 
-      {/* 3. SHOP OWNER ROUTES */}
-      <Route element={<ProtectedRoute allowedRoles={["SHOP_OWNER"]} />}>
-      
-        <Route path="/dashboard" element={<DashboardLayout />}>
-          <Route index element={<DashboardHome />} />
-          <Route path="orders" element={<DashboardOrders />} />
-          <Route path="products" element={<DashboardProducts />} />
-          <Route path="settings" element={<DashboardSettings />} />
-           <Route path="shops">
-    <Route index element={<Shops />} />
-    <Route path=":id/detail" element={<ShopDetail />} />
-  </Route>
-          
-         
-        </Route>
-      </Route>
+         {/* 2. SHARED PROTECTED ROUTES */}
+         <Route element={<ProtectedRoute />}>
+            <Route path="/role-redirect" element={<RoleRedirect />} />
+            <Route path="/account/settings" element={<SettingsPage />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/payment/:checkoutId" element={<PaymentPage />} />
+            <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
+            <Route path="/customer-order" element={<OrdersPage />} />
+            <Route path="/orders/:orderId" element={<CustomerOrderDetailPage />} />
+            <Route path="/shops" element={<ShopSelectionPage />} />
+            <Route path="/shops/new" element={<CreateShopPage />} />
+         </Route>
 
-      {/* 4. EMPLOYEE ROUTES */}
-      <Route element={<ProtectedRoute allowedRoles={["SHOP_EMPLOYEE"]} />}>
-        <Route path="/employee" element={<div className="p-6">Employee Dashboard</div>} />
-      </Route>
+         {/* 3. SHOP OWNER ROUTES */}
+         <Route element={<ProtectedRoute allowedRoles={["SHOP_OWNER"]} />}>
+            <Route path="/dashboard/shop/:shopId" element={<DashboardLayout />}>
+               <Route index element={<DashboardHome />} />
+               <Route path="products" element={<ProductPage />} />
+               <Route path="products/:productId" element={<ProductDetailPage />} />
+               <Route path="orders/:orderId" element={<ShopOrderDetailPage />} />
+               <Route path="orders" element={<ShopOrdersPage />} />
+               <Route path="analytics" element={<DashboardAnalytics />} />
+               <Route path="discounts" element={<DashboardDiscounts />} />
+               <Route path="payouts" element={<DashboardPayouts />} />
+               <Route path="settings" element={<DashboardSettings />} />
+            </Route>
+         </Route>
 
-      {/* 5. SUPER ADMIN ROUTES */}
-      <Route element={<ProtectedRoute allowedRoles={["SUPER_ADMIN"]} />}>
-        <Route element={<AdminLayout />}>
-          <Route path="/superadmin" element={<SuperAdminHome />} />
-        </Route>
-      </Route>
-    </Routes>
-  );
+         {/* 4. EMPLOYEE ROUTES */}
+         <Route element={<ProtectedRoute allowedRoles={["SHOP_EMPLOYEE"]} />}>
+            <Route path="/employee" element={<div className="p-6">Employee Dashboard</div>} />
+         </Route>
+
+         {/* 5. SUPER ADMIN ROUTES */}
+         <Route element={<ProtectedRoute allowedRoles={["SUPER_ADMIN"]} />}>
+            <Route element={<AdminLayout />}>
+               <Route path="/superadmin" element={<SuperAdminHome />} />
+            </Route>
+         </Route>
+         <Route path="*" element={<div className="flex min-h-screen items-center justify-center p-6 text-center"><div><h1 className="text-2xl font-bold">Page not found</h1><p className="mt-2 text-gray-600">The page you requested does not exist.</p></div></div>} />
+      </Routes>
+   );
 }

@@ -23,8 +23,9 @@ export default function RoleRedirect() {
       return <Navigate to="/superadmin" replace />;
 
     case "SHOP_OWNER":
-      return <Navigate to ="/dashboard" replace/>
-    // case "SHOP_EMPLOYEE":
+      return <Navigate to="/shops" replace />;
+    case "SHOP_EMPLOYEE":
+      return <Navigate to="/employee" replace />;
     case "CUSTOMER":
     default:
       // Everyone defaults to the storefront home

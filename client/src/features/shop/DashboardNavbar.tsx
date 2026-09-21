@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
     Search, Bell, Plus, Menu, User as UserIcon,
     Settings, LogOut, Command, ExternalLink,
-    Store
+    Sparkles
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -66,14 +66,14 @@ export function DashboardNavbar() {
                         </SheetContent>
                     </Sheet>
 
-                    {/* SaaS Workspace Switcher */}
+                    {/* SaaS Workspace Switcher / Logo */}
                     <div className="hidden md:flex items-center gap-3 pr-5 border-r border-slate-100 cursor-pointer group">
-                        <div className="size-9 rounded-full bg-slate-900 flex items-center justify-center shadow-inner">
-                            <Store className="size-4 text-white" />
+                        <div className="size-9 rounded-xl bg-orange-500 flex items-center justify-center shadow-sm shadow-orange-500/20">
+                            <Sparkles className="size-4 text-white" />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-[13px] font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
-                                Global Store
+                            <span className="text-[13px] font-bold text-slate-900 group-hover:text-orange-600 transition-colors">
+                                Nexions
                             </span>
                             <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
                                 Pro Plan
@@ -85,11 +85,11 @@ export function DashboardNavbar() {
                 {/* CENTER SECTION: Search */}
                 <div className="flex-1 max-w-xl flex items-center gap-3">
                     <div className="relative flex-1 hidden md:block group">
-                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400 group-focus-within:text-orange-500 transition-colors" />
                         <Input
                             type="search"
                             placeholder="Search orders, products, customers..."
-                            className="pl-10 pr-12 h-10 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:border-emerald-500 focus-visible:ring-4 focus-visible:ring-emerald-500/10 rounded-full text-sm font-medium transition-all"
+                            className="pl-10 pr-12 h-10 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:border-orange-500 focus-visible:ring-4 focus-visible:ring-orange-500/10 rounded-full text-sm font-medium transition-all"
                         />
                         <kbd className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white border border-slate-200 text-[9px] font-bold text-slate-400 shadow-sm">
                             <Command className="size-3" /> K
@@ -101,8 +101,8 @@ export function DashboardNavbar() {
                 <div className="flex items-center gap-2 sm:gap-3">
                     <Button
                         size="sm"
-                        className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full font-bold h-9 px-4 shadow-sm shadow-emerald-500/20 transition-all hover:shadow-emerald-500/40 hover:-translate-y-0.5 hidden sm:flex gap-1.5"
-                        onClick={() => navigate("/dashboard/shops/new")}
+                        className="bg-orange-500 hover:bg-orange-600 text-white rounded-full font-bold h-9 px-4 shadow-sm shadow-orange-500/20 transition-all hover:shadow-orange-500/40 hover:-translate-y-0.5 hidden sm:flex gap-1.5 cursor-pointer"
+                        onClick={() => navigate("/shops/new")}
                     >
                         <Plus className="size-4" />
                         <span>Create Shop</span>
@@ -111,7 +111,7 @@ export function DashboardNavbar() {
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="hidden sm:inline-flex rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 size-9"
+                        className="hidden sm:inline-flex rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 size-9 cursor-pointer"
                         onClick={() => window.open("/", "_blank")}
                         title="View Live Store"
                     >
@@ -121,16 +121,16 @@ export function DashboardNavbar() {
                     <DropdownMenu>
                         <DropdownMenuTrigger
                             render={
-                                <Button variant="ghost" size="icon" className="relative text-slate-600 hover:bg-slate-100 rounded-full size-9 transition-colors">
+                                <Button variant="ghost" size="icon" className="relative text-slate-600 hover:bg-slate-100 rounded-full size-9 transition-colors cursor-pointer">
                                     <Bell className="size-4" />
-                                    <span className="absolute top-2 right-2.5 size-2 bg-amber-500 rounded-full ring-2 ring-white" />
+                                    <span className="absolute top-2 right-2.5 size-2 bg-orange-500 rounded-full ring-2 ring-white" />
                                 </Button>
                             }
                         />
                         <DropdownMenuContent align="end" className="w-80 p-3 rounded-3xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50">
                             <div className="flex items-center justify-between px-2 pb-2 mb-2 border-b border-slate-100">
                                 <p className="text-xs font-black text-slate-900">Notifications</p>
-                                <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">2 New</span>
+                                <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">2 New</span>
                             </div>
                             <div className="p-2 hover:bg-slate-50 rounded-2xl cursor-pointer transition-colors">
                                 <p className="text-[13px] text-slate-800 font-medium">New order #1024 received</p>
@@ -144,8 +144,8 @@ export function DashboardNavbar() {
                     <DropdownMenu>
                         <DropdownMenuTrigger
                             render={
-                                <button className="outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full ml-1">
-                                    <Avatar className="size-9 ring-2 ring-emerald-500/20 ring-offset-2 ring-offset-white shadow-sm">
+                                <button className="outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-orange-500 rounded-full ml-1 cursor-pointer">
+                                    <Avatar className="size-9 ring-2 ring-orange-500/20 ring-offset-2 ring-offset-white shadow-sm">
                                         <AvatarImage src={user?.profile?.avatar} alt={user?.name} />
                                         <AvatarFallback className="bg-slate-900 text-white text-xs font-black">
                                             {initials}
@@ -158,7 +158,7 @@ export function DashboardNavbar() {
                             <div className="px-4 py-3 bg-slate-50 rounded-2xl border border-slate-100 mb-2 flex items-center gap-3">
                                 <Avatar className="size-10">
                                     <AvatarImage src={user?.profile?.avatar} alt={user?.name} />
-                                    <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs font-black">
+                                    <AvatarFallback className="bg-orange-100 text-orange-700 text-xs font-black">
                                         {initials}
                                     </AvatarFallback>
                                 </Avatar>
@@ -168,7 +168,7 @@ export function DashboardNavbar() {
                                 </div>
                             </div>
                             <DropdownMenuGroup>
-                                <DropdownMenuItem onClick={() => navigate("/dashboard/account/settings")} className="cursor-pointer gap-3 py-2.5 px-3 rounded-2xl text-xs font-bold text-slate-700 focus:bg-slate-100 focus:text-slate-900">
+                                <DropdownMenuItem onClick={() => navigate("/account/settings")} className="cursor-pointer gap-3 py-2.5 px-3 rounded-2xl text-xs font-bold text-slate-700 focus:bg-slate-100 focus:text-slate-900">
                                     <UserIcon className="size-4 text-slate-400" /> Account Settings
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => navigate("/dashboard/settings")} className="cursor-pointer gap-3 py-2.5 px-3 rounded-2xl text-xs font-bold text-slate-700 focus:bg-slate-100 focus:text-slate-900">

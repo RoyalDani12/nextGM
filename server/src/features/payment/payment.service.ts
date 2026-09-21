@@ -5,7 +5,7 @@ import { logger } from "../../config/logger.js";
 import { env } from "../../config/env.js";
 import {
     createPaymentRecord,
-    findPaymentByOrderId,
+    findPaymentByCheckoutId,
     findPaymentForRefund,
     markPaymentFailed,
     confirmPaymentWithEventLog,
@@ -15,30 +15,28 @@ import {
 } from "./payment.repository.js";
 import {
     beginRefundRepository,
-    confirmRefundedRepository,
-    getCustomerOrderByIdRepository,
 } from "../orders/order.repository.js";
 import { cancelOrderExpiration } from "../../infrastructure/queue/orderExpiration.helpers.js";
 import { notifyUser } from "../notification/notification.service.js";
-import { getCustomerrderByIdService } from "../orders/order.service.js";
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 
-export const createPaymentIntentService = async (orderId: string, customerId: string) => {
-    const order = await getCustomerOrderByIdRepository(orderId, customerId);
+export const createPaymentIntentService = async (checkoutId: string, customerId: string) => {
+    const { prisma } = await import("../../config/db.js");
+    const checkout = await prisma.checkout.findUnique({ where: { id: checkoutId } });
 
-    if (!order) {
-        throw new AppError("Order not found.", 404);
+    if (!checkout) {
+        throw new AppError("Checkout not found.", 404);
     }
 
-    if (order.status !== "PENDING") {
-        throw new AppError(`Order connot be paid - current status is ${order.status}.`, 400);
+    if (checkout.status !== "PENDING") {
+        throw new AppError(`Checkout cannot be paid - current status is ${checkout.status}.`, 400);
     }
 
     // idempotent on repeated calls — if a payment record already exists
     // for this order, reuse it instead of creating a duplicate PaymentIntent.
     // This matters if the customer refreshes the payment page.
-    const existing = await findPaymentByOrderId(orderId);
+    const existing = await findPaymentByCheckoutId(checkoutId);
 
     if (existing?.providerPaymentId) {
         const intent = await stripe.paymentIntents.retrieve(existing.providerPaymentId);
@@ -47,28 +45,30 @@ export const createPaymentIntentService = async (orderId: string, customerId: st
             paymentId: existing.id,
         };
     }
-    const amountInCents = Math.round(Number(order.totalAmount) * 100);
-    const intent = await stripe.paymentIntents.create({
-        amount: amountInCents,
-        currency: "usd",
-        payment_method_types: ["card"],
-        metadata: { orderId },
-    });
-
+    const amountInCents = Math.round(Number(checkout.totalAmount) * 100);
     const payment =
         existing ??
         (await createPaymentRecord({
-            orderId,
-            amount: order.totalAmount.toString(),
+            checkoutId,
+            amount: checkout.totalAmount.toString(),
             currency: "USD",
             provider: "STRIPE",
             idempotencyKey: crypto.randomUUID(),
         }));
 
+    // Stripe uses the same key if two requests arrive at once, so only one
+    // PaymentIntent can be created for this order.
+    const intent = await stripe.paymentIntents.create({
+        amount: amountInCents,
+        currency: "usd",
+        automatic_payment_methods: { enabled: true },
+        metadata: { checkoutId },
+    }, { idempotencyKey: payment.idempotencyKey });
+
     await updatePaymentProvider(payment.id, intent.id);
 
     logger.info(
-        { orderId, paymentId: payment.id, stripePaymentIntentId: intent.id },
+        { checkoutId, paymentId: payment.id, stripePaymentIntentId: intent.id },
         "PaymentIntent created",
     );
 
@@ -102,6 +102,10 @@ export const handleStripeWebhookEvent = async (event: Stripe.Event) => {
         case "charge.refunded":
             await handleChargeRefunded(event.data.object as Stripe.Charge, event.id, event.type);
             break;
+        case "account.updated":
+            const { handleAccountUpdatedWebhook } = await import("../payouts/payout.service.js");
+            await handleAccountUpdatedWebhook(event.data.object as Stripe.Account);
+            break;
         default:
             logger.info({ type: event.type }, "Unhandled stripe type");
     }
@@ -112,25 +116,25 @@ const handlePaymentSucceeded = async (
     eventId: string,
     eventType: string,
 ) => {
-    const orderId = intent.metadata.orderId;
+    const checkoutId = intent.metadata.checkoutId;
 
-    if (!orderId) {
+    if (!checkoutId) {
         logger.error(
             { intentId: intent.id },
-            " PaymentIntent succeeded but has no orderId metadata",
+            " PaymentIntent succeeded but has no checkoutId metadata",
         );
         return;
     }
 
-    const result = await confirmPaymentWithEventLog(orderId, eventId, eventType);
+    const result = await confirmPaymentWithEventLog(checkoutId, eventId, eventType);
 
     if (result.alreadyProcessed) {
-        logger.info({ orderId }, "Duplicate webhook event, skipping");
+        logger.info({ checkoutId }, "Duplicate webhook event, skipping");
         return;
     }
     if (result.paymentStateMismatch) {
         logger.error(
-            { orderId },
+            { checkoutId },
             "Payment was not PENDING when success webhook arrived — investigate",
         );
         return;
@@ -140,26 +144,26 @@ const handlePaymentSucceeded = async (
             userId: result.customerId || "not user id",
             type: "PAYMENT_SUCCESS",
             title: "Payment successful",
-            body: `Your payment for order #${orderId} was successful.`,
+            body: `Your payment for checkout #${checkoutId} was successful.`,
         });
     } catch (err) {}
 
     try {
-        await cancelOrderExpiration(orderId);
+        if (result.orderIds) await Promise.all(result.orderIds.map((id: string) => cancelOrderExpiration(id)));
     } catch (err) {
-        logger.error({ err, orderId }, "Faild to cancel expiration job after payment success.");
+        logger.error({ err, checkoutId }, "Faild to cancel expiration job after payment success.");
     }
-    logger.info({ orderId, intentId: intent.id }, "Order confirmed via successful payment.");
+    logger.info({ checkoutId, intentId: intent.id }, "Checkout confirmed via successful payment.");
 };
 
 const handlePaymentFailed = async (intent: Stripe.PaymentIntent) => {
-    const orderId = intent.metadata.orderId;
+    const checkoutId = intent.metadata.checkoutId;
 
-    if (!orderId) {
-        logger.error({ intentId: intent.id }, "Payment intent failed but has no orderId metadata");
+    if (!checkoutId) {
+        logger.error({ intentId: intent.id }, "Payment intent failed but has no checkoutId metadata");
         return;
     }
-    const { customerId } = await markPaymentFailed(orderId);
+    const { customerId } = await markPaymentFailed(checkoutId);
 
     if (customerId) {
         try {
@@ -167,14 +171,14 @@ const handlePaymentFailed = async (intent: Stripe.PaymentIntent) => {
                 userId: customerId,
                 type: "PAYMENT_FAILED",
                 title: "Payment failed",
-                body: `Your payment for order #${orderId} could not be processed. Please try again.`,
+                body: `Your payment for checkout #${checkoutId} could not be processed. Please try again.`,
             });
         } catch (err) {
-            logger.error({ err, orderId }, "Failed to send payment-failed notification");
+            logger.error({ err, checkoutId }, "Failed to send payment-failed notification");
         }
     }
 
-    logger.info({ orderId, intentId: intent.id }, "Payment failed, order remains PENDING");
+    logger.info({ checkoutId, intentId: intent.id }, "Payment failed, checkout remains PENDING");
 };
 
 const handleChargeRefunded = async (charge: Stripe.Charge, eventId: string, eventType: string) => {
@@ -200,15 +204,15 @@ const handleChargeRefunded = async (charge: Stripe.Charge, eventId: string, even
         );
         return;
     }
-    const result = await confirmRefundWithEventLog(payment.orderId, eventId, eventType);
+    const result = await confirmRefundWithEventLog(payment.checkoutId, eventId, eventType);
 
     if (result?.alreadyProcessed) {
-        logger.info({ orderId: payment.orderId }, "Duplicate webhook event, skipping");
+        logger.info({ checkoutId: payment.checkoutId }, "Duplicate webhook event, skipping");
         return;
     }
     if (result.orderStateMismatch) {
         logger.error(
-            { orderId: payment.orderId },
+            { checkoutId: payment.checkoutId },
             "Order was not REFUND_PENDING when refund webhook arrived — investigate",
         );
         return;
@@ -219,15 +223,15 @@ const handleChargeRefunded = async (charge: Stripe.Charge, eventId: string, even
                 userId: result.customerId,
                 type: "PAYMENT_REFUNDED",
                 title: "Refund processed",
-                body: `Your refund for order #${payment.orderId} has been processed.`,
+                body: `Your refund for checkout #${payment.checkoutId} has been processed.`,
             });
         } catch (err) {
-            logger.error({ err, orderId: payment.orderId }, "Failed to send refund notification");
+            logger.error({ err, checkoutId: payment.checkoutId }, "Failed to send refund notification");
         }
     }
 
     logger.info(
-        { orderId: payment.orderId, chargeId: charge.id },
+        { checkoutId: payment.checkoutId, chargeId: charge.id },
         "Order Marked REFUNDED Via Webhook",
     );
 };
@@ -251,7 +255,7 @@ export const initiateRefundService = async (orderId: string) => {
 
     if (!guard.success) {
         if (guard.reason === "not_found") {
-            throw new AppError("Order not found.", 404);
+            throw new AppError("Checkout not found.", 404);
         }
         if (guard.reason === "Invalid_status") {
             throw new AppError(

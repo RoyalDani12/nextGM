@@ -51,6 +51,8 @@ setupSwagger(app);
 
 app.use(generalLimiter)  
 
+import payoutRoute from "./features/payouts/payout.route.js"
+
 app.use('/api/v1/auth',authRoute)
 app.use('/api/v1/users',userRoute)
 app.use('/api/v1/shops',shopRoute)
@@ -61,6 +63,7 @@ app.use('/api/v1/cart', cartRoute)
 app.use('/api/v1/orders', orderRoute)
 app.use('/api/v1/payment',paymentRoute)
 app.use('/api/v1/admin/orders', paymentAdminRoute) 
+app.use('/api/v1/payouts', payoutRoute)
 
 app.get('/',(req ,res)=>{
   res.json({message:"server running successfully"})

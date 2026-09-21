@@ -8,11 +8,13 @@ import { loginService,
         logoutService,
         resendVerificationService,
         forgotPasswordService,  
-        resetPasswordService
+        resetPasswordService,
+        googleLoginService
   } from "./auth.services.js";
 
 import { env } from "../../config/env.js";
 import { AppError } from "../../middleware/appError.js";
+import crypto from "crypto";
 
 export const registerController = asyncHandler(async (req: Request, res: Response) => {
 
@@ -208,3 +210,40 @@ export const resetPasswordController = asyncHandler( async(req:Request,res:Respo
     message:result.message
    })
 })
+
+export const googleAuthController = asyncHandler(async (_req: Request, res: Response) => {
+  const state = crypto.randomBytes(32).toString("hex");
+  res.cookie("googleOAuthState", state, { httpOnly: true, secure: env.NODE_ENV === "production", sameSite: "lax", maxAge: 10 * 60 * 1000 });
+  const params = new URLSearchParams({
+    client_id: env.GOOGLE_CLIENT_ID,
+    redirect_uri: env.GOOGLE_REDIRECT_URI,
+    response_type: "code",
+    scope: "openid email profile",
+    state,
+  });
+  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+});
+
+export const googleCallbackController = asyncHandler(async (req: Request, res: Response) => {
+  const { code, state, error } = req.query as { code?: string; state?: string; error?: string };
+  const fail = (reason: string) => res.redirect(`${env.CLIENT_URL}/login?googleError=${encodeURIComponent(reason)}`);
+  if (error || !code || !state || state !== req.cookies.googleOAuthState) return fail("Google sign-in was cancelled or could not be verified.");
+  res.clearCookie("googleOAuthState");
+
+  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ code, client_id: env.GOOGLE_CLIENT_ID, client_secret: env.GOOGLE_CLIENT_SECRET, redirect_uri: env.GOOGLE_REDIRECT_URI, grant_type: "authorization_code" }),
+  });
+  if (!tokenResponse.ok) return fail("Google could not complete the sign-in.");
+  const tokens = await tokenResponse.json() as { access_token?: string };
+  if (!tokens.access_token) return fail("Google did not return an access token.");
+  const profileResponse = await fetch("https://openidconnect.googleapis.com/v1/userinfo", { headers: { Authorization: `Bearer ${tokens.access_token}` } });
+  const profile = await profileResponse.json() as { email?: string; name?: string; email_verified?: boolean };
+  if (!profileResponse.ok || !profile.email || !profile.email_verified) return fail("A verified Google email address is required.");
+
+  const ip = req.ip ?? req.socket.remoteAddress ?? "unknown";
+  const result = await googleLoginService({ email: profile.email, name: profile.name ?? "Google user" }, { ipAddress: ip, userAgent: req.headers["user-agent"] ?? "", deviceName: parseDeviceName(req.headers["user-agent"] ?? "") });
+  res.cookie("refreshToken", result.refreshToken, { httpOnly: true, secure: env.NODE_ENV === "production", sameSite: "strict", maxAge: 7 * 24 * 60 * 60 * 1000 });
+  res.redirect(`${env.CLIENT_URL}/role-redirect`);
+});

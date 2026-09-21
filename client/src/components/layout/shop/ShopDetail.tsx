@@ -16,9 +16,14 @@ import {
   PauseCircle,
   XCircle,
   Hash,
-  FileText
+  FileText,
+  Pencil,
+  Package
 } from "lucide-react";
-
+import { Button } from "@base-ui/react";
+import { CloseShopDialog } from "./CloseShopDialog";
+import { ShopStatusToggle } from "./ShopStatusToggle";
+import { ShopProfileEditDialog } from "./ShopProfileEditDialog";
 export interface ShopProfile {
   name: string;
   description: string | null;
@@ -39,6 +44,8 @@ export interface Shop {
   createdAt: string;
  profile: ShopProfile;
 }
+
+
 
 const getStatusBadge = (status: Shop["status"]) => {
   switch (status) {
@@ -75,6 +82,11 @@ const getStatusBadge = (status: Shop["status"]) => {
 const ShopDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading, isError } = useMyShops();
+   const { id: shopId } = useParams<{ id: string }>();
+
+  if (!shopId) {
+    return <div>Shop ID is missing from the URL.</div>;
+  }
 
   if (isLoading) {
     return (
@@ -134,6 +146,26 @@ const ShopDetail = () => {
           <ArrowLeft className="w-4 h-4" /> Back to Shops
         </Link>
 
+        <div>
+      {/* Existing shop information */}
+
+      <ShopStatusToggle
+        shopId={shop.id}
+        status={shop.status}
+      />
+        <CloseShopDialog shop={shop} />
+        <div>
+            <Button asChild>
+          <Link to={`/dashboard/shops/${shopId}/products`}>
+            <Package className="mr-2 h-4 w-4" />
+            Products
+          </Link>
+        </Button>
+        </div>
+    </div>
+       
+    
+
         {/* Banner Hero Section */}
         <div className="relative rounded-2xl overflow-hidden border bg-muted/30 shadow-sm">
           {profile?.banner ? (
@@ -177,8 +209,11 @@ const ShopDetail = () => {
         </div>
       </div>
 
+      
+
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
         
         {/* Left Column: Quick Details & Media */}
         <div className="space-y-6 md:col-span-1">
@@ -216,6 +251,7 @@ const ShopDetail = () => {
             <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground flex items-center gap-2">
               <ImageIcon className="w-4 h-4 text-primary" /> Brand Assets
             </h2>
+            
 
             <div className="space-y-3 text-sm">
               <div className="flex items-center justify-between py-1 border-b border-border/50">
@@ -231,6 +267,8 @@ const ShopDetail = () => {
                   {profile?.banner ? "Uploaded" : "Missing"}
                 </span>
               </div>
+
+<ShopProfileEditDialog shop={shop} />
             </div>
           </div>
 

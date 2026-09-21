@@ -2,18 +2,22 @@
 import { prisma } from "../../config/db.js";
 
 export const createPaymentRecord = async ( data:{
-  orderId:string,
+  checkoutId:string,
   amount:string,
   currency:string,
   provider:"STRIPE",
   idempotencyKey:string
 })=>{
-  return prisma.payment.create({ data })
+  return prisma.payment.upsert({
+    where: { checkoutId: data.checkoutId },
+    create: data,
+    update: {},
+  })
 }
 
-export const findPaymentByOrderId = async(orderId:string)=>{
+export const findPaymentByCheckoutId = async(checkoutId:string)=>{
   return prisma.payment.findUnique({
-       where:{ orderId }
+       where:{ checkoutId }
   })
 }
 
@@ -23,25 +27,30 @@ export const updatePaymentProvider = async ( paymentId:string,providerPaymentId:
     data: { providerPaymentId }
   })
 }
-export const markPaymentFailed = async (orderId: string) => {
+export const markPaymentFailed = async (checkoutId: string) => {
     return prisma.$transaction(async (tx) => {
         await tx.payment.updateMany({
-            where: { orderId, status: "PENDING" },
+            where: { checkoutId, status: "PENDING" },
             data: { status: "FAILED" },
         });
 
-        const order = await tx.order.findUnique({
-            where: { id: orderId },
+        await tx.checkout.updateMany({
+            where: { id: checkoutId, status: "PENDING" },
+            data: { status: "FAILED" },
+        });
+
+        const checkout = await tx.checkout.findUnique({
+            where: { id: checkoutId },
             select: { customerId: true },
         });
 
-        return { customerId: order?.customerId };
+        return { customerId: checkout?.customerId };
     });
 };
 
 export const findPaymentForRefund = async ( orderId:string)=>{
   return prisma.payment.findUnique({
-    where: { orderId },
+    where: { checkoutId: orderId }, // TODO update refund logic later
     select:{
       id:true,
       status:true,
@@ -66,7 +75,7 @@ export const markPaymendRefundPending = async (paymentId:string)=>{
  */
 
 export const confirmPaymentWithEventLog = async (
-    orderId: string,
+    checkoutId: string,
     stripeEventId: string,
     eventType: string,
 ) => {
@@ -81,36 +90,92 @@ export const confirmPaymentWithEventLog = async (
         }
 
         const paymentGuard = await tx.payment.updateMany({
-            where: { orderId, status: "PENDING" },
+            where: { checkoutId, status: "PENDING" },
             data: { status: "COMPLETED" },
         });
 
         if (paymentGuard.count === 0) {
-            // event is new, but payment wasn't in the expected state —
-            // this is a real anomaly worth knowing about, not silently fine.
-            // We still let the transaction commit (event marked seen) because
-            // retrying won't fix a payment that's genuinely not PENDING anymore.
             return { alreadyProcessed: false as const, paymentStateMismatch: true as const };
         }
 
-        const orderGuard = await tx.order.updateMany({
-            where: { id: orderId, status: "PENDING" },
-            data: { status: "CONFIRMED" },
+        await tx.checkout.updateMany({
+            where: { id: checkoutId, status: "PENDING" },
+            data: { status: "COMPLETED" },
         });
 
-        if (orderGuard.count > 0) {
+        const checkout = await tx.checkout.findUnique({
+            where: { id: checkoutId },
+            include: { orders: true }
+        });
+
+        if (!checkout) throw new Error("Checkout not found");
+
+        let totalPlatformFee = 0;
+
+        for (const order of checkout.orders) {
+            if (order.status !== "PENDING") continue;
+
+            await tx.order.update({
+                where: { id: order.id },
+                data: { status: "CONFIRMED" },
+            });
+
             await tx.orderStatusHistory.create({
-                data: { orderId, status: "CONFIRMED", note: "Payment confirmed via Stripe." },
+                data: { orderId: order.id, status: "CONFIRMED", note: "Payment confirmed via Stripe Checkout." },
+            });
+
+            // Settlement
+            const orderTotal = Number(order.totalAmount);
+            const platformFee = orderTotal * 0.10;
+            const shopCut = orderTotal - platformFee;
+            totalPlatformFee += platformFee;
+
+            const shopWallet = await tx.shopWallet.findUnique({ where: { shopId: order.shopId } });
+            if (shopWallet) {
+                const newBalance = Number(shopWallet.balance) + shopCut;
+                await tx.shopWallet.update({
+                    where: { shopId: order.shopId },
+                    data: { balance: newBalance }
+                });
+                await tx.walletTransaction.create({
+                    data: {
+                        shopId: order.shopId,
+                        orderId: order.id,
+                        type: "CREDIT",
+                        amount: shopCut,
+                        balanceAfter: newBalance,
+                        note: "Order payout (90%)"
+                    }
+                });
+            }
+        }
+
+        // Platform Wallet
+        if (totalPlatformFee > 0) {
+            let platformWallet = await tx.platformWallet.findFirst();
+            if (!platformWallet) {
+                platformWallet = await tx.platformWallet.create({ data: { balance: 0 } });
+            }
+            const newPlatformBalance = Number(platformWallet.balance) + totalPlatformFee;
+            await tx.platformWallet.update({
+                where: { id: platformWallet.id },
+                data: { balance: newPlatformBalance }
+            });
+            await tx.platformWalletTransaction.create({
+                data: {
+                    checkoutId: checkout.id,
+                    type: "CREDIT",
+                    amount: totalPlatformFee,
+                    balanceAfter: newPlatformBalance,
+                    note: "Platform commission (10%)"
+                }
             });
         }
-        const order = await tx.order.findUnique({
-            where: { id: orderId },
-            select : { customerId: true }
-        })
 
-        return { alreadyProcessed: false as const, paymentStateMismatch: false as const, customerId: order?.customerId };
+        return { alreadyProcessed: false as const, paymentStateMismatch: false as const, customerId: checkout.customerId, orderIds: checkout.orders.map((o: any) => o.id) };
     });
 };
+
 
 export const confirmRefundWithEventLog = async (
     orderId: string,
@@ -137,7 +202,7 @@ export const confirmRefundWithEventLog = async (
         }
 
         await tx.payment.updateMany({
-            where: { orderId, status: "COMPLETED" },
+            where: { checkoutId: orderId, status: "COMPLETED" },
             data: { status: "REFUNDED" },
         });
 
@@ -158,6 +223,6 @@ export const confirmRefundWithEventLog = async (
 export const findPaymentByProviderId = async (providerPaymentId: string) => {
     return prisma.payment.findUnique({
         where: { providerPaymentId },
-        select: { orderId: true },
+        select: { checkoutId: true },
     });
 };

@@ -39,11 +39,10 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "auth-storage", 
-      // Only persist user data and tokens, never the initializing state
+      // The access token is deliberately kept in memory. A new tab restores it
+      // from the httpOnly refresh cookie, rather than trusting stale local data.
       partialize: (state) => ({ 
-        user: state.user, 
-        accessToken: state.accessToken, 
-        isAuthenticated: state.isAuthenticated 
+        user: state.user,
       }),
     }
   )

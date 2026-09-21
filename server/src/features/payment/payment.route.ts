@@ -5,7 +5,7 @@ import { createPaymentIntentController } from "./payment.controller.js";
 const router = express.Router();
 
 router.post(
-    "/:orderId/intent",
+    "/:checkoutId/intent",
     authenticate,
     createPaymentIntentController,
 );

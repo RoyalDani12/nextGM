@@ -1,6 +1,6 @@
-# Nexions — Multi-Tenant E-Commerce SaaS Platform
+# NextG — Multi-Tenant E-Commerce SaaS Platform
 
-A production-grade, multi-tenant e-commerce API built with Node.js, TypeScript, and PostgreSQL. Designed to power marketplace platforms where multiple shop owners sell to customers on a single platform.
+A production-grade, multi-tenant e-commerce marketplace API built with Node.js, TypeScript, and PostgreSQL. Modeled on the Amazon architecture — many independent sellers, one shared customer base, one checkout, one payment split automatically across shops.
 
 ---
 
@@ -23,13 +23,13 @@ A production-grade, multi-tenant e-commerce API built with Node.js, TypeScript, 
 
 ## Overview
 
-Nexions is a full-featured multi-tenant e-commerce SaaS backend that enables:
+NextG is a full-featured multi-tenant e-commerce SaaS platform that enables:
 
-- **Customers** to browse shops, discover products, place orders, and pay securely via Stripe
-- **Shop Owners** to create and manage their storefront, products, and incoming orders
+- **Customers** to browse shops, add items from multiple shops to one cart, place all orders in a **single unified checkout**, and pay once via Stripe — the system automatically splits and settles funds to each shop
+- **Shop Owners** to manage their storefront, products, orders, and **withdraw their earnings** directly to their bank account via Stripe Connect
 - **Super Admins** to manage platform-wide concerns, including refunds
 
-Built with production concerns in mind: tenant isolation, race condition prevention, atomic payment/webhook processing, reservation-based inventory management, GDPR compliance, structured logging, background job processing, and CDN-backed file uploads.
+Built with production concerns in mind: tenant isolation, race condition prevention, atomic payment/webhook processing, reservation-based inventory management, GDPR compliance, structured logging, and background job processing.
 
 ---
 
@@ -46,9 +46,9 @@ Built with production concerns in mind: tenant isolation, race condition prevent
 │ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌─────────┐ │
 │ │  Auth  │ │  User  │ │  Shop  │ │Product │ │  Cart   │ │
 │ └────────┘ └────────┘ └────────┘ └────────┘ └─────────┘ │
-│ ┌────────┐ ┌────────┐ ┌──────────────┐                  │
-│ │ Order  │ │Payment │ │ Notification │                  │
-│ └────────┘ └────────┘ └──────────────┘                  │
+│ ┌────────┐ ┌────────┐ ┌─────────┐ ┌──────────────────┐  │
+│ │ Order  │ │Payment │ │ Payouts │ │  Notification    │  │
+│ └────────┘ └────────┘ └─────────┘ └──────────────────┘  │
 │                                                           │
 │  ┌──────────────────────────────────────────────────┐   │
 │  │              Middleware Layer                     │   │
@@ -57,20 +57,20 @@ Built with production concerns in mind: tenant isolation, race condition prevent
 │  └──────────────────────────────────────────────────┘   │
 └──────┬──────────────┬───────────────┬──────────┬────────┘
        │               │               │          │
-┌──────▼──────┐ ┌──────▼─────┐ ┌──────▼──────┐ ┌─▼──────┐
-│ PostgreSQL  │ │   Redis    │ │ Cloudinary  │ │ Stripe │
-│  (Prisma)   │ │ (Cache +   │ │   (Media)   │ │(Payments│
-│             │ │  Queue)    │ │             │ │+Webhooks)│
-└─────────────┘ └────────────┘ └─────────────┘ └─────────┘
-                       │
+┌──────▼──────┐ ┌──────▼─────┐ ┌──────▼──────┐ ┌─▼──────────┐
+│ PostgreSQL  │ │   Redis    │ │ Cloudinary  │ │   Stripe   │
+│  (Prisma)   │ │ (Cache +   │ │   (Media)   │ │ Payments + │
+│             │ │  Queue)    │ │             │ │ Connect +  │
+└─────────────┘ └────────────┘ └─────────────┘ │ Webhooks   │
+                       │                        └────────────┘
                 ┌──────▼──────┐
                 │   BullMQ    │
                 │  (Workers)  │
                 │  Email      │
                 │  Image      │
                 │  GDPR Purge │
-                │  Order Expiration + Sweep │
-                │  Notification │
+                │  Order Expiry│
+                │  Notification│
                 └─────────────┘
 ```
 
@@ -78,13 +78,41 @@ Built with production concerns in mind: tenant isolation, race condition prevent
 
 Each **Shop** is a tenant. Data isolation is enforced at the application layer — every query is scoped by `shopId`. Tenant A can never access Tenant B's products, orders, or customer data. Shop-scoped access is enforced centrally via the `authorizeShopAccess` middleware, checking `Shop.ownerId` against the authenticated user.
 
-### Order Reservation Model
+### Unified Checkout & Automatic Settlement
 
-Stock is decremented atomically at order creation (`PENDING`), not at payment confirmation — this reserves inventory the instant a customer checks out. Unpaid reservations automatically expire after a configurable TTL (default 15 minutes), restoring stock via a dedicated BullMQ worker. A periodic sweep job acts as a fallback in case the primary expiration job is lost (e.g. Redis restart without persistence).
+When a customer checks out with items from multiple shops, the system:
+1. Creates a single **Checkout** record grouping all per-shop Orders
+2. Generates a single Stripe **PaymentIntent** for the full cart total
+3. On `payment_intent.succeeded` webhook — atomically:
+   - Confirms all child Orders
+   - Credits **90%** of each Order's total to the respective **ShopWallet**
+   - Credits **10%** of each Order's total to the **PlatformWallet** as commission
 
-### Payment & Webhook Model
+```
+Customer pays $500 once
+         │
+         ▼
+    Stripe PaymentIntent
+         │
+         ▼ (webhook: payment_intent.succeeded)
+   ┌─────────────────────┐
+   │   ATOMIC SETTLEMENT │
+   └──────────┬──────────┘
+              │
+   ┌──────────┼──────────┐
+   ▼          ▼          ▼
+Shop A     Shop B     Shop C
+ $180       $162       $108
+(90%)      (90%)      (90%)
+              +
+         PlatformWallet
+              $50
+             (10%)
+```
 
-All payment state transitions (`PENDING → CONFIRMED`, `REFUND_PENDING → REFUNDED`) are driven exclusively by verified Stripe webhook events — never by the initiating API call alone. Webhook idempotency (`WebhookEvent` table, unique constraint on `stripeEventId`) and the corresponding order/payment state update run inside a single atomic transaction, so a duplicate delivery can never be marked "processed" without the real state change having actually committed.
+### Stripe Connect & Payouts
+
+Shop owners connect a real bank account via **Stripe Express** onboarding. Once verified, they can withdraw their `ShopWallet` balance directly to their bank. The payout is atomic — the wallet is only debited if the Stripe Transfer succeeds.
 
 ---
 
@@ -99,7 +127,7 @@ All payment state transitions (`PENDING → CONFIRMED`, `REFUND_PENDING → REFU
 | PostgreSQL | Primary database |
 | Redis | Session cache + rate limiting + queue backend |
 | BullMQ | Background job processing (separate worker process) |
-| Stripe | Payment processing, PaymentIntents, webhooks, refunds |
+| Stripe | Payment processing, Connect, PaymentIntents, webhooks, refunds |
 | Pino | Structured JSON logging |
 | Zod | Runtime input validation |
 | JWT | Stateless authentication |
@@ -107,7 +135,7 @@ All payment state transitions (`PENDING → CONFIRMED`, `REFUND_PENDING → REFU
 | Cloudinary | Media storage + CDN |
 | Nodemailer | Transactional email |
 
-### Frontend (In Progress)
+### Frontend
 | Technology | Purpose |
 |---|---|
 | React + Vite | UI framework |
@@ -128,73 +156,67 @@ All payment state transitions (`PENDING → CONFIRMED`, `REFUND_PENDING → REFU
 - Password reset via secure time-limited tokens
 - Immediate token invalidation on password change (`passwordChangedAt` pattern)
 - Device session management (view, revoke single, revoke all)
-- Device fingerprinting (IP address, user agent, parsed device name)
-- Per-device session limits (configurable, oldest evicted)
 - Redis-backed session caching, 15-minute TTL, DB fallback on cache miss
 - Rate limiting on all sensitive endpoints (Redis-backed, multi-server safe)
-- Signed Cloudinary uploads (server never processes file bytes)
-- Role-based access: `CUSTOMER`, `SHOP_OWNER`, `SHOP_EMPLOYEE`, `SUPER_ADMIN` (shop ownership currently derived from `Shop.ownerId`; employee/staff roles reserved for the upcoming Employee module)
+- Role-based access: `CUSTOMER`, `SHOP_OWNER`, `SHOP_EMPLOYEE`, `SUPER_ADMIN`
 
-### User Management
-- Full profile management (name, avatar, phone, address)
-- Account lifecycle: active → deactivated → reactivated → deleted
-- GDPR-compliant permanent deletion with 30-day anonymization queue
-- Notification preferences (per-category: order updates, promotions, reviews; per-channel: email, push)
+### Unified Checkout
+- **Single payment** for multi-shop cart — no more per-shop checkout loops
+- Atomic Checkout record groups all per-shop Orders
+- One Stripe PaymentIntent for the full cart total
+- Automatic fund settlement on webhook confirmation
+
+### Wallet & Settlement
+- **ShopWallet**: credited automatically on every successful order (90% of order total)
+- **PlatformWallet**: credited automatically with 10% commission on every order
+- Full `WalletTransaction` audit trail for every credit/debit
+
+### Stripe Connect & Payouts
+- Shop owners onboard via Stripe Express (bank account, identity verification)
+- `payoutsEnabled` flag set automatically via `account.updated` Stripe webhook
+- Atomic withdrawal: wallet debited only if Stripe Transfer succeeds
+- Payout dashboard in the shop owner UI
 
 ### Shop Module (Multi-Tenant Core)
 - Shop creation with auto-generated unique slugs
-- Two-step onboarding: create shell → complete profile
-- Shop status machine: PENDING → ACTIVE ↔ PAUSED / SUSPENDED / CLOSED
-- Owner-controlled pause/activate with admin-only suspension
-- Soft delete with product archival cascade
-- Shared Cloudinary upload signatures for logo/banner
-- Centralized `authorizeShopAccess` middleware (404 on missing/unauthorized shop — enumeration-safe)
+- Status machine: PENDING → ACTIVE ↔ PAUSED / SUSPENDED / CLOSED
+- Shop legal info (business name, tax ID, entity type)
+- Centralized `authorizeShopAccess` middleware (404 on unauthorized — enumeration-safe)
 
 ### Product Module
 - Full product lifecycle: DRAFT → ACTIVE ↔ ARCHIVED
-- Per-shop slug + SKU uniqueness (not global)
-- Category tree support (platform-wide categories + shop-level internal organization)
 - Product variants (size, color, etc.) with individual pricing + stock
 - Multi-image support with primary image management
-- Decimal-safe price handling (string-based API input, Prisma Decimal storage)
+- Atomic, race-condition-safe stock decrement/restore
 - Public browse with search, filters, price range, pagination
-- Atomic, race-condition-safe stock decrement/restore (`updateMany` + conditional guard, not read-then-write)
 
 ### Cart Module
-- Multi-shop cart, grouped and split into one order per shop at checkout
+- Multi-shop cart, grouped by shop
 - Stock and availability validation before checkout
 - Auto-creation on first add, quantity upsert
 
 ### Order Module
 - Checkout: atomic per-shop order creation, price snapshot at time of purchase, immediate stock reservation
-- Multi-shop cart splits into independent orders (one per shop) in a single transaction
-- Customer order history + detail (paginated, filterable, full item/shipping/payment/status-history view)
-- Customer-initiated cancellation (`PENDING`/`CONFIRMED` only), atomic guard against double-cancel and races with shop-side updates, automatic stock restoration
-- Shop-side order management: list, detail, and status transitions (`PENDING → CONFIRMED → PROCESSING → SHIPPED → DELIVERED`)
-- **Reservation TTL system:** unpaid `PENDING` orders auto-expire (default 15 min) via a dedicated BullMQ worker running in a separate process; stock is restored automatically; a periodic sweep job (every 5 min) catches orders whose primary expiration job was lost
-- Full `OrderStatusHistory` audit trail on every transition
+- Customer order history + detail (paginated, filterable)
+- Customer-initiated cancellation, automatic stock restoration
+- Shop-side order management with status transitions (`PENDING → CONFIRMED → PROCESSING → SHIPPED → DELIVERED`)
+- **Reservation TTL system:** unpaid orders auto-expire (default 15 min) via BullMQ
 
 ### Payment Module
-- Stripe integration via PaymentIntent + Stripe Elements (embedded, PCI-light — card data never touches the server)
-- `POST /orders/:orderId/intent` — idempotent PaymentIntent creation; repeated calls reuse the existing PaymentIntent rather than creating duplicates
-- Stripe webhook endpoint with raw-body signature verification (mounted before global JSON body parsing, as required by Stripe)
-- No user-session auth on the webhook route — cryptographic signature verification (`stripe-signature` header + webhook secret) is the security boundary, since Stripe is a server-to-server caller, not a logged-in user
-- **Atomic webhook idempotency:** the `WebhookEvent` idempotency insert and the actual `Order`/`Payment` state update run inside a single database transaction, preventing an event from being marked "processed" if the real update failed
-- Handles `payment_intent.succeeded`, `payment_intent.payment_failed`, `charge.refunded`; unrecognized event types are acknowledged (200) without action, per Stripe's retry semantics
-- Admin-initiated refunds (`SUPER_ADMIN`-gated), with an atomic `REFUND_PENDING` guard preventing duplicate refund attempts on the same order while one is in flight
-- Refunds do **not** automatically restore stock — a deliberate, separate inventory-reconciliation decision (noted as a known gap pending a dedicated restock flow)
+- Stripe PaymentIntent + Elements (card data never touches the server)
+- Atomic webhook idempotency (insert + state update in single transaction)
+- Handles `payment_intent.succeeded`, `payment_intent.payment_failed`, `charge.refunded`, `account.updated`
+- Admin-initiated refunds (`SUPER_ADMIN`-gated)
 
 ### Notification Module
-- In-app notifications (`Notification` table) + transactional email, delivered asynchronously via BullMQ (never blocks the triggering request)
-- Per-category user preferences (`orderUpdates`, `promotions`, `reviews`) and per-channel toggles (`emailEnabled`, `pushEnabled`); missing preference records default to fully opted-in
-- Wired directly into existing order/payment lifecycle events: `ORDER_PLACED`, `PAYMENT_SUCCESS`, `PAYMENT_FAILED`, `PAYMENT_REFUNDED`, `ORDER_SHIPPED`, `ORDER_DELIVERED`
-- Branded HTML email templates (shared base layout, per-notification-type content), Outlook-safe table-based layout with progressive CSS animation
-- Notification delivery is best-effort and fully decoupled from the triggering business operation — a failed notification never breaks checkout, payment confirmation, or order fulfillment
+- In-app notifications + transactional email, delivered asynchronously via BullMQ
+- Per-category user preferences and per-channel toggles
+- Wired into order/payment lifecycle events
 
 ### Background Jobs (BullMQ — separate worker process)
-- Email queue: verification, password reset, deletion notifications, transactional notification emails
-- Image cleanup queue: async Cloudinary deletion on avatar/logo change
-- GDPR purge queue: 30-day delayed anonymization after account deletion
+- Email queue: verification, password reset, transactional notifications
+- Image cleanup queue: async Cloudinary deletion
+- GDPR purge queue: 30-day delayed anonymization
 - Order expiration queue: reservation TTL enforcement + periodic orphan sweep
 - Notification queue: in-app record creation + email hand-off
 
@@ -215,85 +237,60 @@ Stripe CLI (for local webhook testing)
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/nexions.git
-cd nexions/server
+git clone https://github.com/yourusername/nextg.git
 
-# Install dependencies
+# Server
+cd nextg/server
 npm install
-
-# Set up environment variables
 cp .env.example .env
-# Fill in your values (see Environment Variables section)
-
-# Run database migrations
+# Fill in your values
 npx prisma migrate dev
-
-# Generate Prisma client
-npx prisma generate
-
-# Start the API server
 npm run dev
 
-# In a separate terminal — start the background worker process
+# In a separate terminal — start the background worker
 npm run worker
 
 # In a separate terminal — forward Stripe webhooks locally
 npm run stripe:listen
-```
 
-### Running In Production
-
-```bash
-npm run build
-npm start
-# Run the worker process separately in production — never colocated with the API process
+# Client
+cd ../client
+npm install
+cp .env.example .env
+npm run dev
 ```
 
 ---
 
 ## Environment Variables
 
+### Server (`server/.env`)
 ```env
-# Server
 NODE_ENV=development
 PORT=5000
-
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/nexions
-
-# Redis
+DATABASE_URL=postgresql://user:password@localhost:5432/nextg
 REDIS_URL=redis://localhost:6379
-
-# JWT
 JWT_SECRET=your_jwt_secret_here
-
-# Bcrypt
 BCRYPT_ROUNDS=12
-
-# Cloudinary
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
-
-# Email
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your_email@gmail.com
 SMTP_PASS=your_app_password
-EMAIL_FROM=noreply@nexions.com
-
-# Stripe
+EMAIL_FROM=noreply@nextg.com
 STRIPE_SECRET_KEY=sk_test_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
-
-# Order Reservation
 ORDER_RESERVATION_TTL_MINUTES=15
-
-# Device Limits
 DEVICE_LIMIT=5
+CLIENT_URL=http://localhost:5173
+```
 
-# Frontend
-CLIENT_URL=http://localhost:3000
+### Client (`client/.env`)
+```env
+VITE_API_URL=http://localhost:5000/api/v1
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_xxx
 ```
 
 ---
@@ -310,22 +307,30 @@ Base URL: `http://localhost:5000/api/v1`
 | POST | `/auth/logout` | Logout current device | Required |
 | POST | `/auth/refresh-token` | Rotate refresh token | Cookie |
 | POST | `/auth/verify-email` | Verify email address | Public |
-| POST | `/auth/resend-verification` | Resend verification email | Public |
 | POST | `/auth/forgot-password` | Request password reset | Public |
 | POST | `/auth/reset-password` | Reset password with token | Public |
 
-### User Routes
+### Order & Checkout Routes
 | Method | Endpoint | Description | Auth |
 |---|---|---|---|
-| GET | `/users/me` | Get current user profile | Required |
-| PUT | `/users/me` | Update profile | Required |
-| PATCH | `/users/me/change-password` | Change password | Required |
-| POST | `/users/me/deactivate` | Deactivate account | Required |
-| POST | `/users/me/reactivate` | Reactivate account | Public |
-| DELETE | `/users/me/permanent` | Permanently delete account | Required |
-| GET | `/users/me/sessions` | List active sessions | Required |
-| DELETE | `/users/me/sessions/:id` | Revoke single session | Required |
-| DELETE | `/users/me/sessions` | Revoke all other sessions | Required |
+| POST | `/orders/checkout` | Create Checkout + all Orders from cart | Required |
+| GET | `/orders` | Customer order history | Required |
+| GET | `/orders/:orderId` | Customer order detail | Required |
+| POST | `/orders/:orderId/cancel` | Cancel a `PENDING`/`CONFIRMED` order | Required |
+
+### Payment Routes
+| Method | Endpoint | Description | Auth |
+|---|---|---|---|
+| POST | `/payment/:checkoutId/intent` | Create/reuse Stripe PaymentIntent for Checkout | Required |
+| POST | `/payment/webhooks/stripe` | Stripe webhook receiver | Signature-verified |
+| POST | `/admin/orders/:orderId/refund` | Initiate a refund | `SUPER_ADMIN` |
+
+### Payout Routes (Shop Owners)
+| Method | Endpoint | Description | Auth |
+|---|---|---|---|
+| GET | `/payouts/:shopId/status` | Get wallet balance + Stripe Connect status | Owner |
+| POST | `/payouts/:shopId/onboard` | Generate Stripe Express onboarding link | Owner |
+| POST | `/payouts/:shopId/withdraw` | Withdraw funds to bank account | Owner |
 
 ### Shop Routes
 | Method | Endpoint | Description | Auth |
@@ -345,8 +350,6 @@ Base URL: `http://localhost:5000/api/v1`
 | PUT | `/shops/:shopId/products/:id` | Update product | Owner |
 | PATCH | `/shops/:shopId/products/:id/status` | Publish or archive | Owner |
 | DELETE | `/shops/:shopId/products/:id` | Soft delete product | Owner |
-| POST | `/shops/:shopId/products/:id/images` | Add product image | Owner |
-| POST | `/shops/:shopId/products/:id/variants` | Add product variant | Owner |
 | GET | `/products` | Browse all products | Public |
 | GET | `/products/:id` | Product detail | Public |
 
@@ -359,34 +362,9 @@ Base URL: `http://localhost:5000/api/v1`
 | DELETE | `/cart/items/:itemId` | Remove item | Required |
 | DELETE | `/cart` | Clear cart | Required |
 
-### Order Routes
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| POST | `/orders/checkout` | Place order(s) from cart | Required |
-| GET | `/orders` | Customer order history | Required |
-| GET | `/orders/:orderId` | Customer order detail | Required |
-| POST | `/orders/:orderId/cancel` | Cancel a `PENDING`/`CONFIRMED` order | Required (owner) |
-| GET | `/shops/:shopId/orders` | Shop's incoming orders | Owner |
-| GET | `/shops/:shopId/orders/:orderId` | Shop order detail | Owner |
-| PATCH | `/shops/:shopId/orders/:orderId/status` | Advance fulfillment status | Owner |
-
-### Payment Routes
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| POST | `/payment/:orderId/intent` | Create/reuse Stripe PaymentIntent | Required (owner) |
-| POST | `/payment/webhooks/stripe` | Stripe webhook receiver | Signature-verified (no session auth) |
-| POST | `/admin/orders/:orderId/refund` | Initiate a refund | `SUPER_ADMIN` |
-
-### Upload Routes
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| GET | `/uploads/signature` | Get Cloudinary upload signature | Required |
-
 ---
 
 ## Database Schema
-
-### Core Models
 
 ```
 User ──────── UserProfile
@@ -395,39 +373,24 @@ User ──────── UserProfile
   ├── Shop (ownedShops) ──── ShopProfile
   │     │                ├── Product ──── ProductImage
   │     │                │           ├── ProductVariant
-  │     │                │           └── ProductCategory
   │     │                ├── Order ──── OrderItem
-  │     │                │         ├── Payment
   │     │                │         ├── ShippingAddress
   │     │                │         └── OrderStatusHistory
   │     │                ├── Coupon
-  │     │                └── ShopEmployee
+  │     │                ├── ShopWallet  (stripeAccountId, balance, payoutsEnabled)
+  │     │                └── WalletTransaction
   │     │
-  ├── Order (as customer)
-  ├── PaymentMethod
+  ├── Checkout ──── Order[]  ←── groups all per-shop orders
+  │         └── Payment      ←── one payment for the whole checkout
+  │
+  ├── PlatformWallet
+  │         └── PlatformWalletTransaction
+  │
   ├── Review
   ├── Notification
-  ├── NotificationPreference
   └── AuditLog
 
 WebhookEvent   (Stripe event idempotency log, not user-scoped)
-```
-
-### Key Design Decisions
-
-```
-Multi-tenancy:      shopId scoped queries everywhere; ownership derived
-                     from Shop.ownerId, not a separate role flag
-Soft deletes:        deletedAt DateTime? on User, Shop, Product, Order
-Idempotency (DB):    idempotencyKey @unique on Order and Payment
-Idempotency (webhook): WebhookEvent.stripeEventId @unique, checked and
-                     written inside the same transaction as the state
-                     change it guards
-Decimal prices:      Prisma Decimal type, accepted as strings in API
-Order reservation:   stock decremented at PENDING, released via TTL
-                     expiration worker or shop/customer cancellation
-Audit trail:         OrderStatusHistory tracks every order transition;
-                     AuditLog tracks CREATE/UPDATE/DELETE/LOGIN
 ```
 
 ---
@@ -441,98 +404,55 @@ Audit trail:         OrderStatusHistory tracks every order transition;
 | CSRF | SameSite cookies + CORS |
 | Brute Force | Redis rate limiting per IP |
 | Token Theft | Short-lived JWTs + refresh rotation |
-| Password Change | Immediate token invalidation via `passwordChangedAt` |
-| File Upload | Signed Cloudinary uploads, server never touches bytes |
+| File Upload | Signed Cloudinary uploads |
 | Input Validation | Zod schemas on every endpoint |
-| Tenant Isolation | `shopId` enforced on every shop-scoped query via `authorizeShopAccess` |
-| Enumeration Prevention | `404`, not `403`, on ownership failures (orders, shops) |
-| Payment Data | Card data never touches the server — Stripe Elements + PaymentIntent |
-| Webhook Authenticity | Cryptographic signature verification, not session auth |
-| Refund Authorization | `SUPER_ADMIN`-only, role check via `authorizeSuperAdmin` |
+| Tenant Isolation | `shopId` enforced via `authorizeShopAccess` middleware |
+| Payment Data | Card data never touches the server — Stripe Elements |
+| Webhook Authenticity | Cryptographic signature verification |
+| Payout Authorization | Shop owner verified before any transfer |
 | GDPR | 30-day grace period + full anonymization job |
-
----
-
-## Performance
-
-| Optimization | Detail |
-|---|---|
-| Redis session cache | Reduces DB reads on every authenticated request (15-min TTL) |
-| Composite DB indexes | `[shopId, status]`, `[userId, isRead]`, `[status, reservationExpiresAt]`, etc. |
-| Parallel queries | `Promise.all` for count + data on list endpoints, and for stock decrement/restore |
-| Atomic stock operations | `updateMany` + conditional guard, not read-then-write — prevents overselling under concurrent checkout |
-| Async job processing | BullMQ for email, image cleanup, GDPR purge, order expiration, notifications |
-| Separate worker process | Background jobs never share an event loop with the API server |
-| Direct-to-CDN uploads | Cloudinary signed uploads bypass server |
-| Decimal-safe prices | String-based input prevents floating-point drift |
-| Reservation sweep fallback | Guards against lost BullMQ jobs on Redis restart without persistence |
 
 ---
 
 ## Project Structure
 
 ```
-server/
-├── src/
-│   ├── config/
-│   │   ├── db.ts           # Prisma client
-│   │   ├── env.ts          # Environment validation (Zod)
-│   │   ├── cors.ts         # CORS configuration
-│   │   └── logger.ts       # Pino logger setup
-│   │
-│   ├── features/
-│   │   ├── auth/           # Authentication module
-│   │   ├── users/          # User management module
-│   │   ├── shop/           # Shop/tenant module
-│   │   ├── product/        # Product module
-│   │   ├── cart/           # Cart module
-│   │   ├── orders/         # Order module
-│   │   ├── payment/        # Payment module (Stripe + webhooks + refunds)
-│   │   ├── notification/   # Notification module
-│   │   └── uploads/        # Shared upload signatures
-│   │
-│   ├── infrastructure/
-│   │   ├── cache/          # Redis client + session helpers
-│   │   ├── queue/          # BullMQ queues + workers + expiration/sweep logic
-│   │   └── storage/        # Cloudinary client
-│   │
-│   ├── middleware/
-│   │   ├── auth.middleware.ts
-│   │   ├── authorizeShopAccess.middleware.ts
-│   │   ├── authorizeSuperAdmin.middleware.ts
-│   │   ├── errorHandler.middleware.ts
-│   │   ├── validate.middleware.ts
-│   │   ├── rateLimiter.middleware.ts
-│   │   ├── httpLogger.middleware.ts
-│   │   └── notFound.ts
-│   │
-│   ├── services/
-│   │   ├── token.service.ts    # JWT helpers
-│   │   └── email.templates.ts  # Branded HTML email templates
-│   │
-│   ├── types/
-│   │   ├── auth.types.ts
-│   │   └── express.d.ts        # req.user / req.shop type augmentation
-│   │
-│   ├── utils/
-│   │   ├── asyncHandler.ts
-│   │   ├── generateSlug.ts
-│   │   ├── parseDevice.ts
-│   │   └── cloudinaryHelper.ts
-│   │
-│   ├── app.ts               # Express app setup (webhook mounted pre-JSON-parser)
-│   ├── server.ts            # API entry point
-│   └── worker.ts            # Background worker entry point (separate process)
+nextg/
+├── server/
+│   ├── src/
+│   │   ├── features/
+│   │   │   ├── auth/
+│   │   │   ├── users/
+│   │   │   ├── shop/
+│   │   │   ├── product/
+│   │   │   ├── cart/
+│   │   │   ├── orders/
+│   │   │   ├── payment/       # Stripe PaymentIntents + webhooks + settlement
+│   │   │   ├── payouts/       # Stripe Connect onboarding + withdrawals
+│   │   │   ├── notification/
+│   │   │   └── uploads/
+│   │   ├── middleware/
+│   │   ├── infrastructure/    # Redis, BullMQ, Cloudinary
+│   │   ├── services/          # JWT, email templates
+│   │   ├── utils/
+│   │   ├── app.ts
+│   │   ├── server.ts
+│   │   └── worker.ts
+│   └── prisma/
+│       └── schema.prisma
 │
-├── prisma/
-│   ├── schema.prisma        # Database schema
-│   └── migrations/          # Migration history
-│
-├── .env.example
-├── .env
-├── package.json
-├── tsconfig.json
-└── README.md
+└── client/
+    └── src/
+        ├── api/               # Axios wrappers
+        ├── features/
+        │   ├── auth/
+        │   ├── cart/
+        │   ├── order/         # CheckoutPage, OrderConfirmationPage
+        │   ├── payment/       # PaymentPage (Stripe Elements)
+        │   ├── shop/
+        │   │   └── payouts/   # PayoutDashboard, hooks
+        │   └── customer/
+        └── routes/
 ```
 
 ---
@@ -541,41 +461,28 @@ server/
 
 ### ✅ Completed
 - Authentication system (register, login, logout, refresh, email verify, password reset)
-- User management (profile, password, sessions, account lifecycle)
-- Shop module (create, profile, status, close, public view)
+- User management (profile, password, sessions, account lifecycle, GDPR)
+- Shop module (create, profile, status lifecycle, public view)
 - Product module (CRUD, status lifecycle, images, variants, public browse)
 - Cart module (multi-shop cart, stock validation)
-- Order module (checkout, cancellation, shop-side management, reservation TTL + expiration worker + sweep fallback)
-- Payment module (Stripe PaymentIntent + Elements, webhook signature verification, atomic idempotent webhook processing, admin-gated refunds)
-- Notification module (in-app + email, per-category/per-channel preferences, branded HTML templates, wired into order/payment lifecycle events)
-- Shared upload signature module (user avatars, shop assets, product images)
+- Order module (checkout, cancellation, shop-side management, reservation TTL + expiration + sweep)
+- **Unified Checkout** — single payment for multi-shop cart (Checkout model + one PaymentIntent)
+- **Automatic Settlement** — atomic 90/10 split to ShopWallet + PlatformWallet on webhook
+- **Stripe Connect & Payouts** — Express onboarding, payout dashboard, atomic bank transfers
+- Notification module (in-app + email, per-category/per-channel preferences)
+- Shared upload signatures (user avatars, shop assets, product images)
 - Structured logging with Pino + request IDs
 
-### 🔧 Known Gaps (deliberate, tracked)
-- Refunds do not automatically restore stock — pending a dedicated restock/inventory-reconciliation flow
-- `DELIVERED` status is shop-confirmed only (v1 scope); customer- or carrier-confirmed delivery planned once the Review module needs a trustworthy delivery signal
-- Role changes are subject to up to a 15-minute Redis session cache staleness window; explicit session invalidation on role change planned alongside the Admin module
-- Multi-shop cart checkout currently rolls back *all* shops' orders if any single shop's stock guard fails — per-shop independent success/failure not yet decided
-
 ### 📋 Planned
-- Employee module (shop staff with role-based permissions — `ShopEmployee` model already scaffolded)
-- Review module (product reviews with shop owner replies)
-- Coupon module (percentage, fixed, free shipping — schema scaffolded, unused)
-- Admin module (platform-wide user/shop management, role promotion with session invalidation)
-- Frontend (React + Vite + Stripe Elements) — in progress, parallel to backend hardening
-- Search (Postgres full-text search with filters)
+- Product Reviews (with purchase verification)
+- Coupon / Discount module (schema already scaffolded)
+- Employee module (shop staff with role-based permissions)
+- Admin module (platform-wide user/shop management)
 - Analytics dashboard (shop revenue, visits, conversions)
-- Real-time notifications (Socket.io) — deferred until a frontend dashboard exists to consume it
+- Real-time notifications (Socket.io)
+- OpenAPI/Swagger documentation
 - Docker containerization
 - CI/CD pipeline (GitHub Actions)
-- Load testing (k6)
-- OpenAPI/Swagger documentation
-
----
-
-## Contributing
-
-This is a solo learning project built with mentorship. Not accepting external contributions at this time.
 
 ---
 

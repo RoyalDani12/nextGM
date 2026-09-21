@@ -1,81 +1,114 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import {
     Home,
-    LayoutDashboard,
     Package,
     ShoppingBag,
-    Users,
     BarChart3,
     Wallet,
     Settings,
     Globe,
-    Box,
-    Tags,
     Percent,
     PanelLeft,
-    ChevronRight,
-    Store
+    Store,
 } from "lucide-react";
-
-const navigation = [
-    { title: "Home", href: "/dashboard", icon: Home },
-    { title: "Shops", href: "/dashboard/shops", icon:Store },
-    { title: "Dashboard", href: "/dashboard/overview", icon: LayoutDashboard },
-    { title: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
-    {
-        title: "Products",
-        href: "/dashboard/products",
-        icon: Package,
-        subItems: [
-            { title: "All Products", href: "/dashboard/products", icon: Box },
-            { title: "Categories", href: "/dashboard/categories", icon: Tags },
-        ],
-    },
-    { title: "Orders", href: "/dashboard/orders", icon: ShoppingBag, badge: "12" },
-    { title: "Customers", href: "/dashboard/customers", icon: Users },
-    { title: "Discounts", href: "/dashboard/discounts", icon: Percent },
-    { title: "Payouts", href: "/dashboard/payouts", icon: Wallet },
-    { title: "Settings", href: "/dashboard/settings", icon: Settings },
-];
 
 const PIN_STORAGE_KEY = "dashboard-sidebar-pinned";
 
 interface SidebarProps {
-    /** Called after a nav link is clicked — used to close the mobile Sheet */
     onNavItemClick?: () => void;
-    /** "desktop": collapsible rail + hover-peek. "mobile": always full, no collapse UI. */
     variant?: "desktop" | "mobile";
 }
 
-export function DashboardSidebar({ onNavItemClick, variant = "desktop" }: SidebarProps) {
+export function DashboardSidebar({
+    onNavItemClick,
+    variant = "desktop",
+}: SidebarProps) {
     const location = useLocation();
+    const { shopId } = useParams<{ shopId: string }>();
+
     const isMobile = variant === "mobile";
 
-    // "Pinned" = user explicitly clicked to keep it open. Persisted across reloads.
+    const navigation = shopId
+        ? [
+              {
+                  title: "Dashboard",
+                  href: `/dashboard/shop/${shopId}`,
+                  icon: Home,
+              },
+              {
+                  title: "Analytics",
+                  href: `/dashboard/shop/${shopId}/analytics`,
+                  icon: BarChart3,
+              },
+              {
+                  title: "Products",
+                  href: `/dashboard/shop/${shopId}/products`,
+                  icon: Package,
+              },
+              {
+                  title: "Orders",
+                  href: `/dashboard/shop/${shopId}/orders`,
+                  icon: ShoppingBag,
+                  badge: "12",
+              },
+              {
+                  title: "Discounts",
+                  href: `/dashboard/shop/${shopId}/discounts`,
+                  icon: Percent,
+              },
+              {
+                  title: "Payouts",
+                  href: `/dashboard/shop/${shopId}/payouts`,
+                  icon: Wallet,
+              },
+              {
+                  title: "Settings",
+                  href: `/dashboard/shop/${shopId}/settings`,
+                  icon: Settings,
+              },
+          ]
+        : [];
+
+    // "Pinned" = user explicitly clicked to keep it open.
+    // Persisted across reloads.
     const [pinned, setPinned] = useState<boolean>(() => {
         if (isMobile || typeof window === "undefined") return true;
-        const stored = window.localStorage.getItem(PIN_STORAGE_KEY);
+
+        const stored = window.localStorage.getItem(
+            PIN_STORAGE_KEY
+        );
+
         return stored === null ? true : stored === "true";
     });
 
-    // "Peeking" = mouse is hovering a collapsed rail — temporary, not persisted.
+    // "Peeking" = mouse is hovering a collapsed rail.
+    // Temporary, not persisted.
     const [isPeeking, setIsPeeking] = useState(false);
-    const [productsOpen, setProductsOpen] = useState(true);
 
     useEffect(() => {
         if (isMobile) return;
-        window.localStorage.setItem(PIN_STORAGE_KEY, String(pinned));
+
+        window.localStorage.setItem(
+            PIN_STORAGE_KEY,
+            String(pinned)
+        );
     }, [pinned, isMobile]);
 
     const collapsedRail = !isMobile && !pinned;
     const isFlyout = collapsedRail && isPeeking;
-    // Whether nav content should render expanded (labels, chevrons, badges visible)
+
     const expanded = isMobile || pinned || isFlyout;
+
+    const currentShopDashboard = shopId
+        ? `/dashboard/shop/${shopId}`
+        : "/dashboard";
 
     return (
         <div
-            onMouseEnter={() => collapsedRail && setIsPeeking(true)}
+            onMouseEnter={() =>
+                collapsedRail && setIsPeeking(true)
+            }
             onMouseLeave={() => setIsPeeking(false)}
             className={`relative h-full shrink-0 transition-[width] duration-150 ease-out ${
                 collapsedRail ? "w-16" : "w-64"
@@ -91,29 +124,46 @@ export function DashboardSidebar({ onNavItemClick, variant = "desktop" }: Sideba
                 {/* TOP BAR */}
                 <div
                     className={`h-12 flex items-center border-b border-slate-100 shrink-0 px-3 ${
-                        expanded ? "justify-between" : "justify-center"
+                        expanded
+                            ? "justify-between"
+                            : "justify-center"
                     }`}
                 >
                     {expanded ? (
-                        <span className="flex items-center gap-1.5 px-1">
-                            <span className="size-6 rounded-lg bg-emerald-500 flex items-center justify-center shrink-0">
-                                <span className="text-white text-[11px] font-black">N</span>
-                            </span>
-                            <span className="text-sm font-extrabold tracking-tight text-slate-900">
-                                Next<span className="text-emerald-500">G</span>
-                            </span>
-                        </span>
+                        <Link
+                            to={currentShopDashboard}
+                            className="flex items-center gap-2 px-1 group"
+                        >
+                            <img
+                                src="/ChatGPT Image Sep 5, 2026, 12_33_26 AM.png"
+                                alt="Nexions Logo"
+                                className="h-6 w-auto object-contain"
+                            />
+                        </Link>
                     ) : (
-                        <span className="size-6 rounded-lg bg-emerald-500 flex items-center justify-center shrink-0">
-                            <span className="text-white text-[11px] font-black">N</span>
-                        </span>
+                        <Link
+                            to={currentShopDashboard}
+                            className="flex items-center justify-center"
+                        >
+                            <img
+                                src="/ChatGPT Image Sep 5, 2026, 12_33_26 AM.png"
+                                alt="Nexions Logo"
+                                className="h-5 w-auto object-contain"
+                            />
+                        </Link>
                     )}
 
                     {!isMobile && (
                         <button
-                            onClick={() => setPinned((prev) => !prev)}
-                            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors shrink-0"
-                            title={pinned ? "Collapse sidebar" : "Pin sidebar open"}
+                            onClick={() =>
+                                setPinned((prev) => !prev)
+                            }
+                            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors shrink-0 cursor-pointer"
+                            title={
+                                pinned
+                                    ? "Collapse sidebar"
+                                    : "Pin sidebar open"
+                            }
                         >
                             <PanelLeft className="size-4.5" />
                         </button>
@@ -123,69 +173,10 @@ export function DashboardSidebar({ onNavItemClick, variant = "desktop" }: Sideba
                 {/* NAVIGATION LINKS */}
                 <div className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto overflow-x-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                     {navigation.map((item) => {
-                        const isProducts = item.title === "Products";
-                        const isExactActive = location.pathname === item.href;
-                        const hasSubItems = !!item.subItems;
-                        const isSubActive =
-                            hasSubItems && item.subItems?.some((sub) => location.pathname === sub.href);
-                        const isActive = isExactActive || isSubActive;
+                        const isActive =
+                            location.pathname === item.href;
+
                         const Icon = item.icon;
-
-                        if (isProducts) {
-                            return (
-                                <div key="products-group" className="space-y-0.5">
-                                    <button
-                                        onClick={() => {
-                                            if (!pinned) setPinned(true);
-                                            setProductsOpen((prev) => !prev);
-                                        }}
-                                        className={`relative w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                                            isActive
-                                                ? "bg-emerald-50 text-emerald-600 font-semibold"
-                                                : "text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
-                                        }`}
-                                    >
-                                        <div className="flex items-center gap-2.5 min-w-0">
-                                            <Icon
-                                                className={`size-4 shrink-0 ${
-                                                    isActive ? "text-emerald-600" : "text-slate-500"
-                                                }`}
-                                            />
-                                            {expanded && <span className="truncate">Products</span>}
-                                        </div>
-                                        {expanded && (
-                                            <ChevronRight
-                                                className={`size-3.5 text-slate-400 shrink-0 transition-transform ${
-                                                    productsOpen ? "rotate-90" : ""
-                                                }`}
-                                            />
-                                        )}
-                                    </button>
-
-                                    {productsOpen && expanded && (
-                                        <div className="pl-7 space-y-0.5 pt-0.5">
-                                            {item.subItems?.map((sub) => {
-                                                const subActive = location.pathname === sub.href;
-                                                return (
-                                                    <Link
-                                                        key={sub.href}
-                                                        to={sub.href}
-                                                        onClick={onNavItemClick}
-                                                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition-colors ${
-                                                            subActive
-                                                                ? "text-emerald-600 font-semibold bg-emerald-50/60"
-                                                                : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
-                                                        }`}
-                                                    >
-                                                        <span className="truncate">{sub.title}</span>
-                                                    </Link>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        }
 
                         return (
                             <Link
@@ -194,17 +185,24 @@ export function DashboardSidebar({ onNavItemClick, variant = "desktop" }: Sideba
                                 onClick={onNavItemClick}
                                 className={`relative flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                                     isActive
-                                        ? "bg-emerald-50 text-emerald-600 font-semibold"
+                                        ? "bg-orange-50 text-orange-600 font-semibold"
                                         : "text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
                                 }`}
                             >
                                 <div className="flex items-center gap-2.5 min-w-0">
                                     <Icon
                                         className={`size-4 shrink-0 ${
-                                            isActive ? "text-emerald-600" : "text-slate-500"
+                                            isActive
+                                                ? "text-orange-600"
+                                                : "text-slate-500"
                                         }`}
                                     />
-                                    {expanded && <span className="truncate">{item.title}</span>}
+
+                                    {expanded && (
+                                        <span className="truncate">
+                                            {item.title}
+                                        </span>
+                                    )}
                                 </div>
 
                                 {expanded && item.badge && (
@@ -217,8 +215,38 @@ export function DashboardSidebar({ onNavItemClick, variant = "desktop" }: Sideba
                     })}
                 </div>
 
-                {/* FOOTER LINK */}
-                <div className="p-2 border-t border-slate-100 shrink-0">
+                {/* FOOTER */}
+                <div className="p-2 border-t border-slate-100 shrink-0 space-y-0.5">
+                    {/* SWITCH SHOP */}
+                    <Link
+                        to="/dashboard/shops"
+                        onClick={onNavItemClick}
+                        className={`relative flex items-center justify-center px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                            location.pathname ===
+                            "/dashboard/shops"
+                                ? "bg-orange-50 text-orange-600 font-semibold"
+                                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                        }`}
+                    >
+                        <div className="flex items-center gap-2.5 min-w-0 w-full">
+                            <Store
+                                className={`size-4 shrink-0 ${
+                                    location.pathname ===
+                                    "/dashboard/shops"
+                                        ? "text-orange-600"
+                                        : "text-slate-500"
+                                }`}
+                            />
+
+                            {expanded && (
+                                <span className="truncate">
+                                    Switch Shop
+                                </span>
+                            )}
+                        </div>
+                    </Link>
+
+                    {/* VIEW STORE */}
                     <a
                         href="/"
                         target="_blank"
@@ -227,7 +255,12 @@ export function DashboardSidebar({ onNavItemClick, variant = "desktop" }: Sideba
                     >
                         <div className="flex items-center gap-2.5 min-w-0 w-full">
                             <Globe className="size-4 shrink-0 text-slate-500" />
-                            {expanded && <span className="truncate">View Store</span>}
+
+                            {expanded && (
+                                <span className="truncate">
+                                    View Store
+                                </span>
+                            )}
                         </div>
                     </a>
                 </div>

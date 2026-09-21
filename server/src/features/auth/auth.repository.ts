@@ -21,6 +21,13 @@ export const findUserByEmail = async (email: string) => {
     });
 };
 
+export const createGoogleUser = async (data: { name: string; email: string; password: string }) => {
+    return prisma.user.create({
+        data: { ...data, isEmailVerified: true, status: "ACTIVE" },
+        select: { id: true, name: true, email: true, password: true, role: true, status: true, isEmailVerified: true, passwordChangedAt: true },
+    });
+};
+
 
 export const createUserWithVerification = async (
     data: RegisterDto & { hashedPassword: string },

@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PublicNavbar } from "@/components/layout/marketplace/PublicNavbar";
+// import { PublicNavbar } from "@/components/layout/marketplace/PublicNavbar";
 import { Spinner } from "@/components/ui/spinner";
 import { useState } from "react";
 import { forgotPasswordSchema, type ForgetPasswordFormValue } from "./auth.schema";
@@ -53,7 +53,7 @@ export const ForgetPassword = () => {
             
             {/* Navigation Header */}
             <div className="relative z-50 bg-white border-b border-slate-100">
-               <PublicNavbar />
+               {/* <PublicNavbar /> */}
             </div>
 
             {/* Main Content Layout with True Diagonal Split ( / ) */}

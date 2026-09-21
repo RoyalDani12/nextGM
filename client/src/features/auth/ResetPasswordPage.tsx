@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
-import { PublicNavbar } from "@/components/layout/marketplace/PublicNavbar";
+// import { PublicNavbar } from "@/components/layout/marketplace/PublicNavbar";
 import { useResetPassword } from "./auth.hooks";
 import { type resetPasswordFormValues, resetPasswordSchema } from "./auth.schema";
 import { useSearchParams} from "react-router-dom";
@@ -58,7 +58,7 @@ const token = searchParams.get('token')
          <div className="min-h-screen flex flex-col bg-white text-slate-900 relative overflow-hidden">
             {/* Navigation Header */}
             <div className="relative z-50 bg-white border-b border-slate-100">
-               <PublicNavbar />
+               {/* <PublicNavbar /> */}
             </div>
 
             {/* Main Content Layout with True Diagonal Split */}

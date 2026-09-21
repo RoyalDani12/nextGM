@@ -6,6 +6,7 @@ import { Spinner } from "./components/ui/spinner";
 
 function App() {
    const setAuth = useAuthStore((state) => state.setAuth);
+   const clearAuth = useAuthStore((state) => state.clearAuth);
    const setInitializing = useAuthStore((state) => state.setInitializing);
    const isInitializing = useAuthStore((state) => state.isInitializing);
 
@@ -24,7 +25,8 @@ function App() {
             const user = await getMeRequest();
             setAuth(user, accessToken);
          } catch {
-            // Not logged in, which is fine
+            // A persisted profile is not proof of a valid server session.
+            clearAuth();
          } finally {
             setInitializing(false);
          }

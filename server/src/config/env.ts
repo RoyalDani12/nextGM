@@ -28,6 +28,9 @@ const envSchema = z.object({
     STRIPE_SECRET_KEY:z.string().min(1,"Stripe API key us required"),
     STRIPE_WEBHOOK_SECRET: z.string().min(1),
     PLATFORM_COMMISSION_RATE: z.coerce.number().min(0).max(1),
+    GOOGLE_CLIENT_ID: z.string().min(1),
+    GOOGLE_CLIENT_SECRET: z.string().min(1),
+    GOOGLE_REDIRECT_URI: z.string().url(),
 });
 
 const _env = envSchema.safeParse(process.env);

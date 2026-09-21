@@ -16,6 +16,27 @@ export const createOrdersFromCart = async (
     shippingAddress: shipAddressInput,
 ) => {
     return prisma.$transaction(async (tx) => {
+        let checkoutTotal = 0;
+
+        // Calculate checkout total first
+        for (const group of shopGroups) {
+            for (const item of group.items) {
+                const unitPrice = item.variant
+                    ? Number(item.variant.price)
+                    : Number(item.product.basePrice);
+                checkoutTotal += unitPrice * Number(item.quantity);
+            }
+        }
+
+        const checkout = await tx.checkout.create({
+            data: {
+                customerId,
+                totalAmount: checkoutTotal.toFixed(2),
+                status: "PENDING",
+                idempotencyKey: crypto.randomUUID(),
+            }
+        });
+
         const createdOrders = [];
 
         for (const group of shopGroups) {
@@ -33,6 +54,7 @@ export const createOrdersFromCart = async (
             // create order row
             const order = await tx.order.create({
                 data: {
+                    checkoutId: checkout.id,
                     shopId: group.shopId,
                     customerId,
                     totalAmount: totalAmount.toFixed(2),
@@ -106,7 +128,7 @@ export const createOrdersFromCart = async (
                 itemCount: group.items.length,
             });
         }
-        return createdOrders;
+        return { checkout, orders: createdOrders };
     });
 };
 
@@ -139,9 +161,6 @@ export const getCustomerOrdersRepository = async (options: GetCustomerOrdersOpti
                 },
                 items: {
                     select: { id: true },
-                },
-                payment: {
-                    select: { status: true },
                 },
             },
             orderBy: { createdAt: "desc" },

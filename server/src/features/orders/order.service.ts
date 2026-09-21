@@ -73,7 +73,7 @@ export const checkoutService = async (customerId: string, shippingAddress: shipA
     const shopGroups = Object.values(shopGroupMap);
 
     //create all orders in one transaction
-    const createdOrders = await createOrdersFromCart(customerId, shopGroups, shippingAddress);
+    const { checkout, orders: createdOrders } = await createOrdersFromCart(customerId, shopGroups, shippingAddress);
 
     try {
         await Promise.all(createdOrders.map((order) => scheduleOrderExpiration(order.id)));
@@ -88,7 +88,7 @@ export const checkoutService = async (customerId: string, shippingAddress: shipA
                 notifyUser({
                     userId: customerId,
                     type: "ORDER_PLACED",
-                    title: "Order palced",
+                    title: "Order placed",
                     body: `Your order at ${order.shopSlug} has been placed sucessfully.`,
                     shopId:order.shopId,
                      meta: {
@@ -116,6 +116,7 @@ export const checkoutService = async (customerId: string, shippingAddress: shipA
         .toFixed(2);
 
     return {
+        checkoutId: checkout.id,
         orders: createdOrders,
         totalOrders: createdOrders.length,
         grandTotal,
@@ -147,7 +148,7 @@ export const getCustomerOrdersService = async (customerId: string, query: GetOrd
             logo: order.shop.profile?.logo ?? null,
         },
         itemCount: order.items.length,
-        payment: order.payment ?? null,
+        payment: null, // Payment is now tracked at Checkout level
     }));
 
     return {
@@ -211,7 +212,7 @@ export const getShopOrdersService = async (shopId: string, query: GetOrdersQuery
             city: order.shippingAddress?.city ?? null,
             country: order.shippingAddress?.country ?? null,
         },
-        paymentStatus: order.payment?.status ?? null,
+        paymentStatus: null, // Payment is now tracked at Checkout level
     }));
 
     return {

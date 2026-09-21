@@ -22,11 +22,16 @@ api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
+        if (!originalRequest) return Promise.reject(error);
               
         const isAuthEndpoint = originalRequest.url?.includes("/auth/login")
             || originalRequest.url?.includes("/auth/register")
             || originalRequest.url?.includes("/auth/refresh-token")
-            || originalRequest.url?.includes("/auth/verify-email"); // FIX 2: Do not try to refresh tokens on verify-email failures
+            || originalRequest.url?.includes("/auth/verify-email")
+            || originalRequest.url?.includes("/auth/logout")
+            || originalRequest.url?.includes("/auth/forgot-password")
+            || originalRequest.url?.includes("/auth/reset-password")
+            || originalRequest.url?.includes("/auth/resend-verification");
 
         if (error.response?.status !== 401 || originalRequest._retry || isAuthEndpoint) {
             return Promise.reject(error);
@@ -37,6 +42,7 @@ api.interceptors.response.use(
                 // FIX 3: Push both resolve and reject to the queue
                 refreshQueue.push({
                     resolve: (token: string) => {
+                        originalRequest.headers = originalRequest.headers ?? {};
                         originalRequest.headers.Authorization = `Bearer ${token}`;
                         resolve(api(originalRequest));
                     },
@@ -58,6 +64,7 @@ api.interceptors.response.use(
             refreshQueue.forEach((prom) => prom.resolve(newToken));
             refreshQueue = [];
 
+            originalRequest.headers = originalRequest.headers ?? {};
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
             return api(originalRequest);
         } catch (refreshError) {

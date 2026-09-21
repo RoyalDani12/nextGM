@@ -1,201 +1,326 @@
+"use client";
+
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "react-router-dom";
+
 import { registerSchema, type RegisterFormValues } from "./auth.schema";
 import { useRegister } from "./auth.hooks";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+
+import {
+  User,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  ArrowRight,
+  AlertCircle,
+  UserPlus
+} from "lucide-react";
 
 export default function RegisterPage() {
-    const { register, handleSubmit, formState: { errors } } = useForm<RegisterFormValues>({
-        resolver: zodResolver(registerSchema),
-    });
-    
-    const registerUser = useRegister();
-    const onSubmit = (values: RegisterFormValues) => registerUser.mutate(values);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    return (
-      <>
-         <style>{`
-            @keyframes fadeUp {
-               0% { opacity: 0; transform: translateY(25px); }
-               100% { opacity: 1; transform: translateY(0); }
-            }
-            .animate-fade-up { animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
-            .delay-100 { animation-delay: 100ms; }
-            .delay-200 { animation-delay: 200ms; }
-            .diagonal-split-clip {
-               clip-path: polygon(0 0, 100% 0, calc(100% - 120px) 100%, 0 100%);
-            }
-            @media (max-width: 1024px) {
-               .diagonal-split-clip { clip-path: none; }
-            }
-         `}</style>
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+  });
 
-         <div className="min-h-screen flex flex-col bg-white text-slate-900 relative overflow-hidden">
+  const registerUser = useRegister();
+  const onSubmit = (values: RegisterFormValues) => registerUser.mutate(values);
+
+  return (
+    <>
+      <style>{`
+        @keyframes fadeUp {
+          0% { opacity: 0; transform: translateY(25px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-up { 
+          animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+          opacity: 0; 
+        }
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .diagonal-split-clip {
+          clip-path: polygon(0 0, 100% 0, calc(100% - 120px) 100%, 0 100%);
+        }
+        @media (max-width: 1024px) {
+          .diagonal-split-clip { clip-path: none; }
+        }
+      `}</style>
+
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#ECEFF4] dark:bg-[#0B0F19] p-4 sm:p-6 lg:p-10 font-sans antialiased text-slate-900 dark:text-slate-100">
+        
+        <div className="w-full max-w-5xl bg-white dark:bg-zinc-900 rounded-3xl shadow-xl border border-slate-200/80 dark:border-zinc-800 overflow-hidden flex flex-col lg:flex-row min-h-[640px] animate-fade-up">
+          
+          {/* MAIN FORM SECTION (CENTERED CONTENT) */}
+          <div className="w-full lg:w-7/12 bg-white dark:bg-zinc-900 p-6 sm:p-10 lg:p-12 flex flex-col justify-between items-center text-center order-1 lg:order-2">
             
-            {/* Header with NextG Logo Link */}
-            <header className="relative z-50 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-               <Link 
-                  to="/" 
-                  className="flex items-center gap-2.5 text-slate-900 hover:opacity-85 transition-opacity"
-                  aria-label="NextG Home"
-               >
-                  {/* NextG Custom Icon Badge */}
-                  <div className="size-9 rounded-xl bg-slate-900 text-white flex items-center justify-center font-extrabold text-base shadow-sm">
-                     <span className="text-emerald-400">N</span>G
+            {/* MOBILE HEADER */}
+            <div className="w-full flex lg:hidden items-center justify-between pb-4 border-b border-slate-100 dark:border-zinc-800 animate-fade-up">
+              <Link to="/" className="inline-flex items-center gap-2">
+                <img
+                  src="/ChatGPT%20Image%20Sep%205,%202026,%2012_33_26%20AM.png"
+                  alt="NextG Logo"
+                  className="size-7 rounded-lg object-cover"
+                />
+                <span className="font-black text-xl tracking-tight text-slate-900 dark:text-white">
+                  Next<span className="text-[#F97316]">G.</span>
+                </span>
+              </Link>
+
+              {/* OUTLINED PILL BUTTON MATCHING DESIGN */}
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs"
+              >
+                Sign in
+                <ArrowRight className="size-3.5 text-slate-600 dark:text-slate-300" />
+              </Link>
+            </div>
+
+            {/* DESKTOP TOP BAR */}
+            <div className="w-full hidden lg:flex justify-end items-center gap-3 animate-fade-up delay-100">
+              <span className="text-xs text-slate-500 dark:text-slate-400">Already have an account?</span>
+              
+              {/* OUTLINED PILL BUTTON MATCHING DESIGN */}
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs"
+              >
+                Sign in
+                <ArrowRight className="size-3.5 text-slate-600 dark:text-slate-300" />
+              </Link>
+            </div>
+
+            {/* CENTERED FORM CONTAINER */}
+            <div className="w-full max-w-md mx-auto my-auto py-6 space-y-6 flex flex-col items-center justify-center animate-fade-up delay-100">
+              
+              {/* CENTERED HEADER */}
+              <div className="space-y-2 text-center flex flex-col items-center">
+                <div className="size-12 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 dark:text-slate-400">
+                  <UserPlus className="size-6 text-[#F97316]" />
+                </div>
+
+                <div className="space-y-1">
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                    Create merchant account
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Initialize your multi-currency NextG storefront today.
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-4 text-left">
+                
+                {/* NAME */}
+                <div className="space-y-1">
+                  <div className="relative">
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                    <Input
+                      id="name"
+                      type="text"
+                      className="h-11 bg-slate-50 dark:bg-zinc-800/50 border-slate-200 dark:border-zinc-700/80 text-slate-900 dark:text-slate-100 focus:border-[#F97316] focus:ring-[#F97316] transition-all placeholder:text-slate-400 rounded-xl text-xs pl-10 pr-3.5 shadow-2xs"
+                      placeholder="Full Name"
+                      autoComplete="name"
+                      {...register("name")}
+                    />
                   </div>
-                  <span className="font-extrabold text-xl tracking-tight text-slate-900">
-                     Next<span className="text-emerald-600">G</span>
-                  </span>
-               </Link>
+                  {errors.name && (
+                    <p className="text-xs text-rose-500 font-medium pl-1">
+                      {errors.name.message}
+                    </p>
+                  )}
+                </div>
 
-               <Link 
-                  to="/" 
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
-               >
-                  <ArrowLeft className="size-3.5" />
-                  Back to home
-               </Link>
-            </header>
+                {/* EMAIL */}
+                <div className="space-y-1">
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                    <Input
+                      id="email"
+                      type="email"
+                      className="h-11 bg-slate-50 dark:bg-zinc-800/50 border-slate-200 dark:border-zinc-700/80 text-slate-900 dark:text-slate-100 focus:border-[#F97316] focus:ring-[#F97316] transition-all placeholder:text-slate-400 rounded-xl text-xs pl-10 pr-3.5 shadow-2xs"
+                      placeholder="Work Email (you@company.com)"
+                      autoComplete="email"
+                      {...register("email")}
+                    />
+                  </div>
+                  {errors.email && (
+                    <p className="text-xs text-rose-500 font-medium pl-1">
+                      {errors.email.message}
+                    </p>
+                  )}
+                </div>
 
-            {/* Main Content Layout with Diagonal Split */}
-            <main className="flex-1 flex flex-col lg:flex-row relative z-10 w-full overflow-hidden">
-               
-               {/* Left Hero Section */}
-               <div className="hidden lg:flex w-[55%] bg-slate-950 text-white p-16 xl:p-24 flex-col justify-between relative overflow-hidden animate-fade-up delay-100 diagonal-split-clip">
-                  
-                  {/* Ambient Glows */}
-                  <div className="absolute top-10 right-10 w-96 h-96 bg-emerald-500/15 rounded-full blur-[100px] pointer-events-none" />
-                  <div className="absolute bottom-10 left-20 w-[450px] h-[450px] bg-orange-500/10 rounded-full blur-[120px] pointer-events-none" />
-
-                  <div className="relative z-10 space-y-6 max-w-lg">
-                     <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold tracking-widest uppercase">
-                        Merchant Onboarding
-                     </div>
-                     <h1 className="text-5xl xl:text-6xl font-extrabold tracking-tight leading-[1.15] text-white">
-                        Launch Globally, <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-orange-400">
-                           Settle Instantly.
-                        </span>
-                     </h1>
-                     <p className="text-slate-400 text-lg leading-relaxed">
-                        Join modern international merchants scaling across borders with zero-configuration multi-currency architecture and automated compliance.
-                     </p>
+                {/* PASSWORD & CONFIRM */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <div className="relative">
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        className="h-11 bg-slate-50 dark:bg-zinc-800/50 border-slate-200 dark:border-zinc-700/80 text-slate-900 dark:text-slate-100 focus:border-[#F97316] focus:ring-[#F97316] transition-all placeholder:text-slate-400 rounded-xl text-xs pl-10 pr-9 shadow-2xs"
+                        placeholder="Password"
+                        autoComplete="new-password"
+                        {...register("password")}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1 cursor-pointer"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                      </button>
+                    </div>
+                    {errors.password && (
+                      <p className="text-xs text-rose-500 font-medium pl-1">
+                        {errors.password.message}
+                      </p>
+                    )}
                   </div>
 
-                  <div className="relative z-10 space-y-3.5 pt-10 border-t border-slate-800 max-w-lg">
-                     {[
-                        "Multi-currency instant checkout routing",
-                        "Automated cross-border tax calculation",
-                        "Enterprise webhook management & real-time logs",
-                     ].map((benefit, i) => (
-                        <div key={i} className="flex items-center gap-3 text-slate-300 text-sm font-medium">
-                           <CheckCircle2 className="size-5 text-emerald-400 shrink-0" />
-                           {benefit}
-                        </div>
-                     ))}
+                  <div className="space-y-1">
+                    <div className="relative">
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                      <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        className="h-11 bg-slate-50 dark:bg-zinc-800/50 border-slate-200 dark:border-zinc-700/80 text-slate-900 dark:text-slate-100 focus:border-[#F97316] focus:ring-[#F97316] transition-all placeholder:text-slate-400 rounded-xl text-xs pl-10 pr-9 shadow-2xs"
+                        placeholder="Confirm"
+                        autoComplete="new-password"
+                        {...register("confirmPassword")}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword((prev) => !prev)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1 cursor-pointer"
+                        aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                      >
+                        {showConfirmPassword ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                      </button>
+                    </div>
+                    {errors.confirmPassword && (
+                      <p className="text-xs text-rose-500 font-medium pl-1">
+                        {errors.confirmPassword.message}
+                      </p>
+                    )}
                   </div>
-               </div>
+                </div>
 
-               {/* Right Section: Workspace Form */}
-               <div className="w-full lg:w-[45%] flex flex-col items-center justify-center p-8 sm:p-12 xl:p-20 bg-white animate-fade-up delay-200">
-                  <div className="w-full max-w-md space-y-6">
-                     
-                     <div className="text-left space-y-2">
-                        <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Create merchant account</h2>
-                        <p className="text-sm text-slate-500">Initialize your multi-currency NextG storefront.</p>
-                     </div>
-
-                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                        <div className="space-y-1.5">
-                           <Label htmlFor="name" className="text-slate-700 font-semibold text-xs uppercase tracking-wider">Full Name</Label>
-                           <Input 
-                              id="name" 
-                              className="h-11 bg-slate-50 border-slate-300 text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-emerald-500/20 transition-all placeholder:text-slate-400 rounded-xl shadow-sm"
-                              placeholder="Alex Morgan"
-                              autoComplete="name" 
-                              {...register("name")} 
-                           />
-                           {errors.name && <p className="text-xs text-red-600 font-medium">{errors.name.message}</p>}
-                        </div>
-
-                        <div className="space-y-1.5">
-                           <Label htmlFor="email" className="text-slate-700 font-semibold text-xs uppercase tracking-wider">Work Email</Label>
-                           <Input 
-                              id="email" 
-                              type="email" 
-                              className="h-11 bg-slate-50 border-slate-300 text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-emerald-500/20 transition-all placeholder:text-slate-400 rounded-xl shadow-sm"
-                              placeholder="you@company.com"
-                              autoComplete="email" 
-                              {...register("email")} 
-                           />
-                           {errors.email && <p className="text-xs text-red-600 font-medium">{errors.email.message}</p>}
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                           <div className="space-y-1.5">
-                              <Label htmlFor="password" className="text-slate-700 font-semibold text-xs uppercase tracking-wider">Password</Label>
-                              <Input 
-                                 id="password" 
-                                 type="password" 
-                                 className="h-11 bg-slate-50 border-slate-300 text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-emerald-500/20 transition-all placeholder:text-slate-400 rounded-xl shadow-sm"
-                                 placeholder="••••••••"
-                                 autoComplete="new-password" 
-                                 {...register("password")} 
-                              />
-                              {errors.password && <p className="text-xs text-red-600 font-medium">{errors.password.message}</p>}
-                           </div>
-
-                           <div className="space-y-1.5">
-                              <Label htmlFor="confirmPassword" className="text-slate-700 font-semibold text-xs uppercase tracking-wider">Confirm</Label>
-                              <Input 
-                                 id="confirmPassword" 
-                                 type="password" 
-                                 className="h-11 bg-slate-50 border-slate-300 text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-emerald-500/20 transition-all placeholder:text-slate-400 rounded-xl shadow-sm"
-                                 placeholder="••••••••"
-                                 autoComplete="new-password" 
-                                 {...register("confirmPassword")} 
-                              />
-                              {errors.confirmPassword && <p className="text-xs text-red-600 font-medium">{errors.confirmPassword.message}</p>}
-                           </div>
-                        </div>
-
-                        {registerUser.isError && (
-                           <div className="p-3 rounded-xl bg-red-50 border border-red-200">
-                              <p className="text-xs text-red-600 text-center font-medium">
-                                 {(registerUser.error as any)?.response?.data?.message ?? "Registration failed. Please try again."}
-                              </p>
-                           </div>
-                        )}
-
-                        <Button 
-                           type="submit" 
-                           className="w-full h-11 text-base font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-lg shadow-emerald-600/20 transition-all border-0 mt-2" 
-                           disabled={registerUser.isPending}
-                        >
-                           {registerUser.isPending ? (
-                              <span className="flex items-center gap-2">
-                                 <Spinner className="size-5 text-white" /> Initializing account...
-                              </span>
-                           ) : "Create merchant account"}
-                        </Button>
-                     </form>
-
-                     <p className="text-center text-sm text-slate-500 pt-2">
-                        Already have an account?{" "}
-                        <Link to="/login" className="font-bold text-emerald-600 hover:text-emerald-500 transition-colors">
-                           Sign in
-                        </Link>
-                     </p>
+                {/* ERROR ALERT */}
+                {registerUser.isError && (
+                  <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 flex items-center gap-2">
+                    <AlertCircle className="size-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                    <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold">
+                      {(registerUser.error as any)?.response?.data?.message ??
+                        "Registration failed. Please try again."}
+                    </p>
                   </div>
-               </div>
+                )}
 
-            </main>
-         </div>
-      </>
-    );
+                {/* SUBMIT BUTTON WITH ARROW ICON */}
+                <Button
+                  type="submit"
+                  className="w-full h-11 text-xs font-bold bg-[#F97316] hover:bg-[#ea660c] text-white rounded-full shadow-md transition-all border-0 mt-2 cursor-pointer active:scale-[0.99] inline-flex items-center justify-center gap-2"
+                  disabled={registerUser.isPending}
+                >
+                  {registerUser.isPending ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Spinner className="size-4 text-white" />
+                      Initializing account...
+                    </span>
+                  ) : (
+                    <>
+                      <span>Create Merchant Account</span>
+                      <ArrowRight className="size-4" />
+                    </>
+                  )}
+                </Button>
+              </form>
+            </div>
+
+            <div />
+          </div>
+
+          {/* BRANDING & ILLUSTRATION PANEL (DESKTOP ONLY) */}
+          <div className="hidden lg:flex lg:w-5/12 bg-[#F8FAFC] dark:bg-zinc-900/60 p-8 lg:p-10 flex-col justify-between border-t lg:border-t-0 lg:border-r border-slate-200/60 dark:border-zinc-800 diagonal-split-clip order-2 lg:order-1">
+            
+            {/* BRAND LOGO */}
+            <div className="animate-fade-up delay-100">
+              <Link
+                to="/"
+                className="inline-flex items-center gap-2.5 hover:opacity-90 transition-opacity"
+                aria-label="Back to home page"
+              >
+                <img
+                  src="/ChatGPT%20Image%20Sep%205,%202026,%2012_33_26%20AM.png"
+                  alt="NextG Logo"
+                  className="size-8 rounded-xl object-cover shadow-2xs"
+                />
+                <span className="font-black text-2xl tracking-tight text-slate-900 dark:text-white">
+                  Next<span className="text-[#F97316]">G.</span>
+                </span>
+              </Link>
+            </div>
+
+            {/* FULL IMAGE CONTAINER */}
+            <div className="my-6 p-3 bg-white dark:bg-zinc-800/60 rounded-2xl border border-slate-200/60 dark:border-zinc-700/50 shadow-xs flex items-center justify-center overflow-hidden animate-fade-up delay-100">
+              <img
+                src="/loginImage.png"
+                alt="NextG Merchant Onboarding Visual"
+                className="w-full h-auto max-h-52 object-contain rounded-xl"
+              />
+            </div>
+
+            {/* BENEFITS */}
+            <div className="space-y-3 text-left animate-fade-up delay-200">
+              <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
+                Merchant Onboarding
+              </h3>
+
+              <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-300 font-medium">
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                  <span>Multi-currency instant checkout routing</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                  <span>Automated cross-border tax calculation</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                  <span>Enterprise webhook management & real-time logs</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                  <span>Zero-configuration storefront setup</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* FOOTER */}
+            <div className="pt-6 text-[11px] text-slate-400 dark:text-slate-500 animate-fade-up delay-200">
+              © {new Date().getFullYear()} NextG Inc. All rights reserved.
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </>
+  );
 }

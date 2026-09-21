@@ -16,6 +16,7 @@ import {
     findResetPasswordToken,
     resetPasswordAndRevoke,
     findUserById,
+    createGoogleUser,
 } from "./auth.repository.js";
 import { hashPassword, verifyPassword } from "../../utils/auth.utils.js";
 import { emailQueue } from "../../infrastructure/queue/queue.client.js";
@@ -60,6 +61,23 @@ export const registerService = async (userData: RegisterDto) => {
     });
 
     return { user };
+};
+
+export const googleLoginService = async (profile: { email: string; name: string }, deviceInfo: DeviceInfo) => {
+    let user = await findUserByEmail(profile.email);
+    if (!user) {
+        user = await createGoogleUser({
+            email: profile.email,
+            name: profile.name || profile.email.split("@")[0],
+            password: await hashPassword(crypto.randomBytes(32).toString("hex")),
+        });
+    }
+    if (user.status !== "ACTIVE") throw new AppError("This account is not available for sign in.", 403);
+    const accessToken = generateAccessToken(user.id, user.role);
+    const refreshToken = generateRefreshToken(user.id);
+    await saveRefreshTokenAndUpdateLastLogin(user.id, crypto.createHash("sha256").update(refreshToken).digest("hex"), deviceInfo);
+    await cacheUserSession({ id: user.id, name: user.name, email: user.email, role: user.role, status: user.status, passwordChangedAt: user.passwordChangedAt });
+    return { accessToken, refreshToken, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
 };
 
 // verify  email service

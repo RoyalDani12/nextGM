@@ -10,6 +10,8 @@ import {
   resendVerificationController,
   forgotPasswordController,
   resetPasswordController,
+  googleAuthController,
+  googleCallbackController,
 } from "./auth.controller.js";
 
 import { 
@@ -45,6 +47,9 @@ router.post('/login',
   validate(loginSchema),
   loginController
 )
+
+router.get("/google", googleAuthController);
+router.get("/google/callback", googleCallbackController);
 
 
 router.post('/refresh-token',

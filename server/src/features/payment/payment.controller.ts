@@ -10,9 +10,9 @@ export const createPaymentIntentController = asyncHandler(async (req: Request, r
         throw new AppError("Unauthorized.", 401);
     }
 
-    const { orderId } = req.params as { orderId: string };
+    const { checkoutId } = req.params as { checkoutId: string };
 
-    const result = await createPaymentIntentService(orderId, userId);
+    const result = await createPaymentIntentService(checkoutId, userId);
 
     res.status(200).json({
         success: true,
