@@ -1,4 +1,5 @@
-import { api } from "@/api/axios";
+// import { api } from "@/api/axios";
+import { api } from "@/lib/axios";
 import type {
   AddToCartPayload,
   AddToCartResponse,

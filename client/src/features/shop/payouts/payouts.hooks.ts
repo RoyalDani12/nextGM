@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getPayoutStatus, generateOnboardingLink, withdrawFunds } from "../../api/payouts.api";
+// import { getPayoutStatus, generateOnboardingLink, withdrawFunds } from "../../api/payouts.api";
+import { getPayoutStatus,generateOnboardingLink,withdrawFunds } from "./payouts.api";
 
 export const usePayoutStatus = (shopId: string) => {
     return useQuery({

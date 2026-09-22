@@ -17,9 +17,9 @@ import type {
    ProductStatus,
 } from "./product.types";
 
-import ProductAddDialog from "@/components/layout/product/ProductAddDialog";
-import ProductEditDialog from "@/components/layout/product/ProductEditDialog";
-import ProductCard from "@/components/layout/product/ProductCard";
+import ProductCard from "./components/ProductCard";
+import ProductEditDialog from "./components/ProductEditDialog";
+import ProductAddDialog from "./components/ProductAddDialog";
 import {
    ProductPageHeader,
    ProductPageStats,
@@ -27,7 +27,8 @@ import {
    ProductPagination,
    EmptyProducts,
    ProductsLoading,
-} from "@/components/layout/product/ProductPageControls";
+} from "./components/ProductPageControls";
+// import { ProductPageHeader } from "./components/ProductPageControls";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";

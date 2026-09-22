@@ -13,7 +13,9 @@ import {
 } from "@/components/ui/dialog";
 
 import type { CreateProductPayload ,ProductType} from "@/features/product/product.types";
-import { getUploadSignatureRequest, uploadToCloudinary } from "@/api/upload.api";
+import { getUploadSignatureRequest } from "@/features/users/users.api";
+import { uploadToCloudinary } from "@/features/upload/upload.api";
+// import { getUploadSignatureRequest } from "@/features/users/users.api";
 
 interface ImageItem {
   url: string;

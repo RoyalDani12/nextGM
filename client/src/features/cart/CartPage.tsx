@@ -24,7 +24,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MarketplaceNavbar } from "@/layouts/MarketplaceNavbar";
+// import { MarketplaceNavbar } from "@/layouts/MarketplaceNavbar";
+import { MarketplaceNavbar } from "../marketplace/layouts/MarketplaceNavbar";
 import {
   AlertDialog,
   AlertDialogAction,

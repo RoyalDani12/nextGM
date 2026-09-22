@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 // import { NavbarRoot } from "@/layouts/NavbarRoot";
-import { MarketplaceNavbar } from "@/layouts/MarketplaceNavbar";
+// import { MarketplaceNavbar } from "@/layouts/MarketplaceNavbar";
+import { MarketplaceNavbar } from "../layouts/MarketplaceNavbar";
 import Footer from "./Footer";
 
 type BillingPeriod = "monthly" | "yearly";

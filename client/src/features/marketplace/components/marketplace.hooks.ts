@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchMarketplaceProducts,fetchProductById } from "@/api/marketplace.api";
+// import { fetchMarketplaceProducts,fetchProductById } from "@/api/marketplace.api";
+import { fetchMarketplaceProducts,fetchProductById } from "../marketplace.api";
 
 export const useMarketplaceProducts = (searchQuery?: string) => {
   return useQuery({

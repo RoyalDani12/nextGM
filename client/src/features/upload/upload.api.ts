@@ -1,6 +1,7 @@
 // upload.api.ts
 
-import { api } from "@/api/axios";
+// import { api } from "@/api/axios";
+import { api } from "@/lib/axios";
 
 export type UploadResourceType =
   | "shop_logo"

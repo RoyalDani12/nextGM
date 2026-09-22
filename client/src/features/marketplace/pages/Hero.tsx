@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useState, useEffect, useRef } from "react";
 import {
   Search,
@@ -20,12 +18,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useMarketplaceProducts } from "@/components/layout/marketplace/marketplace.hooks";
-import type { DealCardProps } from "@/components/layout/marketplace/DealCard";
-import { DealCard } from "@/components/layout/marketplace/DealCard";
-import { FlashDealsSection } from "@/components/layout/marketplace/FlashDealsSection";
-import { ProductDetailView } from "@/components/layout/marketplace/ProductDetailView";
-
+import { ProductDetailView } from "../components/ProductDetailView";
+import { FlashDealsSection } from "../components/FlashDealsSection";
+import { DealCard } from "../components/DealCard";
+import type { DealCardProps } from "../components/DealCard";
+import { useMarketplaceProducts } from "../components/marketplace.hooks";
 /* REUSABLE SMOOTH SCROLL REVEAL COMPONENT */
 function ScrollReveal({
   children,

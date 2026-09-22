@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getCustomerOrderByIdRequest } from "@/api/order.api";
+import { getCustomerOrderByIdRequest } from "../order/order.api";
 import { ArrowLeft, Package, Store, Clock, CreditCard, MapPin, AlertCircle, Calendar } from "lucide-react";
 
 export default function CustomerOrderDetailPage() {

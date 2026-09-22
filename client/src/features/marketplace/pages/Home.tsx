@@ -1,7 +1,7 @@
 import React from "react";
-import Hero from "@/features/pages/public/Hero";
 import Footer from "./Footer";
-import { MarketplaceNavbar } from "@/layouts/MarketplaceNavbar";
+import { MarketplaceNavbar } from "../layouts/MarketplaceNavbar";
+import Hero from "./Hero";
 
 export const Home = () => {
   return (

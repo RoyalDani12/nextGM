@@ -7,8 +7,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { useAuthStore } from "@/store/auth.store";
 import { useLogout } from "@/features/auth/auth.hooks";
 import { useCart } from "@/features/cart/cart.hook";
-import { MarketplaceDesktopNav } from "@/components/layout/marketplace/MarketplaceDesktopNav";
-import { MarketplaceMobileMenu } from "@/components/layout/marketplace/MarketplaceMobileMenu";
+import { MarketplaceDesktopNav } from "../components/MarketplaceDesktopNav";
+import { MarketplaceMobileMenu } from "../components/MarketplaceMobileMenu";
 
 const LANGUAGES = [
   { code: "en", name: "English", country: "us" },

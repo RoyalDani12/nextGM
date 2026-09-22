@@ -1,4 +1,5 @@
-import { api } from "@/api/axios";
+
+import { api } from "@/lib/axios";
 
 export const fetchMarketplaceProducts = async (searchQuery?: string) => {
   const { data } = await api.get("/products", {

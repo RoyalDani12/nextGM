@@ -22,6 +22,7 @@ import cartRoute from "./features/cart/cart.routes.js"
 import orderRoute from "./features/orders/order.route.js"
 import { httpLogger } from "./middleware/httpLogger.middleware.js"
 import shopRoute from "./features/shop/shop.routes.js"
+import adminRoute from "./features/admin/admin.route.js"
 
 
 // security first
@@ -64,6 +65,7 @@ app.use('/api/v1/orders', orderRoute)
 app.use('/api/v1/payment',paymentRoute)
 app.use('/api/v1/admin/orders', paymentAdminRoute) 
 app.use('/api/v1/payouts', payoutRoute)
+app.use('/api/v1/admin', adminRoute)
 
 app.get('/',(req ,res)=>{
   res.json({message:"server running successfully"})

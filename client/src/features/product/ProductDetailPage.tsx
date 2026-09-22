@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useShopProducts, useDeleteProduct, useUpdateProductStatus,useDeleteVariant } from "./product.hooks"; 
-import ProductEditDialog from "@/components/layout/product/ProductEditDialog";
-import { AddVariantDialog } from "@/components/layout/product/AddVariantDialog";
-import { ProductVariantEditDialog } from "@/components/layout/product/ProductVariantEditDialog";
+import { ProductVariantEditDialog } from "./components/ProductVariantEditDialog";
+import { AddVariantDialog } from "./components/AddVariantDialog";
+import ProductEditDialog from "./components/ProductEditDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,

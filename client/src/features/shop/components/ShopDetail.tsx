@@ -17,7 +17,6 @@ import {
   XCircle,
   Hash,
   FileText,
-  Pencil,
   Package
 } from "lucide-react";
 import { Button } from "@base-ui/react";

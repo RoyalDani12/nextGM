@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { checkoutRequest } from "@/api/order.api";
 import type { CheckoutPayload } from "./order.types";
+import { checkoutRequest } from "./order.api";
 
 export const useCheckout = () => {
   const queryClient = useQueryClient();

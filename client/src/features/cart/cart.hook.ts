@@ -5,7 +5,7 @@ import { addToCartRequest,
         updateCartItemRequest,
          removeCartItemRequest,
          mergeCartRequest,
-         } from "@/api/cart.api";
+         } from "./cart.api";
 import type { AddToCartPayload } from "./cart.types";
 
 export const useAddToCart = () => {

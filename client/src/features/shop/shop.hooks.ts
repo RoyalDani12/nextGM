@@ -6,7 +6,7 @@ import {
   uploadToCloudinary,
   type UploadResourceType,
 } from "../upload/upload.api";
-import { getShopOrdersRequest ,getShopOrderByIdRequest ,  updateShopOrderStatusRequest,} from "@/api/order.api";
+import { getShopOrdersRequest ,getShopOrderByIdRequest ,  updateShopOrderStatusRequest,} from "../order/order.api";
 
 import type { CreateShopPayload, UpdateShopProfilePayload, } from "./shop.types";
 

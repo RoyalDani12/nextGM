@@ -6,7 +6,8 @@ import VerifyEmailNotice from "../features/auth/VerifyEmailNotice";
 import VerifyEmailPage from "@/features/auth/VerifyEmailPage";
 import { DashboardHome } from "@/features/shop/DashboardHome";
 import ProtectedRoute from "./ProtectedRoute";
-import { Home } from "@/features/pages/public/Home";
+// import { Home } from "@/features/pages/public/Home";
+import { Home } from "@/features/marketplace/pages/Home";
 import { DashboardLayout } from "@/features/shop/DashboardLayout";
 import SettingsPage from "../features/users/SettingsPage";
 import { ForgetPassword } from "@/features/auth/ForgetPassword";
@@ -14,11 +15,17 @@ import { ResetPasswordPage } from "@/features/auth/ResetPasswordPage";
 import RoleRedirect from "./RoleRedirect";
 import { SuperAdminHome } from "@/features/pages/superAdmin/SuperAdminHome";
 import { AdminLayout } from "@/features/pages/superAdmin/AdminLayout";
+import { AdminUsersPage } from "@/features/pages/superAdmin/AdminUsersPage";
+import { AdminUserDetailPage } from "@/features/pages/superAdmin/AdminUserDetailPage";
+import { AdminShopsPage } from "@/features/pages/superAdmin/AdminShopsPage";
+import { AdminShopDetailPage } from "@/features/pages/superAdmin/AdminShopDetailPage";
 // import  { createShopPage } from "@features/shop/CreateShopPage"
 import { CreateShopPage } from "@/features/shop/CreateShopPage";
-import Pricing from "@/features/pages/public/Pricing";
+// import Pricing from "@/features/pages/public/Pricing";
+import Pricing from "@/features/marketplace/pages/Pricing";
 import { Shops } from "@/features/shop/Shops";
-import ShopDetail from "@/components/layout/shop/ShopDetail";
+// import ShopDetail from "@/components/layout/shop/ShopDetail";
+import ShopDetail from "@/features/shop/components/ShopDetail";
 import ProductPage from "@/features/product/ProductPage";
 import ProductDetailPage from "@/features/product/ProductDetailPage";
 import { CartPage } from "@/features/cart/CartPage";
@@ -33,7 +40,8 @@ import { PayoutDashboard as DashboardPayouts } from "@/features/shop/payouts/Pay
 const DashboardDiscounts = () => <div className="p-6 font-semibold">discount Page</div>;
 import OrdersPage from "@/features/customer/CustomerOrder";
 import ShopSelectionPage from "@/features/shop/ShopSelectionPage";
-import ShopOrderDetailPage from "@/components/layout/shop/ShopOrderDetailPage";
+// import ShopOrderDetailPage from "@/components/layout/shop/ShopOrderDetailPage";
+import ShopOrderDetailPage from "@/features/shop/components/ShopOrderDetailPage";
 export function AppRoutes() {
    return (
       <Routes>
@@ -86,6 +94,10 @@ export function AppRoutes() {
          <Route element={<ProtectedRoute allowedRoles={["SUPER_ADMIN"]} />}>
             <Route element={<AdminLayout />}>
                <Route path="/superadmin" element={<SuperAdminHome />} />
+               <Route path="/superadmin/users" element={<AdminUsersPage />} />
+               <Route path="/superadmin/users/:id" element={<AdminUserDetailPage />} />
+               <Route path="/superadmin/shops" element={<AdminShopsPage />} />
+               <Route path="/superadmin/shops/:id" element={<AdminShopDetailPage />} />
             </Route>
          </Route>
          <Route path="*" element={<div className="flex min-h-screen items-center justify-center p-6 text-center"><div><h1 className="text-2xl font-bold">Page not found</h1><p className="mt-2 text-gray-600">The page you requested does not exist.</p></div></div>} />

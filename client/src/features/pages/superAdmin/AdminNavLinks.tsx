@@ -10,26 +10,36 @@ import {
   LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link, useLocation } from "react-router-dom";
+import useAuthStore from "@/store/useAuthStore";
 
 interface NavItemProps {
   href: string;
   icon: React.ElementType;
   label: string;
-  active?: boolean;
 }
 
-const NavItem = ({ href, icon: Icon, label, active }: NavItemProps) => (
-  <Button
-    variant={active ? "secondary" : "ghost"}
-    className="w-full justify-start gap-3 px-3 font-medium"
-    render={<a href={href} />}
-  >
-    <Icon size={18} className={active ? "text-foreground" : "text-muted-foreground"} />
-    <span>{label}</span>
-  </Button>
-);
+const NavItem = ({ href, icon: Icon, label }: NavItemProps) => {
+  const location = useLocation();
+  const active = location.pathname === href || (href !== '/superadmin' && location.pathname.startsWith(href));
+
+  return (
+    <Button
+      variant={active ? "secondary" : "ghost"}
+      className="w-full justify-start gap-3 px-3 font-medium"
+      asChild
+    >
+      <Link to={href}>
+        <Icon size={18} className={active ? "text-foreground" : "text-muted-foreground"} />
+        <span>{label}</span>
+      </Link>
+    </Button>
+  );
+};
 
 export const AdminNavLinks = () => {
+  const { logout } = useAuthStore();
+  
   return (
     <div className="flex flex-col h-full justify-between py-2">
       <div className="space-y-6">
@@ -38,8 +48,9 @@ export const AdminNavLinks = () => {
           <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
             Platform
           </p>
-          <NavItem href="#" icon={LayoutDashboard} label="Overview" active />
-          <NavItem href="#" icon={Store} label="Tenants & Stores" />
+          <NavItem href="/superadmin" icon={LayoutDashboard} label="Overview" />
+          <NavItem href="/superadmin/shops" icon={Store} label="Tenants & Stores" />
+          <NavItem href="/superadmin/users" icon={Users} label="Users" />
           <NavItem href="#" icon={CreditCard} label="Global Billing" />
         </div>
 
@@ -48,7 +59,6 @@ export const AdminNavLinks = () => {
           <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
             Administration
           </p>
-          <NavItem href="#" icon={Users} label="Admin Users" />
           <NavItem href="#" icon={Shield} label="Security & Audits" />
           <NavItem href="#" icon={Settings} label="System Settings" />
         </div>
@@ -60,7 +70,7 @@ export const AdminNavLinks = () => {
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 px-3 text-destructive hover:bg-destructive/10 hover:text-destructive font-medium"
-          render={<button type="button" />}
+          onClick={() => logout()}
         >
           <LogOut size={18} />
           <span>Sign Out</span>
