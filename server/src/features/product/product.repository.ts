@@ -1,4 +1,3 @@
-import { StringDecoder } from "node:string_decoder";
 import { prisma } from "../../config/db.js";
 import {
     CreateProductData,
@@ -15,6 +14,9 @@ export const findCategoryById = async (categoryId: string) => {
         },
     });
 };
+
+export const findPlatformCategoryById = async (categoryId: string) =>
+    prisma.category.findFirst({ where: { id: categoryId, isActive: true }, select: { id: true } });
 
 // slug uniqueness — scoped PER SHOP (matches @@unique([shopId, slug]))
 export const findProductBySlugInShop = async (shopId: string, slug: string) => {
@@ -37,6 +39,7 @@ export const createProductRepository = async (data: CreateProductData) => {
         data: {
             shopId: data.shopId,
             categoryId: data.categoryId,
+            platformCategoryId: data.platformCategoryId,
             name: data.name,
             slug: data.slug,
             description: data.description,
@@ -86,6 +89,8 @@ export const getShopProductsRepository = async (options: GetShopProductsOptions)
                 type: true,
                 status: true,
                 categoryId: true,
+                platformCategoryId: true,
+                platformCategory: { select: { id: true, name: true, slug: true, parent: { select: { id: true, name: true, slug: true } } } },
                 createdAt: true,
                 images: {
                     select: { id: true, url: true, isPrimary: true },
@@ -117,6 +122,7 @@ export const findProductById = async (productId: string) => {
             stock: true,
             type: true,
             categoryId: true,
+            platformCategoryId: true,
             sku: true,
             status: true,
             deletedAt: true,
@@ -140,6 +146,7 @@ export const updateProductRepository = async (
         basePrice: string;
         stock: number;
         categoryId: string | null;
+        platformCategoryId: string | null;
         sku: string;
     }>,
     images?: { url: string; isPrimary: boolean }[],
@@ -237,6 +244,7 @@ export const findPublicProductById = async (productId: string) => {
                     slug: true,
                 },
             },
+            platformCategory: { select: { id: true, name: true, slug: true, parent: { select: { id: true, name: true, slug: true } } } },
             images: {
                 select: {
                     id: true,
@@ -259,8 +267,24 @@ export const findPublicProductById = async (productId: string) => {
 };
 
 export const browseProductRepository = async (options: BrowseProductsOptions) => {
-    const { skip, take, sort, order, shopId, categoryId, type, minPrice, maxPrice, search } =
+    const { skip, take, sort, order, shopId, categoryId, categorySlug, type, minPrice, maxPrice, search, inStockOnly, minRating, verifiedShopsOnly } =
         options;
+
+    let platformCategoryIds: string[] | undefined;
+    let categoryBreadcrumb: { id: string; name: string; slug: string }[] = [];
+    if (categoryId || categorySlug) {
+        const selected = await prisma.category.findFirst({ where: { isActive: true, ...(categoryId ? { id: categoryId } : { slug: categorySlug }) }, select: { id: true, name: true, slug: true, parentId: true } });
+        if (selected) {
+            const categories = await prisma.category.findMany({ where: { isActive: true }, select: { id: true, name: true, slug: true, parentId: true } });
+            const descendantIds = new Set([selected.id]);
+            let changed = true;
+            while (changed) { changed = false; for (const category of categories) if (category.parentId && descendantIds.has(category.parentId) && !descendantIds.has(category.id)) { descendantIds.add(category.id); changed = true; } }
+            platformCategoryIds = [...descendantIds];
+            const byId = new Map(categories.map((category) => [category.id, category]));
+            let current: typeof selected | undefined = selected;
+            while (current) { categoryBreadcrumb.unshift({ id: current.id, name: current.name, slug: current.slug }); current = current.parentId ? byId.get(current.parentId) as typeof selected | undefined : undefined; }
+        } else platformCategoryIds = [];
+    }
 
     const where: any = {
         status: "ACTIVE",
@@ -268,10 +292,12 @@ export const browseProductRepository = async (options: BrowseProductsOptions) =>
         shop: {
             status: "ACTIVE",
             deletedAt: null,
+            ...(verifiedShopsOnly && { legalInfo: { isNot: null } }),
         },
         ...(shopId && { shopId }),
-        ...(categoryId && { categoryId }),
+        ...(platformCategoryIds && { platformCategoryId: { in: platformCategoryIds } }),
         ...(type && { type }),
+        ...(inStockOnly && { stock: { gt: 0 } }),
         ...(minPrice || maxPrice
             ? {
                   basePrice: {
@@ -288,8 +314,7 @@ export const browseProductRepository = async (options: BrowseProductsOptions) =>
         }),
     };
 
-    const [products, total] = await Promise.all([
-        prisma.product.findMany({
+    const productsWithRatings = await prisma.product.findMany({
             where,
             select: {
                 id: true,
@@ -313,14 +338,18 @@ export const browseProductRepository = async (options: BrowseProductsOptions) =>
                 category: {
                     select: { name: true, slug: true },
                 },
+                platformCategory: { select: { id: true, name: true, slug: true, parent: { select: { id: true, name: true, slug: true } } } },
+                reviews: { where: { isVisible: true }, select: { rating: true } },
             },
-            orderBy: { [sort]: order },
-            skip,
-            take,
-        }),
-        prisma.product.count({ where }),
-    ]);
-    return { products, total };
+            orderBy: sort === "rating" ? { createdAt: "desc" } : { [sort]: order },
+        });
+    const ratedProducts = productsWithRatings.map(({ reviews, ...product }) => {
+        const reviewCount = reviews.length;
+        const averageRating = reviewCount ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviewCount : 0;
+        return { ...product, averageRating: Number(averageRating.toFixed(1)), reviewCount };
+    }).filter((product) => !minRating || product.averageRating >= minRating);
+    if (sort === "rating") ratedProducts.sort((a, b) => order === "asc" ? a.averageRating - b.averageRating : b.averageRating - a.averageRating);
+    return { products: ratedProducts.slice(skip, skip + take), total: ratedProducts.length, categoryBreadcrumb };
 };
 
 export const findProductWithShop = async (productId: string) => {

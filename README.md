@@ -188,6 +188,13 @@ Shop owners connect a real bank account via **Stripe Express** onboarding. Once 
 - Product variants (size, color, etc.) with individual pricing + stock
 - Multi-image support with primary image management
 - Atomic, race-condition-safe stock decrement/restore
+- Public catalog with search, category, product type, price, stock, verified-shop, and minimum-rating filters
+- Server-calculated visible review count and average rating, with catalog sorting by rating, price, name, or recency
+
+### Categories & Platform Administration
+- Hierarchical platform categories with product counts, managed from the super-admin workspace
+- Category-aware product creation and public catalog browsing
+- Super-admin navigation for users, shops, categories, and shop moderation workflows
 - Public browse with search, filters, price range, pagination
 
 ### Cart Module

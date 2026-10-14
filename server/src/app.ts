@@ -23,6 +23,7 @@ import orderRoute from "./features/orders/order.route.js"
 import { httpLogger } from "./middleware/httpLogger.middleware.js"
 import shopRoute from "./features/shop/shop.routes.js"
 import adminRoute from "./features/admin/admin.route.js"
+import categoryRoute from "./features/category/category.routes.js"
 
 
 // security first
@@ -60,6 +61,7 @@ app.use('/api/v1/shops',shopRoute)
 app.use('/api/v1/uploads',uploadRoute)
 app.use('/api/v1/shops/:shopId/products',productRoute)
 app.use('/api/v1/products', productPublicRoute)
+app.use('/api/v1/categories', categoryRoute)
 app.use('/api/v1/cart', cartRoute)
 app.use('/api/v1/orders', orderRoute)
 app.use('/api/v1/payment',paymentRoute)

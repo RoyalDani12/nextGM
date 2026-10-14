@@ -43,6 +43,7 @@ export const createProductSchema = z.object({
                 .default("PHYSICAL"),
 
             categoryId: z.string().cuid("Invalid category ID format.").optional(),
+            platformCategoryId: z.string().cuid("Invalid platform category ID format.").nullable().optional(),
 
             images: z
                 .array(
@@ -119,6 +120,7 @@ export const updateProductSchema = z.object({
             .string()
             .cuid("Invalid category ID.")
             .optional(),
+        platformCategoryId: z.string().cuid("Invalid platform category ID.").nullable().optional(),
 
         sku: z
             .string()
@@ -172,7 +174,7 @@ export const browseProductsSchema = z.object({
             .optional(),
 
         sort: z
-            .enum(["createdAt", "basePrice", "name"])
+            .enum(["createdAt", "basePrice", "rating", "name"])
             .optional(),
 
         order: z
@@ -188,6 +190,7 @@ export const browseProductsSchema = z.object({
             .string()
             .cuid()
             .optional(),
+        categorySlug: z.string().trim().min(1).max(160).optional(),
 
         type: z
             .enum(["PHYSICAL", "DIGITAL"])
@@ -202,6 +205,9 @@ export const browseProductsSchema = z.object({
             .string()
             .regex(/^\d+(\.\d{1,2})?$/)
             .optional(),
+        inStockOnly: z.enum(["true", "false"]).transform((value) => value === "true").optional(),
+        verifiedShopsOnly: z.enum(["true", "false"]).transform((value) => value === "true").optional(),
+        minRating: z.string().regex(/^[1-5]$/).transform(Number).optional(),
 
         search: z
             .string()

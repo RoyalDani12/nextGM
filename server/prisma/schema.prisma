@@ -376,6 +376,9 @@ model Category {
   parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
   children    Category[] @relation("CategoryTree")
   imageUrl    String?
+  description String?
+  icon        String?
+  isFeatured  Boolean    @default(false)
   isActive    Boolean    @default(true)
   sortOrder   Int        @default(0)
   createdAt   DateTime   @default(now())
@@ -384,6 +387,7 @@ model Category {
 
   @@index([parentId])
   @@index([slug])
+  @@index([isActive, sortOrder])
 }
 
 model Product {
@@ -423,6 +427,7 @@ platformCategory    Category? @relation(fields: [platformCategoryId], references
   @@index([status])
   @@index([type])
   @@index([categoryId,status])
+  @@index([platformCategoryId, status])
   @@index([name])
   @@unique([shopId, slug])
   @@unique([shopId, sku])

@@ -7,7 +7,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { loginSchema, type LoginFormValues } from "./auth.schema";
 import { useLogin } from "./auth.hooks";
 import { useMergeCart } from "../cart/cart.hook";
-import { isDeactivatedResponse } from "./auth.types";
+import { isDeactivatedResponse, type LoginResponse } from "./auth.types";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,7 +54,26 @@ export default function LoginPage() {
 
   const onSubmit = (values: LoginFormValues) => {
     login.mutate(values, {
-      onSuccess: async () => {
+      onSuccess: async (response) => {
+        if (isDeactivatedResponse(response)) return;
+
+        const { role } = (response as LoginResponse).data.user;
+
+        // Administrative and seller accounts must never be sent through the
+        // customer cart flow. Their destination is determined by role.
+        if (role === "SUPER_ADMIN") {
+          navigate("/superadmin", { replace: true });
+          return;
+        }
+        if (role === "SHOP_OWNER") {
+          navigate("/shops", { replace: true });
+          return;
+        }
+        if (role === "SHOP_EMPLOYEE") {
+          navigate("/employee", { replace: true });
+          return;
+        }
+
         try {
           await mergeCart.mutateAsync();
           navigate(redirectTo, { replace: true });
@@ -70,6 +89,17 @@ export default function LoginPage() {
   };
 
   const deactivated = login.data && isDeactivatedResponse(login.data);
+  const loginErrorMessage = (() => {
+    const error = login.error;
+    if (typeof error === "object" && error && "response" in error) {
+      const response = error.response;
+      if (typeof response === "object" && response && "data" in response) {
+        const data = response.data;
+        if (typeof data === "object" && data && "message" in data && typeof data.message === "string") return data.message;
+      }
+    }
+    return "Invalid email or password.";
+  })();
 
   return (
     <>
@@ -252,8 +282,7 @@ export default function LoginPage() {
                   {login.isError && (
                     <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20">
                       <p className="text-xs text-rose-600 dark:text-rose-400 text-center font-semibold">
-                        {(login.error as any)?.response?.data?.message ??
-                          "Invalid email or password."}
+                        {loginErrorMessage}
                       </p>
                     </div>
                   )}

@@ -14,6 +14,7 @@ import {
 
 import type { CreateProductPayload, ProductType } from "@/features/product/product.types";
 import { getUploadSignatureRequest, uploadToCloudinary } from "@/features/upload/upload.api";
+import { useMarketplaceCategories } from "@/features/marketplace/components/marketplace.hooks";
 
 interface ImageItem {
   url: string;
@@ -43,6 +44,8 @@ export default function ProductAddDialog({
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
   const [type, setType] = useState<ProductType>("PHYSICAL");
+  const [platformCategoryId, setPlatformCategoryId] = useState("");
+  const { data: categories = [] } = useMarketplaceCategories();
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -53,6 +56,7 @@ export default function ProductAddDialog({
     setStock(0);
     setSku("");
     setType("PHYSICAL");
+    setPlatformCategoryId("");
     images.forEach((img) => {
       if (img.url.startsWith("blob:")) URL.revokeObjectURL(img.url);
     });
@@ -140,6 +144,7 @@ export default function ProductAddDialog({
         type,
         stock: Number(stock),
         sku: sku || undefined,
+        platformCategoryId: platformCategoryId || null,
         images: processedImages,
       };
 
@@ -173,6 +178,13 @@ export default function ProductAddDialog({
               placeholder="e.g. Wireless Headphones"
               required
             />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Marketplace Category</label>
+            <select value={platformCategoryId} onChange={(e) => setPlatformCategoryId(e.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+              <option value="">No marketplace category</option>
+              {categories.flatMap((parent) => [{ id: parent.id, label: parent.name }, ...parent.children.map((child) => ({ id: child.id, label: `${parent.name} > ${child.name}` }))]).map((category) => <option key={category.id} value={category.id}>{category.label}</option>)}
+            </select>
           </div>
 
           <div className="space-y-1">

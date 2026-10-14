@@ -6,6 +6,7 @@ export interface ProductImageInput {
 export interface CreateProductData {
     shopId:      string
     categoryId:  string | null
+    platformCategoryId?: string | null
     name:        string
     slug:        string
     description?: string
@@ -39,6 +40,7 @@ export interface UpdateProductInput {
     basePrice?:   string
     stock?:       number
     categoryId?:  string
+    platformCategoryId?: string | null
     sku?:         string
     images?:      (string | ProductImageInput)[]
 }
@@ -46,25 +48,33 @@ export interface UpdateProductInput {
 export interface BrowseProductsOptions {
     skip:        number
     take:        number
-    sort:        string
+    sort:        "createdAt" | "basePrice" | "rating" | "name"
     order:       "asc" | "desc"
     shopId?:     string
     categoryId?: string
+    categorySlug?: string
     type?:       "PHYSICAL" | "DIGITAL"
     minPrice?:   string
     maxPrice?:   string
+    inStockOnly?: boolean
+    minRating?: number
+    verifiedShopsOnly?: boolean
     search?:     string
 }
 
 export interface BrowseProductsQuery {
     page?:       number
     limit?:      number
-    sort?:       string
+    sort?:       "createdAt" | "basePrice" | "rating" | "name"
     order?:      "asc" | "desc"
     shopId?:     string
     categoryId?: string
+    categorySlug?: string
     type?:       "PHYSICAL" | "DIGITAL"
     minPrice?:   string
     maxPrice?:   string
+    inStockOnly?: boolean
+    minRating?: number
+    verifiedShopsOnly?: boolean
     search?:     string
 }

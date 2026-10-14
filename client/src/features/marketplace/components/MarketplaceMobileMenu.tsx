@@ -1,9 +1,11 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Zap, Compass, Tag, HelpCircle, Languages, ChevronDown, Check, User, LogOut, Menu } from "lucide-react";
+import { Zap, Compass, Tag, HelpCircle, Languages, ChevronDown, Check, User, LogOut, Menu, BadgeCheck, Flame, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useMarketplaceCategories } from "./marketplace.hooks";
 
 const LANGUAGES = [
   { code: "en", name: "English", country: "us" },
@@ -36,6 +38,7 @@ export const MarketplaceMobileMenu = ({
 }: MarketplaceMobileMenuProps) => {
   const navigate = useNavigate();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const { data: categories = [] } = useMarketplaceCategories();
   const goTo = (path: string) => { navigate(path); setIsMobileOpen(false); };
 
   return (
@@ -65,12 +68,32 @@ export const MarketplaceMobileMenu = ({
             <Zap className="mr-3 size-4" /> Create Shop
           </Button>
 
-          <div className="space-y-1.5 py-4 border-b border-[#232f3e]">
+          <div className="space-y-1.5 py-4 border-b border-slate-800">
             {NAV_ITEMS.map(({ label, path, icon: Icon }) => (
               <button key={path} onClick={() => goTo(path)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-stone-300 hover:text-sky-100 hover:bg-sky-500/10">
                 <Icon className="size-4" /> {label}
               </button>
             ))}
+          </div>
+
+          <div className="border-b border-slate-800 py-4">
+            <p className="mb-2 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Shop categories</p>
+            <Accordion className="px-1">
+              {categories.map((parent) => (
+                <AccordionItem key={parent.id} value={parent.id} className="border-slate-800">
+                  <AccordionTrigger className="min-h-11 px-2 text-stone-100 hover:no-underline"><span>{parent.icon || "◈"} {parent.name}</span></AccordionTrigger>
+                  <AccordionContent className="pb-2">
+                    <button onClick={() => goTo(`/?categorySlug=${parent.slug}`)} className="flex min-h-11 w-full items-center justify-between rounded-lg px-3 text-left text-sm text-slate-300 hover:bg-slate-800">All {parent.name}<span>{parent.productCount}</span></button>
+                    {parent.children.map((child) => <button key={child.id} onClick={() => goTo(`/?categorySlug=${child.slug}`)} className="flex min-h-11 w-full items-center justify-between rounded-lg px-4 text-left text-sm text-slate-400 hover:bg-slate-800 hover:text-white"><span>{child.name}</span><span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs">{child.productCount}</span></button>)}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+
+          <div className="space-y-2 border-b border-slate-800 py-4">
+            <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Marketplace highlights</p>
+            {[[BadgeCheck, "Verified Vendors", "Trusted independent stores", "text-emerald-400"], [Flame, "Hot Deals & Drops", "Limited time offers", "text-orange-400"], [TrendingUp, "Trending Items", "What shoppers love", "text-sky-400"]].map(([Icon, title, description, color]) => { const HighlightIcon = Icon as typeof BadgeCheck; return <button key={title as string} onClick={() => goTo("/")} className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/60 px-3 text-left"><HighlightIcon className={`size-5 ${color}`}/><span><span className="block text-sm font-bold text-white">{title as string}</span><span className="text-xs text-slate-400">{description as string}</span></span></button>; })}
           </div>
 
           <div className="py-2 border-b border-[#232f3e] px-3">

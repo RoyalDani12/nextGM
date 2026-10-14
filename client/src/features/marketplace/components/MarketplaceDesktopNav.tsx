@@ -21,6 +21,7 @@ import {
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
+import { MarketplaceMegaMenu } from "./MarketplaceMegaMenu";
 
 const EXPLORE_MEGA_MENU = {
   featured: {
@@ -234,33 +235,7 @@ export const MarketplaceDesktopNav = ({
             Categories
           </NavigationMenuTrigger>
 
-          <NavigationMenuContent className="p-6 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-[750px] grid grid-cols-4 gap-6 text-slate-100">
-            {CATEGORIES_MEGA_MENU.map((column) => (
-              <div
-                key={column.title}
-                className="space-y-3"
-              >
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  {column.title}
-                </h4>
-
-                <ul className="space-y-2">
-                  {column.items.map((item) => (
-                    <li key={item}>
-                      <Link
-                        to={`/categories/${item
-                          .toLowerCase()
-                          .replace(/\s+/g, "-")}`}
-                        className="text-xs font-medium text-slate-400 hover:text-orange-400 transition-colors block py-1"
-                      >
-                        {item}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </NavigationMenuContent>
+          <NavigationMenuContent><MarketplaceMegaMenu /></NavigationMenuContent>
         </NavigationMenuItem>
 
         {/* How It Works */}

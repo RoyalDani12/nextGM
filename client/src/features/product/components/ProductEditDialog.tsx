@@ -14,6 +14,7 @@ import {
 import type { Product, UpdateProductPayload } from "../product.types";
 import { getUploadSignatureRequest, uploadToCloudinary } from "@/features/upload/upload.api";
 import { useUpdateProduct } from "@/features/product/product.hooks";
+import { useMarketplaceCategories } from "@/features/marketplace/components/marketplace.hooks";
 
 interface ProductEditDialogProps {
   shopId?: string;
@@ -44,6 +45,8 @@ export default function ProductEditDialog({
   const [images, setImages] = useState<ImageItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
+  const [platformCategoryId, setPlatformCategoryId] = useState("");
+  const { data: categories = [] } = useMarketplaceCategories();
 
   const { mutateAsync: updateProduct } = useUpdateProduct(shopId!);
 
@@ -57,6 +60,7 @@ export default function ProductEditDialog({
       setBasePrice(String(product.basePrice ?? ""));
       setStock(Number(product.stock ?? 0));
       setSku(product.sku || "");
+      setPlatformCategoryId(product.platformCategoryId || "");
 
       if (product.images && Array.isArray(product.images)) {
         const rawImages: ImageItem[] = product.images.map((img: any) => {
@@ -176,6 +180,7 @@ export default function ProductEditDialog({
         basePrice,
         stock: Number(stock),
         sku: sku || undefined,
+        platformCategoryId: platformCategoryId || null,
         images: processedImages,
       };
 
@@ -212,6 +217,13 @@ export default function ProductEditDialog({
               placeholder="e.g. Wireless Headphones"
               required
             />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Marketplace Category</label>
+            <select value={platformCategoryId} onChange={(e) => setPlatformCategoryId(e.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+              <option value="">No marketplace category</option>
+              {categories.flatMap((parent) => [{ id: parent.id, label: parent.name }, ...parent.children.map((child) => ({ id: child.id, label: `${parent.name} > ${child.name}` }))]).map((category) => <option key={category.id} value={category.id}>{category.label}</option>)}
+            </select>
           </div>
 
           <div className="space-y-1">

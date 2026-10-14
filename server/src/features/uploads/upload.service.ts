@@ -4,6 +4,7 @@ import { env } from "../../config/env.js";
 import { findShopById } from "../shop/shop.repository.js";
 import { GenerateSignatureInput, MimeType } from "./upload.types.js";
 import { findProductWithShop } from "../product/product.repository.js";
+import { prisma } from "../../config/db.js";
 
 // FIX: Ensure your dictionary explicitly covers all possible valid union values
 const MIME_TO_EXTENSION: Record<MimeType, string> = {
@@ -63,6 +64,14 @@ export const generateUploadSignatureService = async ({
             }
 
             folder = `product_images/${product.shopId}`;
+            break;
+        }
+        case "category_image": {
+            const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+            if (user?.role !== "SUPER_ADMIN") {
+                throw new AppError("Only administrators can upload category images.", 403);
+            }
+            folder = "categories";
             break;
         }
         default: {

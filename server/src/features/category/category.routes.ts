@@ -1,0 +1,13 @@
+import express from "express";
+import { authenticate } from "../../middleware/auth.middleware.js";
+import { authorizeSuperAdmin } from "../../middleware/authorizeSuperAdmin.middleware.js";
+import { validate } from "../../middleware/validate.middleware.js";
+import * as controller from "./category.controller.js";
+import { createCategorySchema, updateCategorySchema, deleteCategorySchema } from "./category.schema.js";
+const router = express.Router();
+router.get("/", controller.tree);
+router.get("/flat", controller.flat);
+router.post("/", authenticate, authorizeSuperAdmin, validate(createCategorySchema), controller.create);
+router.put("/:id", authenticate, authorizeSuperAdmin, validate(updateCategorySchema), controller.update);
+router.delete("/:id", authenticate, authorizeSuperAdmin, validate(deleteCategorySchema), controller.remove);
+export default router;

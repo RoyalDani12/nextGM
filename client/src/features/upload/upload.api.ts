@@ -6,7 +6,8 @@ import { api } from "@/lib/axios";
 export type UploadResourceType =
   | "shop_logo"
   | "shop_banner"
-  | "product_image";
+  | "product_image"
+  | "category_image";
 
 export interface UploadSignatureResponse {
   signature: string;

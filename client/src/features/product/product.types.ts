@@ -16,6 +16,7 @@ export interface CreateProductPayload {
   stock: number;
   type: ProductType;
   categoryId?: string;
+  platformCategoryId?: string | null;
   images?: ProductImageInput[];
   sku?: string;
 }
@@ -41,6 +42,7 @@ export interface Product {
   stock: number;
   type: ProductType;
   categoryId?: string | null;
+  platformCategoryId?: string | null;
   images: (string | ProductImageItem)[];
   sku?: string | null;
   status?: string;
@@ -85,6 +87,7 @@ export interface UpdateProductPayload {
   stock?: number;
   sku?: string;
   categoryId?: string | null;
+  platformCategoryId?: string | null;
  images?: ProductImageInput[];
 }
 

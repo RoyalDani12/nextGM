@@ -5,6 +5,7 @@ import {
   CreditCard, 
   Settings, 
   Users, 
+  Tags,
   Shield, 
   LifeBuoy,
   LogOut
@@ -52,6 +53,7 @@ export const AdminNavLinks = () => {
           <NavItem href="/superadmin" icon={LayoutDashboard} label="Overview" />
           <NavItem href="/superadmin/shops" icon={Store} label="Tenants & Stores" />
           <NavItem href="/superadmin/users" icon={Users} label="Users" />
+          <NavItem href="/superadmin/categories" icon={Tags} label="Categories" />
           <NavItem href="#" icon={CreditCard} label="Global Billing" />
         </div>
 

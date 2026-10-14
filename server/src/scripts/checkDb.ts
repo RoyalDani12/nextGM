@@ -31,10 +31,15 @@ async function main() {
       name: true,
       status: true,
       basePrice: true,
+      platformCategoryId: true,
+      platformCategory: { select: { name: true, slug: true } },
       shop: { select: { slug: true } },
       images: { select: { url: true, isPrimary: true } },
     },
   });
+
+  const categories = await prisma.category.findMany();
+  const productCategories = await prisma.productCategory.findMany();
 
   console.log("=== USERS IN DB ===");
   console.log(JSON.stringify(users, null, 2));
@@ -42,6 +47,10 @@ async function main() {
   console.log(JSON.stringify(shops, null, 2));
   console.log(`=== TOTAL PRODUCTS IN DB: ${products.length} ===`);
   console.log(JSON.stringify(products, null, 2));
+  console.log(`=== PLATFORM CATEGORIES: ${categories.length} ===`);
+  console.log(JSON.stringify(categories, null, 2));
+  console.log(`=== SHOP PRODUCT CATEGORIES: ${productCategories.length} ===`);
+  console.log(JSON.stringify(productCategories, null, 2));
 
   await prisma.$disconnect();
 }

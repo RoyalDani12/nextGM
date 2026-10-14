@@ -3,6 +3,7 @@ import { generateUniqueSlug } from "../../utils/generateSlug.js";
 import { findShopById } from "../shop/shop.repository.js";
 import {
     findCategoryById,
+    findPlatformCategoryById,
     findProductBySkuInShop,
     createProductRepository,
     findProductBySlugInShop,
@@ -52,6 +53,7 @@ export const createProductService = async (
             throw new AppError("Invalid category.", 400);
         }
     }
+    if (body.platformCategoryId && !(await findPlatformCategoryById(body.platformCategoryId))) throw new AppError("Invalid platform category.", 400);
 
     const slug = await generateUniqueSlug(body.name, async (candidateSlug) => {
         const existing = await findProductBySlugInShop(shopId, candidateSlug);
@@ -81,6 +83,7 @@ export const createProductService = async (
     const product = await createProductRepository({
         shopId,
         categoryId: body.categoryId ?? null,
+        platformCategoryId: body.platformCategoryId ?? null,
         name: body.name,
         slug,
         description: body.description,
@@ -102,6 +105,7 @@ export const createProductService = async (
         type: product.type,
         status: product.status,
         categoryId: product.categoryId,
+        platformCategoryId: product.platformCategoryId,
         images: product.images,
         createdAt: product.createdAt,
     };
@@ -191,6 +195,10 @@ export const updateProductService = async (
         }
         updateData.categoryId = body.categoryId;
     }
+    if (body.platformCategoryId !== undefined) {
+        if (body.platformCategoryId && !(await findPlatformCategoryById(body.platformCategoryId))) throw new AppError("Invalid platform category.", 400);
+        updateData.platformCategoryId = body.platformCategoryId;
+    }
 
     if (body.sku !== undefined) {
         const existingSku = await findProductBySkuInShop(shopId, body.sku);
@@ -231,6 +239,7 @@ export const updateProductService = async (
         basePrice: updated.basePrice,
         stock: updated.stock,
         categoryId: updated.categoryId,
+        platformCategoryId: updated.platformCategoryId,
         status: updated.status,
         images: updated.images,
     };
@@ -317,16 +326,20 @@ export const browseProductsService = async (query: BrowseProductsQuery) => {
     const sort = query.sort ?? "createdAt";
     const order = query.order ?? "desc";
 
-    const { products, total } = await browseProductRepository({
+    const { products, total, categoryBreadcrumb } = await browseProductRepository({
         skip,
         take: limit,
         sort,
         order,
         shopId: query.shopId,
         categoryId: query.categoryId,
+        categorySlug: query.categorySlug,
         type: query.type,
         minPrice: query.minPrice,
         maxPrice: query.maxPrice,
+        inStockOnly: query.inStockOnly,
+        minRating: query.minRating,
+        verifiedShopsOnly: query.verifiedShopsOnly,
         search: query.search,
     });
 
@@ -334,6 +347,7 @@ export const browseProductsService = async (query: BrowseProductsQuery) => {
 
     return {
         products,
+        categoryBreadcrumb,
         pagination: {
             total,
             page,
