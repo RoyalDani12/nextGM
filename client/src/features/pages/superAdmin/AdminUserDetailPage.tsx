@@ -1,8 +1,9 @@
 import React from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Loader2, User, Store, Mail, Calendar, Shield } from "lucide-react";
+import { ArrowLeft, Loader2, User, Store, Shield } from "lucide-react";
 import { useAdminUser, useUpdateUserRole, useUpdateUserStatus } from "@/features/admin/admin.hooks";
-import { toast } from "react-hot-toast";
+
+
 
 const ROLES = ["CUSTOMER", "SHOP_OWNER", "SUPER_ADMIN"];
 const STATUSES = ["ACTIVE", "SUSPENDED", "DEACTIVATED"];

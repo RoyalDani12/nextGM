@@ -1,4 +1,4 @@
-import { axiosInstance } from "@/lib/axios";
+import { api } from "@/lib/axios";
 
 export type AdminStatsResponse = {
     totalUsers: number;
@@ -32,8 +32,16 @@ export type AdminShop = {
     _count: { products: number; orders: number };
 };
 
-export type AdminListResponse<T> = {
-    data: T[];
+export type AdminUsersResponse = {
+    users: AdminUser[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+};
+
+export type AdminShopsResponse = {
+    shops: AdminShop[];
     total: number;
     page: number;
     limit: number;
@@ -47,42 +55,42 @@ const base = "/admin";
 
 export const adminApi = {
     getStats: async (): Promise<AdminStatsResponse> => {
-        const res = await axiosInstance.get(`${base}/stats`);
+        const res = await api.get(`${base}/stats`);
         return res.data.data;
     },
 
-    listUsers: async (filters: AdminUserFilters = {}): Promise<AdminListResponse<AdminUser>> => {
-        const res = await axiosInstance.get(`${base}/users`, { params: filters });
+    listUsers: async (filters: AdminUserFilters = {}): Promise<AdminUsersResponse> => {
+        const res = await api.get(`${base}/users`, { params: filters });
         return res.data.data;
     },
 
     getUserById: async (id: string): Promise<AdminUser & { profile: any; ownedShops: any[] }> => {
-        const res = await axiosInstance.get(`${base}/users/${id}`);
+        const res = await api.get(`${base}/users/${id}`);
         return res.data.data;
     },
 
     updateUserRole: async (id: string, role: string) => {
-        const res = await axiosInstance.patch(`${base}/users/${id}/role`, { role });
+        const res = await api.patch(`${base}/users/${id}/role`, { role });
         return res.data;
     },
 
     updateUserStatus: async (id: string, status: string) => {
-        const res = await axiosInstance.patch(`${base}/users/${id}/status`, { status });
+        const res = await api.patch(`${base}/users/${id}/status`, { status });
         return res.data;
     },
 
-    listShops: async (filters: AdminShopFilters = {}): Promise<AdminListResponse<AdminShop>> => {
-        const res = await axiosInstance.get(`${base}/shops`, { params: filters });
+    listShops: async (filters: AdminShopFilters = {}): Promise<AdminShopsResponse> => {
+        const res = await api.get(`${base}/shops`, { params: filters });
         return res.data.data;
     },
 
     getShopById: async (id: string): Promise<AdminShop & { profile: any; wallet: any }> => {
-        const res = await axiosInstance.get(`${base}/shops/${id}`);
+        const res = await api.get(`${base}/shops/${id}`);
         return res.data.data;
     },
 
     updateShopStatus: async (id: string, status: string) => {
-        const res = await axiosInstance.patch(`${base}/shops/${id}/status`, { status });
+        const res = await api.patch(`${base}/shops/${id}/status`, { status });
         return res.data;
     },
 };

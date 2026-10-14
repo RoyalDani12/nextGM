@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { adminApi, AdminUserFilters, AdminShopFilters } from "./admin.api";
-import { toast } from "react-hot-toast";
+// import { adminApi, AdminUserFilters, AdminShopFilters } from "./admin.api";
+import  { adminApi, type AdminShopFilters, type AdminUserFilters } from "./admin.api";
+// import { toast } from "react-hot-toast";
 
 export const useAdminStats = () =>
     useQuery({ queryKey: ["admin", "stats"], queryFn: adminApi.getStats, staleTime: 60_000 });
@@ -25,10 +26,10 @@ export const useUpdateUserRole = () => {
     return useMutation({
         mutationFn: ({ id, role }: { id: string; role: string }) => adminApi.updateUserRole(id, role),
         onSuccess: () => {
-            toast.success("User role updated");
+            alert("User role updated");
             qc.invalidateQueries({ queryKey: ["admin", "users"] });
         },
-        onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to update role"),
+        onError: (err: any) => alert(err?.response?.data?.message ?? "Failed to update role"),
     });
 };
 
@@ -37,10 +38,10 @@ export const useUpdateUserStatus = () => {
     return useMutation({
         mutationFn: ({ id, status }: { id: string; status: string }) => adminApi.updateUserStatus(id, status),
         onSuccess: () => {
-            toast.success("User status updated");
+            alert("User status updated");
             qc.invalidateQueries({ queryKey: ["admin", "users"] });
         },
-        onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to update status"),
+        onError: (err: any) => alert(err?.response?.data?.message ?? "Failed to update status"),
     });
 };
 
@@ -64,9 +65,9 @@ export const useUpdateShopStatus = () => {
     return useMutation({
         mutationFn: ({ id, status }: { id: string; status: string }) => adminApi.updateShopStatus(id, status),
         onSuccess: () => {
-            toast.success("Shop status updated");
+            alert("Shop status updated");
             qc.invalidateQueries({ queryKey: ["admin", "shops"] });
         },
-        onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to update shop status"),
+        onError: (err: any) => alert(err?.response?.data?.message ?? "Failed to update shop status"),
     });
 };

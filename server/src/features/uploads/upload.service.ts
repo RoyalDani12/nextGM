@@ -42,17 +42,27 @@ export const generateUploadSignatureService = async ({
             break;
         }
         case "product_image": {
-            const product = await findProductWithShop(resourceId);
+            // Check if resourceId is a shopId owned by user
+            const shop = await findShopById(resourceId);
+            if (shop) {
+                if (shop.ownerId !== userId) {
+                    throw new AppError("You do not own this shop.", 403);
+                }
+                folder = `product_images/${resourceId}`;
+                break;
+            }
 
+            // Or check if resourceId is a productId belonging to a shop owned by user
+            const product = await findProductWithShop(resourceId);
             if (!product || product.deletedAt) {
-                throw new AppError("Product not found.", 404);
+                throw new AppError("Shop or product not found.", 404);
             }
 
             if (product.shop.ownerId !== userId) {
                 throw new AppError("You do not own this product's shop.", 403);
             }
 
-            folder = `product_images/${resourceId}`;
+            folder = `product_images/${product.shopId}`;
             break;
         }
         default: {
@@ -60,15 +70,12 @@ export const generateUploadSignatureService = async ({
         }
     }
 
-    const allowedFormat = MIME_TO_EXTENSION[mimeType];
     const timestamp = Math.round(Date.now() / 1000);
 
     const signature = cloudinary.utils.api_sign_request(
         {
             timestamp,
             folder,
-            allowed_formats: [allowedFormat],
-            max_file_size: 5_000_000,
         },
         env.CLOUDINARY_API_SECRET,
     );

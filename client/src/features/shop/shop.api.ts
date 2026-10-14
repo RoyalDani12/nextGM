@@ -1,6 +1,6 @@
 
 import { api } from "@/lib/axios"
-import type { CreateShopPayload,CreateShopResponse,GetMyShopResponse,  UpdateShopProfilePayload } from "./shop.types"
+import type { CreateShopPayload,CreateShopResponse,GetMyShopResponse, PublishReadiness, UpdateShopProfilePayload } from "./shop.types"
 
 export const  createShopRequest = async (paylod:CreateShopPayload):Promise<CreateShopResponse>=>{
   const { data } = await api.post("/shops",paylod)
@@ -47,4 +47,14 @@ export const closeShopRequest = async (
   });
 
   return data;
+};
+
+export const getPublishReadinessRequest = async (shopId: string): Promise<PublishReadiness> => {
+  const { data } = await api.get(`/shops/${shopId}/publish-readiness`);
+  return data.data;
+};
+
+export const publishShopRequest = async (shopId: string) => {
+  const { data } = await api.patch(`/shops/${shopId}/publish`);
+  return data.data;
 };

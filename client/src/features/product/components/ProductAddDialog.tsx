@@ -12,10 +12,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-import type { CreateProductPayload ,ProductType} from "@/features/product/product.types";
-import { getUploadSignatureRequest } from "@/features/users/users.api";
-import { uploadToCloudinary } from "@/features/upload/upload.api";
-// import { getUploadSignatureRequest } from "@/features/users/users.api";
+import type { CreateProductPayload, ProductType } from "@/features/product/product.types";
+import { getUploadSignatureRequest, uploadToCloudinary } from "@/features/upload/upload.api";
 
 interface ImageItem {
   url: string;
@@ -142,7 +140,7 @@ export default function ProductAddDialog({
         type,
         stock: Number(stock),
         sku: sku || undefined,
-        images: processedImages.map((image) => image.url),
+        images: processedImages,
       };
 
       await onSubmit(payload);

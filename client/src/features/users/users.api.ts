@@ -1,18 +1,5 @@
-import { api } from "../../lib/axios"; // Adjust path if your axios instance is elsewhere
-export interface UserProfile {
-    id: string;
-    name: string;
-    email: string;
-    role: string;
-    avatarUrl?: string;
-}
-
-export interface UpdateProfilePayload {
-    name?: string;
-    avatarUrl?: string;
-}
-
-
+import { api } from "../../lib/axios";
+import type { Session, UpdateProfilePayload, UserProfile } from "./user.types";
 export const getMeRequest = async (): Promise<UserProfile> => {
     const { data } = await api.get("/users/me");
     return data.data;
@@ -27,5 +14,20 @@ export const getUploadSignatureRequest = async()=>{
 
 export const updateProfileRequest = async (payload: UpdateProfilePayload) => {
     const { data } = await api.put("/users/me", payload);
+    return data;
+};
+
+export const getSessionsRequest = async (): Promise<Session[]> => {
+    const { data } = await api.get("/users/me/sessions");
+    return data.data;
+};
+
+export const revokeSessionRequest = async (sessionId: string) => {
+    const { data } = await api.delete(`/users/me/sessions/${sessionId}`);
+    return data;
+};
+
+export const revokeOtherSessionsRequest = async () => {
+    const { data } = await api.delete("/users/me/sessions");
     return data;
 };

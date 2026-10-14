@@ -1,12 +1,18 @@
 import { useNavigate } from "react-router-dom";
-import { Image as ImageIcon } from "lucide-react";
+import { Image as ImageIcon, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import type { Product } from "@/features/product/product.types";
+import type { Product, ProductStatus } from "@/features/product/product.types";
 
 interface ProductCardProps {
   product: Product;
   shopId: string;
+  onEdit?: (product: Product) => void;
+  onDelete?: (productId: string, productName: string) => void;
+  onStatusChange?: (productId: string, status: ProductStatus) => void;
+  isDeleting?: boolean;
+  isUpdatingStatus?: boolean;
 }
 
 const getImageUrl = (img: any): string | null => {
@@ -18,7 +24,11 @@ const getImageUrl = (img: any): string | null => {
   return null;
 };
 
-export default function ProductCard({ product, shopId }: ProductCardProps) {
+export default function ProductCard({
+  product,
+  shopId,
+  onEdit,
+}: ProductCardProps) {
   const navigate = useNavigate();
   const productId = product.id || (product as any)._id;
   const rawImages = product.images || [];
@@ -81,6 +91,23 @@ export default function ProductCard({ product, shopId }: ProductCardProps) {
             {product.status || "DRAFT"}
           </Badge>
         </div>
+
+        {onEdit && (
+          <div className="absolute right-3 bottom-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <Button
+              type="button"
+              size="icon"
+              variant="secondary"
+              className="h-8 w-8 rounded-full bg-background/90 backdrop-blur-md shadow-md hover:bg-background"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(product);
+              }}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* CARD CONTENT - ONLY NAME, DESCRIPTION, PRICE, STOCK */}

@@ -7,7 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 export function PayoutDashboard() {
   const { shopId } = useParams<{ shopId: string }>();
   
-  const { data: status, isLoading, isError, refetch } = usePayoutStatus(shopId!);
+  const { data: status, isLoading, isError } = usePayoutStatus(shopId!);
   const onboardMutation = useGenerateOnboardingLink(shopId!);
   const withdrawMutation = useWithdrawFunds(shopId!);
 

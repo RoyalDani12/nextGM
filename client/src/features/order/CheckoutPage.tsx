@@ -56,7 +56,7 @@ function CountrySelector({ country, onChange }: CountrySelectorProps) {
         onClick={() => setOpen((prev) => !prev)}
         className="flex h-full min-h-[52px] w-full items-center gap-2.5 rounded-l-lg border-r bg-white px-3 text-left outline-none hover:bg-gray-50"
       >
-        {Flag ? <Flag title={en[country]} className="h-5 w-7 shrink-0 rounded-sm object-cover" /> : <div className="h-5 w-7 rounded-sm bg-gray-200" />}
+        {Flag ? <span className="h-5 w-7 shrink-0 rounded-sm overflow-hidden inline-flex items-center justify-center"><Flag title={en[country]} /></span> : <div className="h-5 w-7 rounded-sm bg-gray-200" />}
         <span className="font-medium text-gray-700">+{getCountryCallingCode(country)}</span>
         <svg className={`ml-auto h-4 w-4 text-gray-500 transition-transform ${open ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z" clipRule="evenodd" />
@@ -90,7 +90,7 @@ function CountrySelector({ country, onChange }: CountrySelectorProps) {
                   onClick={() => { onChange(itemCountry); setOpen(false); setSearch(""); }}
                   className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition ${selected ? "bg-gray-100 font-medium" : "hover:bg-gray-50"}`}
                 >
-                  {ItemFlag ? <ItemFlag title={countryName} className="h-5 w-7 shrink-0 rounded-sm" /> : <div className="h-5 w-7 rounded-sm bg-gray-200" />}
+                  {ItemFlag ? <span className="h-5 w-7 shrink-0 rounded-sm overflow-hidden inline-flex items-center justify-center"><ItemFlag title={countryName} /></span> : <div className="h-5 w-7 rounded-sm bg-gray-200" />}
                   <span className="flex-1 truncate text-gray-700">{countryName}</span>
                   <span className="text-gray-500">+{callingCode}</span>
                 </button>
@@ -314,7 +314,7 @@ export function CheckoutPage() {
                   <div className="flex h-[50px] items-center gap-3 rounded-lg border bg-gray-50 px-4">
                     {flags[phoneCountry] && (() => {
                       const Flag = flags[phoneCountry];
-                      return <Flag title={en[phoneCountry as keyof typeof en]} className="h-5 w-7 rounded-sm" />;
+                      return <span className="h-5 w-7 rounded-sm overflow-hidden inline-flex items-center justify-center"><Flag title={en[phoneCountry as keyof typeof en]} /></span>;
                     })()}
                     <span className="font-medium text-gray-700">{en[phoneCountry as keyof typeof en]}</span>
                     <span className="text-sm text-gray-400">({phoneCountry})</span>

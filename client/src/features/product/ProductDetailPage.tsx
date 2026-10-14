@@ -329,9 +329,6 @@ const handleDeleteVariant = (variantId: string, variantName: string) => {
           open={editOpen}
           shopId={shopId!}
           onOpenChange={setEditOpen}
-          onSubmit={async (_, payload) => {
-            setEditOpen(false);
-          }}
         />
 
         <AddVariantDialog

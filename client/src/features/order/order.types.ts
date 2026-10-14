@@ -24,6 +24,7 @@ export interface CheckoutResponse {
   statusCode: number;
   message: string;
   data: {
+    checkoutId: string;
     orders: CheckoutOrder[];
     totalOrders: number;
     grandTotal: string;

@@ -1,3 +1,8 @@
+export interface ProductImageInput {
+    url: string;
+    isPrimary?: boolean;
+}
+
 export interface CreateProductData {
     shopId:      string
     categoryId:  string | null
@@ -8,6 +13,7 @@ export interface CreateProductData {
     basePrice:   string
     stock:       number
     type:        "PHYSICAL" | "DIGITAL"
+    images?:     ProductImageInput[]
 }
 
 export interface GetShopProductsOptions {
@@ -34,6 +40,7 @@ export interface UpdateProductInput {
     stock?:       number
     categoryId?:  string
     sku?:         string
+    images?:      (string | ProductImageInput)[]
 }
 
 export interface BrowseProductsOptions {

@@ -65,6 +65,19 @@ export const createProductService = async (
         }
     }
 
+    const normalizedImages = (body.images || []).map((img: any, idx: number) => {
+        if (typeof img === "string") {
+            return { url: img, isPrimary: idx === 0 };
+        }
+        return { url: img.url, isPrimary: Boolean(img.isPrimary ?? (idx === 0)) };
+    });
+
+    if (normalizedImages.length > 0 && !normalizedImages.some((img) => img.isPrimary)) {
+        if (normalizedImages[0]) {
+            normalizedImages[0].isPrimary = true;
+        }
+    }
+
     const product = await createProductRepository({
         shopId,
         categoryId: body.categoryId ?? null,
@@ -75,6 +88,7 @@ export const createProductService = async (
         basePrice: body.basePrice,
         stock: body.stock,
         type: body.type ?? "PHYSICAL",
+        images: normalizedImages,
     });
 
     return {
@@ -88,6 +102,7 @@ export const createProductService = async (
         type: product.type,
         status: product.status,
         categoryId: product.categoryId,
+        images: product.images,
         createdAt: product.createdAt,
     };
 };
@@ -189,7 +204,23 @@ export const updateProductService = async (
     if (body.basePrice !== undefined) updateData.basePrice = body.basePrice;
     if (body.stock !== undefined) updateData.stock = body.stock;
 
-    const updated = await updateProductRepository(productId, updateData);
+    let normalizedImages: { url: string; isPrimary: boolean }[] | undefined = undefined;
+    if (body.images !== undefined) {
+        normalizedImages = body.images.map((img: any, idx: number) => {
+            if (typeof img === "string") {
+                return { url: img, isPrimary: idx === 0 };
+            }
+            return { url: img.url, isPrimary: Boolean(img.isPrimary ?? (idx === 0)) };
+        });
+
+        if (normalizedImages.length > 0 && !normalizedImages.some((img) => img.isPrimary)) {
+            if (normalizedImages[0]) {
+                normalizedImages[0].isPrimary = true;
+            }
+        }
+    }
+
+    const updated = await updateProductRepository(productId, updateData, normalizedImages);
 
     return {
         id: updated.id,
@@ -201,6 +232,7 @@ export const updateProductService = async (
         stock: updated.stock,
         categoryId: updated.categoryId,
         status: updated.status,
+        images: updated.images,
     };
 };
 

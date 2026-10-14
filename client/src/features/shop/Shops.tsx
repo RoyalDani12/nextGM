@@ -14,7 +14,6 @@ import {
 import { useNavigate } from "react-router-dom";
 
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
     Card,
     CardContent,
@@ -202,7 +201,7 @@ export const Shops = () => {
                                     </p>
 
                                     <div className="pt-1">
-                                        <CopySlugButton slug={topShop.slug || topShop.profile?.slug || topShop.id} />
+                                        <CopySlugButton slug={topShop.slug || (topShop.profile as any)?.slug || topShop.id} />
                                     </div>
                                 </div>
                             </div>
@@ -251,7 +250,7 @@ export const Shops = () => {
                                 <CardFooter className="flex flex-col p-5 pt-0 space-y-4 border-t border-slate-100 mt-auto">
                                     <div className="flex items-center justify-between w-full pt-4">
                                         <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Route</span>
-                                        <CopySlugButton slug={shop.slug || shop.profile?.slug || shop.id} />
+                                        <CopySlugButton slug={shop.slug || (shop.profile as any)?.slug || shop.id} />
                                     </div>
 
                                     <a

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { Tag, ChevronLeft, ChevronRight } from "lucide-react";
 import type { DealCardProps } from "./DealCard";
 import { DealCard } from "./DealCard";

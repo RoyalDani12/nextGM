@@ -1,4 +1,3 @@
-import React from "react";
 import { AdminNavLinks } from "./AdminNavLinks";
 
 export const AdminSidebar = () => {

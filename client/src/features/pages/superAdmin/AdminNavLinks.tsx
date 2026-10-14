@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
-import useAuthStore from "@/store/useAuthStore";
+// import useAuthStore from "@/store/useAuthStore";
+import { useAuthStore } from "@/store/auth.store";
 
 interface NavItemProps {
   href: string;
@@ -38,7 +39,7 @@ const NavItem = ({ href, icon: Icon, label }: NavItemProps) => {
 };
 
 export const AdminNavLinks = () => {
-  const { logout } = useAuthStore();
+  const { clearAuth } = useAuthStore();
   
   return (
     <div className="flex flex-col h-full justify-between py-2">
@@ -70,7 +71,7 @@ export const AdminNavLinks = () => {
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 px-3 text-destructive hover:bg-destructive/10 hover:text-destructive font-medium"
-          onClick={() => logout()}
+          onClick={() => clearAuth()}
         >
           <LogOut size={18} />
           <span>Sign Out</span>

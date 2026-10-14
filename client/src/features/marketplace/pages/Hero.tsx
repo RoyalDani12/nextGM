@@ -19,10 +19,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProductDetailView } from "../components/ProductDetailView";
-import { FlashDealsSection } from "../components/FlashDealsSection";
 import { DealCard } from "../components/DealCard";
-import type { DealCardProps } from "../components/DealCard";
 import { useMarketplaceProducts } from "../components/marketplace.hooks";
+
+type MarketplaceProduct = {
+  id: string;
+  name: string;
+  basePrice: number | string;
+  type?: string;
+  images?: Array<{ url?: string }>;
+  shop?: { slug?: string; profile?: { name?: string } };
+};
 /* REUSABLE SMOOTH SCROLL REVEAL COMPONENT */
 function ScrollReveal({
   children,
@@ -101,75 +108,6 @@ export default function Hero() {
       title: "Flagship Workstation Setup & Hardware",
       subtitle: "Upgrade your productivity setup with top-rated verified hardware.",
       image: "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=1600&h=900&fit=crop",
-    },
-  ];
-
-  const todaysDeals: DealCardProps[] = [
-    {
-      id: "deal-1",
-      name: "Wireless Noise-Canceling Over-Ear Headphones",
-      price: "49.99",
-      originalPrice: "129.99",
-      discount: "61% OFF",
-      rating: 4.9,
-      reviews: 312,
-      image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&h=600&fit=crop",
-      seller: "TechHub Audio",
-    },
-    {
-      id: "deal-2",
-      name: "Ultra HD 4K Action Camera Waterproof",
-      price: "79.00",
-      originalPrice: "159.00",
-      discount: "50% OFF",
-      rating: 4.7,
-      reviews: 184,
-      image: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&h=600&fit=crop",
-      seller: "ProGear Direct",
-    },
-    {
-      id: "deal-3",
-      name: "Minimalist Mechanical Keyboard RGB",
-      price: "35.50",
-      originalPrice: "75.00",
-      discount: "53% OFF",
-      rating: 4.8,
-      reviews: 95,
-      image: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600&h=600&fit=crop",
-      seller: "KeyCraft Studio",
-    },
-    {
-      id: "deal-4",
-      name: "Smart Fitness Watch Heart Rate Monitor",
-      price: "29.99",
-      originalPrice: "69.99",
-      discount: "57% OFF",
-      rating: 4.6,
-      reviews: 210,
-      image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&h=600&fit=crop",
-      seller: "Pulse Wearables",
-    },
-    {
-      id: "deal-5",
-      name: "Ergonomic Wireless Optical Mouse",
-      price: "19.99",
-      originalPrice: "39.99",
-      discount: "50% OFF",
-      rating: 4.5,
-      reviews: 78,
-      image: "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=600&h=600&fit=crop",
-      seller: "ErgoTech Store",
-    },
-    {
-      id: "deal-6",
-      name: "Portable Bluetooth Speaker Stereo Bass",
-      price: "39.99",
-      originalPrice: "89.99",
-      discount: "55% OFF",
-      rating: 4.8,
-      reviews: 142,
-      image: "https://images.unsplash.com/photo-1545454675-3531b543be5d?w=600&h=600&fit=crop",
-      seller: "SoundMax Gear",
     },
   ];
 
@@ -430,16 +368,6 @@ export default function Hero() {
       {/* MAIN CONTENT CONTAINER WITH SCROLL REVEAL */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
 
-        {/* FLASH DEALS SECTION */}
-        <ScrollReveal delay={100}>
-          <FlashDealsSection
-            deals={todaysDeals.map((deal) => ({
-              ...deal,
-              onSelect: (id) => setSelectedProductId(id),
-            }))}
-          />
-        </ScrollReveal>
-
         {/* LIVE MARKETPLACE FEED SECTION */}
         <div className="space-y-5">
           
@@ -487,7 +415,7 @@ export default function Hero() {
           {/* RESPONSIVE PRODUCT FEED GRID WITH STAGGERED SCROLL REVEAL */}
           {!isLoading && !isError && products.length > 0 && (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3 md:gap-3.5 lg:gap-4">
-              {products.map((product: any, index: number) => (
+              {(products as MarketplaceProduct[]).map((product, index) => (
                 <ScrollReveal key={product.id} delay={(index % 6) * 60}>
                   <DealCard
                     id={product.id}
@@ -495,8 +423,7 @@ export default function Hero() {
                     name={product.name}
                     seller={
                       product.shop?.profile?.name ||
-                      product.shop?.slug ||
-                      "Verified Merchant"
+                      product.shop?.slug
                     }
                     price={product.basePrice}
                     type={product.type}

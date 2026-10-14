@@ -95,7 +95,7 @@ export const AdminShopsPage = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {data?.data.map(shop => (
+                                {data?.shops.map(shop => (
                                     <tr key={shop.id} className="hover:bg-gray-50/60 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
@@ -149,7 +149,7 @@ export const AdminShopsPage = () => {
                                         </td>
                                     </tr>
                                 ))}
-                                {data?.data.length === 0 && (
+                                {data?.shops.length === 0 && (
                                     <tr><td colSpan={8} className="text-center py-12 text-gray-400">No shops found</td></tr>
                                 )}
                             </tbody>

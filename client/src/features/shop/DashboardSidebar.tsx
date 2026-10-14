@@ -115,7 +115,7 @@ export function DashboardSidebar({
             }`}
         >
             <aside
-                className={`flex flex-col h-full bg-white select-none transition-all duration-150 ease-out ${
+                className={`seller-sidebar flex flex-col h-full bg-white select-none transition-all duration-150 ease-out ${
                     isFlyout
                         ? "absolute left-0 top-0 w-64 z-50 rounded-r-2xl border-r border-slate-200 shadow-2xl shadow-slate-900/10"
                         : "w-full"

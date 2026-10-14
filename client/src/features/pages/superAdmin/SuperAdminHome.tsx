@@ -1,6 +1,5 @@
-import React from "react";
 import {
-    Users, Store, CreditCard, ShoppingCart, TrendingUp, TrendingDown, Loader2
+    Users, Store, CreditCard, ShoppingCart, Loader2
 } from "lucide-react";
 import {
     AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -98,7 +97,7 @@ export const SuperAdminHome = () => {
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                         <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                         <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 12 }} />
-                        <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                        <Tooltip formatter={(v: any) => formatCurrency(Number(v || 0))} />
                         <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2} fill="url(#revenueGrad)" name="Revenue" />
                     </AreaChart>
                 </ResponsiveContainer>

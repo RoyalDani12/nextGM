@@ -18,14 +18,17 @@ export interface UploadSignatureResponse {
 
 export const getUploadSignatureRequest = async (
   resourceType: UploadResourceType,
-  shopId: string,
+  resourceId: string,
   mimeType: string
 ): Promise<UploadSignatureResponse> => {
+  const normalizedMimeType =
+    mimeType === "image/jpg" ? "image/jpeg" : mimeType;
+
   const { data } = await api.get("/uploads/signature", {
     params: {
       resourceType,
-      resourceId: shopId,
-      mimeType,
+      resourceId,
+      mimeType: normalizedMimeType,
     },
   });
 
@@ -54,7 +57,8 @@ export const uploadToCloudinary = async (
   );
 
   if (!response.ok) {
-    throw new Error("Failed to upload image");
+    const errData = await response.json().catch(() => null);
+    throw new Error(errData?.error?.message || "Failed to upload image");
   }
 
   return response.json();

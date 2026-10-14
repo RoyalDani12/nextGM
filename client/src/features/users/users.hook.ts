@@ -5,6 +5,9 @@ import {
     getMeRequest, 
     getUploadSignatureRequest, 
     updateProfileRequest, 
+    getSessionsRequest,
+    revokeSessionRequest,
+    revokeOtherSessionsRequest,
 } from "./users.api";
 import { useAuthStore } from "../../store/auth.store";
 import type { 
@@ -35,14 +38,34 @@ export const useUpdateProfile = () => {
 
   return useMutation({
     mutationFn: (payload: UpdateProfilePayload) => updateProfileRequest(payload),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["users", "me"] });
-      
-      const currentUser = queryClient.getQueryData(["users", "me"]) as any;
-      if (currentUser && currentToken) {
-        setAuth({ ...currentUser, ...variables }, currentToken);
+    onSuccess: (response) => {
+      const updatedUser = response.data;
+      queryClient.setQueryData(["users", "me"], updatedUser);
+      if (updatedUser && currentToken) {
+        setAuth(updatedUser, currentToken);
       }
     },
+  });
+};
+
+export const useSessions = () => useQuery({
+  queryKey: ["users", "sessions"],
+  queryFn: getSessionsRequest,
+});
+
+export const useRevokeSession = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: revokeSessionRequest,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["users", "sessions"] }),
+  });
+};
+
+export const useRevokeOtherSessions = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: revokeOtherSessionsRequest,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["users", "sessions"] }),
   });
 };
 

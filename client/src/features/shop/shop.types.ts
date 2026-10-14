@@ -34,7 +34,7 @@ export interface CreateShopResponse {
   success: boolean;
   statusCode: number;
   message: string;
-  data: Shop[];
+  data: Pick<Shop, "id" | "slug" | "status" | "createdAt">;
 }
 
 export interface GetMyShopResponse {
@@ -54,4 +54,21 @@ export interface UpdateShopProfilePayload {
   city?: string;
   country?: string;
   website?: string;
+}
+
+export type PublishReadinessChecks = {
+  hasProfile: boolean;
+  hasName: boolean;
+  hasDescription: boolean;
+  hasLogo: boolean;
+  hasContactInfo: boolean;
+  hasAddress: boolean;
+  hasLegalInfo: boolean;
+  hasAtLeastOneActiveProduct: boolean;
+};
+
+export interface PublishReadiness {
+  shopStatus: ShopStatus;
+  passed: boolean;
+  checks: PublishReadinessChecks;
 }

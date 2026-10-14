@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Eye,
@@ -278,7 +278,7 @@ export const ShopOrdersPage = () => {
           <Select
             value={statusFilter}
             onValueChange={(val) => {
-              setStatusFilter(val);
+              setStatusFilter(val ?? "ALL");
               setCurrentPage(1);
             }}
           >

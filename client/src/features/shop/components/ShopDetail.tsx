@@ -154,12 +154,12 @@ const ShopDetail = () => {
       />
         <CloseShopDialog shop={shop} />
         <div>
-            <Button asChild>
           <Link to={`/dashboard/shops/${shopId}/products`}>
-            <Package className="mr-2 h-4 w-4" />
-            Products
+            <Button>
+              <Package className="mr-2 h-4 w-4" />
+              Products
+            </Button>
           </Link>
-        </Button>
         </div>
     </div>
        

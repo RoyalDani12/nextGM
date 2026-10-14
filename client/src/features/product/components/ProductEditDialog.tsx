@@ -12,8 +12,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import type { Product, UpdateProductPayload } from "../product.types";
-import { getUploadSignatureRequest } from "@/features/users/users.api";
-import { uploadToCloudinary } from "@/features/upload/upload.api";
+import { getUploadSignatureRequest, uploadToCloudinary } from "@/features/upload/upload.api";
 import { useUpdateProduct } from "@/features/product/product.hooks";
 
 interface ProductEditDialogProps {
@@ -21,7 +20,7 @@ interface ProductEditDialogProps {
   product: Product | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (productId: string, payload: UpdateProductPayload) => Promise<void>;
+  onSubmit?: (productId: string, payload: UpdateProductPayload) => Promise<void>;
 }
 
 export interface ImageItem {
@@ -35,7 +34,7 @@ export default function ProductEditDialog({
   product,
   open,
   onOpenChange,
-  // onSubmit,
+  onSubmit,
 }: ProductEditDialogProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -180,7 +179,11 @@ export default function ProductEditDialog({
         images: processedImages,
       };
 
-      await updateProduct({ productId, payload,});
+      if (onSubmit) {
+        await onSubmit(productId, payload);
+      } else {
+        await updateProduct({ productId, payload });
+      }
       onOpenChange(false);
     } catch (error) {
       console.error("Failed to update product:", error);

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ShoppingCart, Search, Command, ChevronDown, Check, User, LogOut,Receipt, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ const LANGUAGES = [
   { code: "fr", name: "Français", country: "fr" },
   { code: "ar", name: "العربية", country: "sa" },
 ];
+type CartGroup = { items: Array<{ quantity: number }> };
 
 export const MarketplaceNavbar = () => {
   const navigate = useNavigate();
@@ -29,9 +30,9 @@ export const MarketplaceNavbar = () => {
   const { data: cartData } = useCart();
 
   const cartItemCount =
-    cartData?.data?.groupedBy?.reduce(
-      (total: number, group: any) =>
-        total + group.items.reduce((groupTotal: number, item: any) => groupTotal + item.quantity, 0),
+    (cartData?.data?.groupedBy as CartGroup[] | undefined)?.reduce(
+      (total, group) =>
+        total + group.items.reduce((groupTotal, item) => groupTotal + item.quantity, 0),
       0
     ) ?? 0;
 
@@ -42,7 +43,7 @@ export const MarketplaceNavbar = () => {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 w-full flex flex-col font-sans antialiased bg-slate-900 select-none border-b border-slate-800 shadow-md">
+    <header className="sticky top-0 z-50 flex w-full flex-col select-none border-b border-slate-800 bg-slate-900 font-sans antialiased shadow-sm">
       {/* Top Banner Strip */}
       <div className="bg-slate-800/90 border-b border-slate-700/50 w-full text-slate-200 px-4 py-1.5 flex items-center justify-center text-xs font-semibold tracking-wide">
         <span className="hidden sm:inline">
@@ -55,7 +56,7 @@ export const MarketplaceNavbar = () => {
       </div>
 
       {/* Main Navbar Bar */}
-      <div className={`w-full transition-all duration-300 ${isScrolled ? "bg-slate-900/95 backdrop-blur-md py-2 shadow-lg" : "bg-slate-900 py-3"}`}>
+      <div className={`w-full transition-all duration-300 ${isScrolled ? "bg-slate-900/95 py-2 shadow-sm backdrop-blur-xl" : "bg-slate-900 py-3"}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-6">
           <MarketplaceMobileMenu
             language={language}

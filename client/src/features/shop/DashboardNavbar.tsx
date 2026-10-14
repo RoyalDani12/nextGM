@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
     Search, Bell, Plus, Menu, User as UserIcon,
     Settings, LogOut, Command, ExternalLink,
@@ -31,6 +31,7 @@ export function DashboardNavbar() {
     const user = useAuthStore((state) => state.user);
     const logout = useLogout();
     const navigate = useNavigate();
+    const { shopId } = useParams<{ shopId: string }>();
     const [isMobileOpen, setIsMobileOpen] = useState(false);
 
     const initials = user?.name
@@ -41,8 +42,8 @@ export function DashboardNavbar() {
         .toUpperCase() || "US";
 
     return (
-        <div className="sticky top-0 z-40 w-full bg-slate-50 pt-3 px-3 pb-2 md:pt-4 md:px-6">
-            <header className="flex items-center justify-between gap-4 w-full h-16 px-3 md:px-5 bg-white border border-slate-200/70 rounded-full shadow-sm">
+        <div className="sticky top-0 z-40 w-full bg-slate-50 pt-3 px-3 pb-2 md:pt-4 md:px-6 dark:bg-[#0b0d12]">
+            <header className="flex items-center justify-between gap-4 w-full h-16 px-3 md:px-5 bg-white border border-slate-200/70 rounded-full shadow-sm dark:border-white/10 dark:!bg-[#171a21] dark:shadow-black/20">
                 <div className="flex items-center gap-3 md:gap-5">
                     <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
                         <SheetTrigger
@@ -146,7 +147,7 @@ export function DashboardNavbar() {
                             render={
                                 <button className="outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-orange-500 rounded-full ml-1 cursor-pointer">
                                     <Avatar className="size-9 ring-2 ring-orange-500/20 ring-offset-2 ring-offset-white shadow-sm">
-                                        <AvatarImage src={user?.profile?.avatar} alt={user?.name} />
+                                        <AvatarImage src={user?.profile?.avatar ?? undefined} alt={user?.name} />
                                         <AvatarFallback className="bg-slate-900 text-white text-xs font-black">
                                             {initials}
                                         </AvatarFallback>
@@ -157,7 +158,7 @@ export function DashboardNavbar() {
                         <DropdownMenuContent align="end" className="w-64 mt-2 p-2 rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
                             <div className="px-4 py-3 bg-slate-50 rounded-2xl border border-slate-100 mb-2 flex items-center gap-3">
                                 <Avatar className="size-10">
-                                    <AvatarImage src={user?.profile?.avatar} alt={user?.name} />
+                                    <AvatarImage src={user?.profile?.avatar ?? undefined} alt={user?.name} />
                                     <AvatarFallback className="bg-orange-100 text-orange-700 text-xs font-black">
                                         {initials}
                                     </AvatarFallback>
@@ -171,7 +172,7 @@ export function DashboardNavbar() {
                                 <DropdownMenuItem onClick={() => navigate("/account/settings")} className="cursor-pointer gap-3 py-2.5 px-3 rounded-2xl text-xs font-bold text-slate-700 focus:bg-slate-100 focus:text-slate-900">
                                     <UserIcon className="size-4 text-slate-400" /> Account Settings
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => navigate("/dashboard/settings")} className="cursor-pointer gap-3 py-2.5 px-3 rounded-2xl text-xs font-bold text-slate-700 focus:bg-slate-100 focus:text-slate-900">
+                                <DropdownMenuItem onClick={() => navigate(`/dashboard/shop/${shopId}/settings`)} className="cursor-pointer gap-3 py-2.5 px-3 rounded-2xl text-xs font-bold text-slate-700 focus:bg-slate-100 focus:text-slate-900">
                                     <Settings className="size-4 text-slate-400" /> Workspace Settings
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>

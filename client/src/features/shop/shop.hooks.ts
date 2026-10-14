@@ -1,6 +1,6 @@
 import { useQuery,useMutation,useQueryClient } from "@tanstack/react-query";
 
-import { createShopRequest,getMyShopRequest ,updateShopStatusRequest,updateShopProfileRequest,closeShopRequest} from "./shop.api";
+import { createShopRequest,getMyShopRequest ,updateShopStatusRequest,updateShopProfileRequest,closeShopRequest, getPublishReadinessRequest, publishShopRequest} from "./shop.api";
 import {
   getUploadSignatureRequest,
   uploadToCloudinary,
@@ -173,6 +173,25 @@ export const useUpdateShopOrderStatus = () => {
           variables.orderId,
         ],
       });
+    },
+  });
+};
+
+export const usePublishReadiness = (shopId: string) => useQuery({
+  queryKey: ["shop-publish-readiness", shopId],
+  queryFn: () => getPublishReadinessRequest(shopId),
+  enabled: Boolean(shopId),
+  refetchInterval: 10_000,
+  refetchOnWindowFocus: true,
+});
+
+export const usePublishShop = (shopId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => publishShopRequest(shopId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shop-publish-readiness", shopId] });
+      queryClient.invalidateQueries({ queryKey: ["my-shops"] });
     },
   });
 };

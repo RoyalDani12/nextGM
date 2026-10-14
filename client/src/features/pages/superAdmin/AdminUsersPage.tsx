@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Loader2, ChevronLeft, ChevronRight, User } from "lucide-react";
-import { useAdminUsers, useUpdateUserRole, useUpdateUserStatus } from "@/features/admin/admin.hooks";
+import { useAdminUsers, useUpdateUserStatus } from "@/features/admin/admin.hooks";
 
 const ROLES = ["", "CUSTOMER", "SHOP_OWNER", "SUPER_ADMIN"];
 const STATUSES = ["", "ACTIVE", "PENDING", "SUSPENDED", "DEACTIVATED"];
@@ -44,7 +44,6 @@ export const AdminUsersPage = () => {
     const [page, setPage] = useState(1);
 
     const { data, isLoading, isError } = useAdminUsers({ search, role, status, page, limit: 20 });
-    const updateRole = useUpdateUserRole();
     const updateStatus = useUpdateUserStatus();
 
     const handleSearch = (e: React.FormEvent) => {
@@ -117,7 +116,7 @@ export const AdminUsersPage = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {data?.data.map(user => (
+                                {data?.users.map(user => (
                                     <tr key={user.id} className="hover:bg-gray-50/60 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
@@ -162,7 +161,7 @@ export const AdminUsersPage = () => {
                                         </td>
                                     </tr>
                                 ))}
-                                {data?.data.length === 0 && (
+                                {data?.users.length === 0 && (
                                     <tr><td colSpan={6} className="text-center py-12 text-gray-400">No users found</td></tr>
                                 )}
                             </tbody>

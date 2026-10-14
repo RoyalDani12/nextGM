@@ -21,9 +21,11 @@ export interface UserProfile {
 
 export interface Session {
     id: string;
-    userAgent: string;
+    deviceName: string;
     ipAddress: string;
-    lastActive: string;
+    createdAt: string;
+    expiresAt: string;
+    isCurrentSession: boolean;
 }
 
 // Payloads (Data sent to the backend)

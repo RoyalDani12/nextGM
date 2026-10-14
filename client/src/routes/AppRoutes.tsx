@@ -23,9 +23,8 @@ import { AdminShopDetailPage } from "@/features/pages/superAdmin/AdminShopDetail
 import { CreateShopPage } from "@/features/shop/CreateShopPage";
 // import Pricing from "@/features/pages/public/Pricing";
 import Pricing from "@/features/marketplace/pages/Pricing";
-import { Shops } from "@/features/shop/Shops";
-// import ShopDetail from "@/components/layout/shop/ShopDetail";
-import ShopDetail from "@/features/shop/components/ShopDetail";
+// import { Shops } from "@/features/shop/Shops";
+// import ShopDetail from "@/features/shop/components/ShopDetail";
 import ProductPage from "@/features/product/ProductPage";
 import ProductDetailPage from "@/features/product/ProductDetailPage";
 import { CartPage } from "@/features/cart/CartPage";

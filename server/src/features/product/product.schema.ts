@@ -45,7 +45,15 @@ export const createProductSchema = z.object({
             categoryId: z.string().cuid("Invalid category ID format.").optional(),
 
             images: z
-                .array(z.string().url("Each image must be a valid asset URL."))
+                .array(
+                    z.union([
+                        z.string().url("Each image must be a valid asset URL."),
+                        z.object({
+                            url: z.string().url("Each image must be a valid asset URL."),
+                            isPrimary: z.boolean().optional(),
+                        }),
+                    ])
+                )
                 .max(10, "You can upload a maximum of 10 images.")
                 .default([]),
             sku: z.string().optional(),
@@ -116,6 +124,19 @@ export const updateProductSchema = z.object({
             .string()
             .trim()
             .max(100, "SKU cannot exceed 100 characters.")
+            .optional(),
+
+        images: z
+            .array(
+                z.union([
+                    z.string().url("Each image must be a valid asset URL."),
+                    z.object({
+                        url: z.string().url("Each image must be a valid asset URL."),
+                        isPrimary: z.boolean().optional(),
+                    }),
+                ])
+            )
+            .max(10, "You can upload a maximum of 10 images.")
             .optional(),
 
     }).strict()

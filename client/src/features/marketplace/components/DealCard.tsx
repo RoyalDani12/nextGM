@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { Camera, Check, Heart, PackageOpen } from "lucide-react";
 
 export interface DealCardProps {
@@ -26,16 +26,17 @@ export function DealCard({
   id,
   image,
   name,
+  seller,
   price,
   originalPrice,
   discount,
-  moq = "1 pc",
-  sold = "200+",
-  reorderRate = "17%",
-  verified = true,
-  years = 2,
-  country = "CN",
-  badge = "Super",
+  moq,
+  sold,
+  reorderRate,
+  verified,
+  years,
+  country,
+  badge,
   onSelect,
 }: DealCardProps) {
   const [isLiked, setIsLiked] = useState(false);
@@ -87,14 +88,11 @@ export function DealCard({
         <div className="space-y-1 px-0.5">
           {/* Badges */}
           <div className="flex items-center gap-1 flex-wrap">
-            {badge && (
+            {(badge || discount) && (
               <span className="bg-orange-500 text-white font-extrabold text-[8px] px-1 py-0.2 rounded uppercase tracking-wider">
-                {badge}
+                {badge || discount}
               </span>
             )}
-            <span className="text-[8px] font-bold text-slate-500 border border-slate-200 px-0.5 py-0.2 rounded">
-              CE
-            </span>
           </div>
 
           {/* Title */}
@@ -123,18 +121,18 @@ export function DealCard({
           </div>
 
           {/* MOQ & Sales */}
-          <div className="text-[10px] text-slate-800 font-medium leading-none truncate">
-            MOQ: {moq} <span className="text-slate-400 font-normal ml-0.5">{sold} sold</span>
-          </div>
+          {(moq || sold) && <div className="text-[10px] text-slate-800 font-medium leading-none truncate">{moq && <>MOQ: {moq}</>} {sold && <span className="text-slate-400 font-normal ml-0.5">{sold} sold</span>}</div>}
 
           {/* Verification & Supplier Info */}
-          <div className="flex items-center gap-1 text-[10px] pt-1 border-t border-slate-100 truncate">
+          {(verified || years || country || seller) && <div className="flex items-center gap-1 text-[10px] pt-1 border-t border-slate-100 truncate">
             {verified && (
               <span className="text-sky-600 font-bold tracking-tight">Verified</span>
             )}
-            <span className="text-slate-500">{years}yr</span>
-            <span className="text-slate-400 font-medium uppercase">{country}</span>
+            {years && <span className="text-slate-500">{years}yr</span>}
+            {country && <span className="text-slate-400 font-medium uppercase">{country}</span>}
+            {seller && <span className="truncate text-slate-500">{seller}</span>}
           </div>
+          }
         </div>
       </div>
     </div>

@@ -45,6 +45,20 @@ export const createProductRepository = async (data: CreateProductData) => {
             stock: data.stock,
             type: data.type,
             status: "DRAFT",
+            ...(data.images && data.images.length > 0 && {
+                images: {
+                    create: data.images.map((img, idx) => ({
+                        url: img.url,
+                        isPrimary: Boolean(img.isPrimary ?? (idx === 0)),
+                    })),
+                },
+            }),
+        },
+        include: {
+            images: {
+                select: { id: true, url: true, isPrimary: true },
+                orderBy: { isPrimary: "desc" },
+            },
         },
     });
 };
@@ -65,6 +79,7 @@ export const getShopProductsRepository = async (options: GetShopProductsOptions)
                 id: true,
                 name: true,
                 slug: true,
+                description: true,
                 sku: true,
                 basePrice: true,
                 stock: true,
@@ -73,9 +88,11 @@ export const getShopProductsRepository = async (options: GetShopProductsOptions)
                 categoryId: true,
                 createdAt: true,
                 images: {
-                    where: { isPrimary: true },
-                    select: { url: true },
-                    take: 1,
+                    select: { id: true, url: true, isPrimary: true },
+                    orderBy: { isPrimary: "desc" },
+                },
+                variants: {
+                    select: { id: true, name: true, price: true, stock: true, sku: true },
                 },
             },
             orderBy: { [sort]: order },
@@ -95,10 +112,21 @@ export const findProductById = async (productId: string) => {
             shopId: true,
             name: true,
             slug: true,
+            description: true,
+            basePrice: true,
+            stock: true,
+            type: true,
             categoryId: true,
             sku: true,
             status: true,
             deletedAt: true,
+            images: {
+                select: { id: true, url: true, isPrimary: true },
+                orderBy: { isPrimary: "desc" },
+            },
+            variants: {
+                select: { id: true, name: true, price: true, stock: true, sku: true },
+            },
         },
     });
 };
@@ -114,10 +142,34 @@ export const updateProductRepository = async (
         categoryId: string | null;
         sku: string;
     }>,
+    images?: { url: string; isPrimary: boolean }[],
 ) => {
-    return prisma.product.update({
-        where: { id: productId },
-        data,
+    return prisma.$transaction(async (tx) => {
+        if (images !== undefined) {
+            await tx.productImage.deleteMany({
+                where: { productId },
+            });
+            if (images.length > 0) {
+                await tx.productImage.createMany({
+                    data: images.map((img, idx) => ({
+                        productId,
+                        url: img.url,
+                        isPrimary: Boolean(img.isPrimary ?? (idx === 0)),
+                    })),
+                });
+            }
+        }
+
+        return tx.product.update({
+            where: { id: productId },
+            data,
+            include: {
+                images: {
+                    select: { id: true, url: true, isPrimary: true },
+                    orderBy: { isPrimary: "desc" },
+                },
+            },
+        });
     });
 };
 
@@ -254,9 +306,9 @@ export const browseProductRepository = async (options: BrowseProductsOptions) =>
                     },
                 },
                 images: {
-                    where: { isPrimary: true },
-                    select: { url: true },
-                    take: 1,
+                    select: { id: true, url: true, isPrimary: true },
+                    orderBy: { isPrimary: "desc" },
+                    take: 2,
                 },
                 category: {
                     select: { name: true, slug: true },

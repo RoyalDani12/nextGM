@@ -1,0 +1,13 @@
+import { Laptop, Loader2, LogOut, MonitorSmartphone, ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useRevokeOtherSessions, useRevokeSession, useSessions } from "./users.hook";
+
+export default function SessionsSection() {
+  const { data: sessions = [], isLoading, isError } = useSessions();
+  const revokeSession = useRevokeSession();
+  const revokeOthers = useRevokeOtherSessions();
+  if (isLoading) return <div className="flex h-28 items-center justify-center"><Loader2 className="size-5 animate-spin text-orange-500" /></div>;
+  if (isError) return <p className="rounded-2xl bg-rose-50 p-4 text-sm text-rose-700">We couldn’t load your active sessions. Please try again.</p>;
+  const otherSessions = sessions.filter((session) => !session.isCurrentSession);
+  return <div className="space-y-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="font-semibold text-slate-900">Signed-in devices</h3><p className="mt-1 text-sm text-slate-500">Review every browser with access to your account.</p></div><Button variant="outline" size="sm" disabled={!otherSessions.length || revokeOthers.isPending} onClick={() => revokeOthers.mutate()} className="rounded-full border-slate-200">{revokeOthers.isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : <LogOut className="mr-2 size-4" />}Sign out other devices</Button></div><div className="space-y-2">{sessions.map((session) => <div key={session.id} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-4"><div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-slate-600 shadow-sm"><MonitorSmartphone className="size-5" /></div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="truncate text-sm font-semibold text-slate-900">{session.deviceName}</p>{session.isCurrentSession && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700"><ShieldCheck className="size-3" /> This device</span>}</div><p className="mt-1 text-xs text-slate-500">{session.ipAddress} · Signed in {new Date(session.createdAt).toLocaleDateString()}</p></div>{!session.isCurrentSession && <Button variant="ghost" size="sm" disabled={revokeSession.isPending} onClick={() => revokeSession.mutate(session.id)} className="rounded-full text-rose-600 hover:bg-rose-50 hover:text-rose-700">Sign out</Button>}</div>)}{!sessions.length && <div className="rounded-2xl bg-slate-50 p-5 text-center text-sm text-slate-500"><Laptop className="mx-auto mb-2 size-5" />No active sessions found.</div>}</div></div>;
+}

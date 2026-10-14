@@ -27,19 +27,26 @@ export interface CreateProductResponse {
   data: Product;
 }
 
+export interface ProductImageItem {
+  id?: string;
+  url: string;
+  isPrimary?: boolean;
+}
+
 export interface Product {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   basePrice: number;
   stock: number;
   type: ProductType;
   categoryId?: string | null;
- images: (string | { url: string })[];
+  images: (string | ProductImageItem)[];
   sku?: string | null;
   status?: string;
   createdAt?: string;
-  shopId?:string;
+  shopId?: string;
+  variants?: any[];
 }
 
 export interface ProductPagination {

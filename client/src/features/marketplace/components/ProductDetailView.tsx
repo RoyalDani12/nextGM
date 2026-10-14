@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Heart,
   CheckCircle2,
@@ -12,7 +12,6 @@ import {
   Star,
   Sparkles,
   Store as StoreIcon,
-  Layers,
   Tag,
   X,
   Loader2,
