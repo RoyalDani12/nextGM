@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { Camera, Check, Heart, PackageOpen } from "lucide-react";
+import { useWishlist, useWishlistToggle } from "./marketplace.hooks";
+import { toast } from "@/components/ui/toast";
 
 export interface DealCardProps {
   id: string;
@@ -39,9 +40,47 @@ export function DealCard({
   badge,
   onSelect,
 }: DealCardProps) {
-  const [isLiked, setIsLiked] = useState(false);
+  const { data: wishlist = [] } = useWishlist();
+  const wishlistToggle = useWishlistToggle();
+  const isLiked = wishlist.some((item) => item.productId === id);
 
   const numericPrice = typeof price === "number" ? price : parseFloat(price) || 0;
+
+  const handleToggleWishlist = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Do not trigger onSelect (opening the detail drawer)
+    wishlistToggle.mutate(
+      {
+        productId: id,
+        saved: isLiked,
+        productData: {
+          id,
+          name,
+          basePrice: numericPrice,
+          stock: 10,
+          shop: { slug: seller || "store", profile: { name: seller || "Store" } },
+          images: image ? [{ url: image }] : [],
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.add({
+            title: isLiked ? "Removed from wishlist" : "Added to wishlist",
+            description: isLiked
+              ? `"${name}" was removed from your wishlist.`
+              : `"${name}" was saved to your wishlist.`,
+            type: "success",
+          });
+        },
+        onError: () => {
+          toast.add({
+            title: "Failed to update wishlist",
+            description: "Please try again.",
+            type: "error",
+          });
+        },
+      }
+    );
+  };
 
   return (
     <div
@@ -73,14 +112,16 @@ export function DealCard({
           {/* Top-Right Wishlist Icon */}
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsLiked(!isLiked);
-            }}
-            className="absolute top-1 right-1 z-10 p-1 rounded-full bg-white/80 hover:bg-white text-slate-400 hover:text-rose-600 transition-colors shadow-xs"
-            aria-label="Save item"
+            onClick={handleToggleWishlist}
+            disabled={wishlistToggle.isPending}
+            className="absolute top-1 right-1 z-20 p-1.5 rounded-full bg-white/90 hover:bg-white text-slate-400 hover:text-rose-600 transition-all shadow-xs cursor-pointer"
+            aria-label={isLiked ? "Remove from wishlist" : "Save to wishlist"}
           >
-            <Heart className={`h-3 w-3 ${isLiked ? "fill-rose-600 text-rose-600" : ""}`} />
+            <Heart
+              className={`h-3.5 w-3.5 transition-transform active:scale-125 ${
+                isLiked ? "fill-rose-600 text-rose-600" : "text-slate-400 hover:text-rose-600"
+              }`}
+            />
           </button>
         </div>
 

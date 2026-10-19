@@ -1,33 +1,28 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShoppingCart, Search, Command, ChevronDown, Check, User, LogOut,Receipt, Package } from "lucide-react";
+import { ShoppingCart, Search, Command, ChevronDown, Check, User, LogOut,Receipt, Package, Heart } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuthStore } from "@/store/auth.store";
 import { useLogout } from "@/features/auth/auth.hooks";
 import { useCart } from "@/features/cart/cart.hook";
+import { useWishlist } from "../components/marketplace.hooks";
 import { MarketplaceDesktopNav } from "../components/MarketplaceDesktopNav";
 import { MarketplaceMobileMenu } from "../components/MarketplaceMobileMenu";
 
-const LANGUAGES = [
-  { code: "en", name: "English", country: "us" },
-  { code: "am", name: "አማርኛ", country: "et" },
-  { code: "fr", name: "Français", country: "fr" },
-  { code: "ar", name: "العربية", country: "sa" },
-];
 type CartGroup = { items: Array<{ quantity: number }> };
 
 export const MarketplaceNavbar = () => {
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [language, setLanguage] = useState(LANGUAGES[0]);
 
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
   const { mutate: logout, isPending: isLoggingOut } = useLogout();
   const { data: cartData } = useCart();
+  const { data: wishlistItems = [] } = useWishlist();
 
   const cartItemCount =
     (cartData?.data?.groupedBy as CartGroup[] | undefined)?.reduce(
@@ -35,6 +30,8 @@ export const MarketplaceNavbar = () => {
         total + group.items.reduce((groupTotal, item) => groupTotal + item.quantity, 0),
       0
     ) ?? 0;
+
+  const wishlistItemCount = wishlistItems.length;
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
@@ -59,8 +56,6 @@ export const MarketplaceNavbar = () => {
       <div className={`w-full transition-all duration-300 ${isScrolled ? "bg-slate-900/95 py-2 shadow-sm backdrop-blur-xl" : "bg-slate-900 py-3"}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-6">
           <MarketplaceMobileMenu
-            language={language}
-            setLanguage={setLanguage}
             isAuthenticated={isAuthenticated}
             logout={() => logout()}
             isLoggingOut={isLoggingOut}
@@ -84,7 +79,26 @@ export const MarketplaceNavbar = () => {
             </div>
           </div>
 
-          <MarketplaceDesktopNav cartItemCount={cartItemCount} onCart={() => navigate("/cart")} />
+          <MarketplaceDesktopNav
+            cartItemCount={cartItemCount}
+            onCart={() => navigate("/cart")}
+            wishlistItemCount={wishlistItemCount}
+            onWishlist={() => navigate("/wishlist")}
+          />
+
+          {/* Mobile Wishlist Button */}
+          <button
+            onClick={() => navigate("/wishlist")}
+            className="lg:hidden relative flex items-center justify-center p-2 text-slate-300 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer"
+            aria-label="Wishlist"
+          >
+            <Heart className="size-6" />
+            {wishlistItemCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 flex items-center justify-center rounded-full bg-rose-500 text-[11px] font-extrabold text-white shadow-xs">
+                {wishlistItemCount}
+              </span>
+            )}
+          </button>
 
           {/* Mobile Cart Button */}
           <button
@@ -101,44 +115,6 @@ export const MarketplaceNavbar = () => {
           </button>
 
           <div className="flex items-center gap-3">
-            {/* Language Selector */}
-            <DropdownMenu>
-              <DropdownMenuTrigger className="hidden lg:flex items-center gap-2 text-sm font-semibold text-slate-300 hover:text-white transition-all outline-none px-2.5 py-1.5 rounded-xl hover:bg-slate-800 cursor-pointer border border-transparent hover:border-slate-700">
-                <img
-                  src={`https://flagcdn.com/${language.country}.svg`}
-                  alt={language.name}
-                  className="w-6 h-4 rounded-xs object-cover border border-slate-700 shadow-xs"
-                />
-                <span className="uppercase font-bold text-xs tracking-wider">{language.code}</span>
-                <ChevronDown className="size-3.5 opacity-60" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-slate-900 p-1.5 shadow-2xl border border-slate-800 rounded-2xl">
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2.5 py-1.5">Choose Language</div>
-                <DropdownMenuSeparator className="bg-slate-800 my-1" />
-                {LANGUAGES.map((lang) => {
-                  const isSelected = language.code === lang.code;
-                  return (
-                    <DropdownMenuItem
-                      key={lang.code}
-                      onClick={() => setLanguage(lang)}
-                      className={`cursor-pointer font-medium text-sm flex items-center justify-between py-2 px-2.5 rounded-xl ${
-                        isSelected ? "bg-orange-500/10 text-orange-400 font-semibold" : "text-slate-300 focus:bg-slate-800 focus:text-white"
-                      }`}
-                    >
-                      <div className="flex items-center">
-                        <img src={`https://flagcdn.com/${lang.country}.svg`} alt={lang.name} className="w-6 h-4 mr-3 rounded-xs object-cover border border-slate-700" />
-                        <span className="uppercase font-bold text-xs mr-2 text-slate-500">[{lang.code}]</span>
-                        <span>{lang.name}</span>
-                      </div>
-                      <Check className={isSelected ? "size-4 text-orange-500" : "size-4 opacity-0"} />
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <div className="hidden sm:block h-5 w-px bg-slate-800 mx-1" />
-
             {/* Auth Actions */}
             {!isAuthenticated ? (
               <div className="hidden sm:flex items-center gap-2">
@@ -182,14 +158,25 @@ export const MarketplaceNavbar = () => {
                     >
                       <Package className="mr-2 size-4 text-slate-400" /> See Your Shops
                     </DropdownMenuItem>
-                    {/* </DropdownMenuItem> */}
                     <DropdownMenuItem
                       onClick={() => navigate("/customer-order")}
                       className="cursor-pointer rounded-xl focus:bg-slate-800 focus:text-white"
                     >
-                      <Receipt className="mr-2 size-4 text-slate-400" />Your Order
+                      <Receipt className="mr-2 size-4 text-slate-400" />Your Orders
                     </DropdownMenuItem>
-                         </div>
+                    <DropdownMenuItem
+                      onClick={() => navigate("/wishlist")}
+                      className="cursor-pointer rounded-xl focus:bg-slate-800 focus:text-white"
+                    >
+                      <Heart className="mr-2 size-4 text-rose-400" />
+                      <span>My Wishlist</span>
+                      {wishlistItemCount > 0 && (
+                        <span className="ml-auto text-xs font-bold px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-400">
+                          {wishlistItemCount}
+                        </span>
+                      )}
+                    </DropdownMenuItem>
+                  </div>
                   <DropdownMenuSeparator className="bg-slate-800" />
                   <div className="p-1">
                     <DropdownMenuItem

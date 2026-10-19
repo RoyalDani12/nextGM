@@ -21,10 +21,6 @@ import { AdminShopsPage } from "@/features/pages/superAdmin/AdminShopsPage";
 import { AdminShopDetailPage } from "@/features/pages/superAdmin/AdminShopDetailPage";
 // import  { createShopPage } from "@features/shop/CreateShopPage"
 import { CreateShopPage } from "@/features/shop/CreateShopPage";
-// import Pricing from "@/features/pages/public/Pricing";
-import Pricing from "@/features/marketplace/pages/Pricing";
-// import { Shops } from "@/features/shop/Shops";
-// import ShopDetail from "@/features/shop/components/ShopDetail";
 import ProductPage from "@/features/product/ProductPage";
 import ProductDetailPage from "@/features/product/ProductDetailPage";
 import { CartPage } from "@/features/cart/CartPage";
@@ -33,6 +29,7 @@ import PaymentPage from "@/features/payment/PaymentPage";
 import { OrderConfirmationPage } from "@/features/order/OrderConfirmationPage";
 import CustomerOrderDetailPage from "@/features/customer/CustomerOrderDetailPage";
 import { ShopOrdersPage } from "@/features/shop/ShopOrdersPage";
+import { ShopReviewsPage } from "@/features/shop/ShopReviewsPage";
 const DashboardSettings = () => <div className="p-6 font-semibold">Settings Page</div>;
 const DashboardAnalytics = () => <div className="p-6 font-semibold">Analitics Page</div>;
 import { PayoutDashboard as DashboardPayouts } from "@/features/shop/payouts/PayoutDashboard";
@@ -42,6 +39,8 @@ import ShopSelectionPage from "@/features/shop/ShopSelectionPage";
 // import ShopOrderDetailPage from "@/components/layout/shop/ShopOrderDetailPage";
 import ShopOrderDetailPage from "@/features/shop/components/ShopOrderDetailPage";
 import { AdminCategoriesPage } from "@/features/pages/superAdmin/AdminCategoriesPage";
+import { AdminReviewsPage } from "@/features/pages/superAdmin/AdminReviewsPage";
+import WishlistPage from "@/features/customer/WishlistPage";
 export function AppRoutes() {
    return (
       <Routes>
@@ -54,7 +53,7 @@ export function AppRoutes() {
          <Route path="/forgot-password" element={<ForgetPassword />} />
          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-         <Route path="/pricing" element={<Pricing />} />
+         <Route path="/wishlist" element={<WishlistPage />} />
          <Route path="/cart" element={<CartPage />} />
 
          {/* 2. SHARED PROTECTED ROUTES */}
@@ -78,6 +77,7 @@ export function AppRoutes() {
                <Route path="products/:productId" element={<ProductDetailPage />} />
                <Route path="orders/:orderId" element={<ShopOrderDetailPage />} />
                <Route path="orders" element={<ShopOrdersPage />} />
+               <Route path="reviews" element={<ShopReviewsPage />} />
                <Route path="analytics" element={<DashboardAnalytics />} />
                <Route path="discounts" element={<DashboardDiscounts />} />
                <Route path="payouts" element={<DashboardPayouts />} />
@@ -99,6 +99,7 @@ export function AppRoutes() {
                <Route path="/superadmin/shops" element={<AdminShopsPage />} />
                <Route path="/superadmin/shops/:id" element={<AdminShopDetailPage />} />
                <Route path="/superadmin/categories" element={<AdminCategoriesPage />} />
+               <Route path="/superadmin/reviews" element={<AdminReviewsPage />} />
             </Route>
          </Route>
          <Route path="*" element={<div className="flex min-h-screen items-center justify-center p-6 text-center"><div><h1 className="text-2xl font-bold">Page not found</h1><p className="mt-2 text-gray-600">The page you requested does not exist.</p></div></div>} />

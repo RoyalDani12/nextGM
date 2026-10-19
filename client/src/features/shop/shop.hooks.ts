@@ -1,6 +1,18 @@
 import { useQuery,useMutation,useQueryClient } from "@tanstack/react-query";
 
-import { createShopRequest,getMyShopRequest ,updateShopStatusRequest,updateShopProfileRequest,closeShopRequest, getPublishReadinessRequest, publishShopRequest} from "./shop.api";
+import {
+  createShopRequest,
+  getMyShopRequest,
+  updateShopStatusRequest,
+  updateShopProfileRequest,
+  closeShopRequest,
+  getPublishReadinessRequest,
+  publishShopRequest,
+  getShopReviewsRequest,
+  replyShopReviewRequest,
+  deleteShopReviewReplyRequest,
+  type ShopReviewsFilters,
+} from "./shop.api";
 import {
   getUploadSignatureRequest,
   uploadToCloudinary,
@@ -195,3 +207,33 @@ export const usePublishShop = (shopId: string) => {
     },
   });
 };
+
+export const useShopReviews = (shopId: string, filters?: ShopReviewsFilters) => {
+  return useQuery({
+    queryKey: ["shop-reviews", shopId, filters],
+    queryFn: () => getShopReviewsRequest(shopId, filters),
+    enabled: !!shopId,
+  });
+};
+
+export const useReplyShopReview = (shopId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ reviewId, comment }: { reviewId: string; comment: string }) =>
+      replyShopReviewRequest(reviewId, comment),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shop-reviews", shopId] });
+    },
+  });
+};
+
+export const useDeleteShopReviewReply = (shopId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (reviewId: string) => deleteShopReviewReplyRequest(reviewId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shop-reviews", shopId] });
+    },
+  });
+};
+

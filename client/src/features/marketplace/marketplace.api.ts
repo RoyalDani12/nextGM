@@ -21,3 +21,34 @@ export const fetchMarketplaceCategories = async (): Promise<MarketplaceCategory[
   const { data } = await api.get("/categories");
   return data?.data || [];
 };
+export const fetchProductReviews = async (productId: string) => (await api.get(`/products/${productId}/reviews`)).data.data;
+export type ProductReviewInput = { rating: number; comment?: string };
+export const saveProductReview = async (productId: string, review: ProductReviewInput) => (await api.post(`/products/${productId}/reviews`, review)).data.data;
+export const deleteProductReview = async (reviewId: string) => (await api.delete(`/reviews/${reviewId}`)).data;
+export type WishlistItem = {
+  id: string;
+  userId: string;
+  productId: string;
+  createdAt: string;
+  product: {
+    id: string;
+    name: string;
+    slug?: string;
+    sku?: string | null;
+    basePrice: number | string;
+    stock: number;
+    status?: string;
+    type?: string;
+    shop?: {
+      id: string;
+      slug: string;
+      profile?: { name: string; logo?: string | null } | null;
+    };
+    images: { id?: string; url: string; isPrimary?: boolean }[];
+  };
+};
+
+export const addWishlistItem = async (productId: string) => (await api.post(`/wishlist/${productId}`)).data.data;
+export const removeWishlistItem = async (productId: string) => (await api.delete(`/wishlist/${productId}`)).data;
+export const fetchWishlist = async (): Promise<WishlistItem[]> => (await api.get("/wishlist")).data.data;
+

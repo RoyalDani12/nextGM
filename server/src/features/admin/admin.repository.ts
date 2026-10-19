@@ -178,3 +178,110 @@ export const getShopByIdAdmin = async (id: string) => {
 export const updateShopStatusAdmin = async (id: string, status: string) => {
     return prisma.shop.update({ where: { id }, data: { status: status as any } });
 };
+
+// ─────────────────────────────────────────────
+// REVIEWS
+// ─────────────────────────────────────────────
+export const listReviewsAdmin = async (filters: {
+    search?: string;
+    rating?: number;
+    isVisible?: boolean;
+    shopId?: string;
+    page?: number;
+    limit?: number;
+}) => {
+    const { search, rating, isVisible, shopId, page = 1, limit = 20 } = filters;
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+        ...(typeof isVisible === "boolean" ? { isVisible } : {}),
+        ...(rating && !isNaN(rating) ? { rating } : {}),
+        ...(shopId ? { shopId } : {}),
+        ...(search
+            ? {
+                  OR: [
+                      { comment: { contains: search, mode: "insensitive" } },
+                      { product: { name: { contains: search, mode: "insensitive" } } },
+                      { user: { name: { contains: search, mode: "insensitive" } } },
+                      { user: { email: { contains: search, mode: "insensitive" } } },
+                  ],
+              }
+            : {}),
+    };
+
+    const [reviews, total, allReviews] = await Promise.all([
+        prisma.review.findMany({
+            where,
+            skip,
+            take: limit,
+            orderBy: { createdAt: "desc" },
+            include: {
+                product: {
+                    select: {
+                        id: true,
+                        name: true,
+                        slug: true,
+                        images: { take: 1, orderBy: { isPrimary: "desc" }, select: { url: true } },
+                    },
+                },
+                shop: {
+                    select: {
+                        id: true,
+                        slug: true,
+                        profile: { select: { name: true } },
+                    },
+                },
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+                reply: true,
+            },
+        }),
+        prisma.review.count({ where }),
+        prisma.review.findMany({
+            select: { rating: true, isVisible: true },
+        }),
+    ]);
+
+    const totalPlatformReviews = allReviews.length;
+    const visibleCount = allReviews.filter((r) => r.isVisible).length;
+    const hiddenCount = totalPlatformReviews - visibleCount;
+    const avgRating =
+        totalPlatformReviews > 0
+            ? Number((allReviews.reduce((sum, r) => sum + r.rating, 0) / totalPlatformReviews).toFixed(1))
+            : 0;
+
+    return {
+        reviews,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        stats: {
+            totalPlatformReviews,
+            visibleCount,
+            hiddenCount,
+            avgRating,
+        },
+    };
+};
+
+export const updateReviewVisibilityAdmin = async (id: string, isVisible: boolean) => {
+    return prisma.review.update({
+        where: { id },
+        data: { isVisible },
+        select: { id: true, isVisible: true },
+    });
+};
+
+export const deleteReviewAdmin = async (id: string) => {
+    await prisma.reviewReply.deleteMany({ where: { reviewId: id } });
+    return prisma.review.delete({
+        where: { id },
+    });
+};
+

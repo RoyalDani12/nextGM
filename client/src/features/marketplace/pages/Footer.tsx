@@ -84,7 +84,6 @@ export default function Footer() {
                     <div className="flex flex-col gap-3">
                         <p className="font-bold text-white text-sm tracking-wide">Engine & Payment</p>
                         <ul className="flex flex-col gap-2.5">
-                            <li><Link to="/pricing" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Plans & Pricing</Link></li>
                             <li><Link to="/integrations" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Nexions Business Card</Link></li>
                             <li><Link to="/currency" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Global Currency Converter</Link></li>
                         </ul>

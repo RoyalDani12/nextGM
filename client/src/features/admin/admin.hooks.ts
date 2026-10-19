@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-// import { adminApi, AdminUserFilters, AdminShopFilters } from "./admin.api";
-import  { adminApi, type AdminShopFilters, type AdminUserFilters } from "./admin.api";
+import { adminApi, type AdminShopFilters, type AdminUserFilters, type AdminReviewFilters } from "./admin.api";
 // import { toast } from "react-hot-toast";
 
 export const useAdminStats = () =>
@@ -71,3 +70,33 @@ export const useUpdateShopStatus = () => {
         onError: (err: any) => alert(err?.response?.data?.message ?? "Failed to update shop status"),
     });
 };
+
+export const useAdminReviews = (filters: AdminReviewFilters) =>
+    useQuery({
+        queryKey: ["admin", "reviews", filters],
+        queryFn: () => adminApi.listReviews(filters),
+        staleTime: 30_000,
+        placeholderData: (prev) => prev,
+    });
+
+export const useToggleReviewVisibility = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, isVisible }: { id: string; isVisible: boolean }) =>
+            adminApi.toggleReviewVisibility(id, isVisible),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ["admin", "reviews"] });
+        },
+    });
+};
+
+export const useAdminDeleteReview = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => adminApi.deleteReview(id),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ["admin", "reviews"] });
+        },
+    });
+};
+

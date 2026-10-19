@@ -15,6 +15,8 @@ import {
   Tag,
   X,
   Loader2,
+  Pencil,
+  Trash2,
   Minus,
   Plus,
   ShoppingCart,
@@ -23,8 +25,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { useProductDetails } from "./marketplace.hooks";
+import { useDeleteProductReview, useProductDetails, useProductReviews, useSaveProductReview, useWishlist, useWishlistToggle } from "./marketplace.hooks";
+import { useAuthStore } from "@/store/auth.store";
 import { useAddToCart } from "@/features/cart/cart.hook";
+import { toast } from "@/components/ui/toast";
 
 interface ProductDetailViewProps {
   productId: string | null;
@@ -40,13 +44,22 @@ export function ProductDetailView({
 }: ProductDetailViewProps) {
   const { data: product, isLoading, isError } = useProductDetails(productId || "");
   const addToCart = useAddToCart();
+  const { data: reviewData } = useProductReviews(productId || undefined);
+  const saveReview = useSaveProductReview(productId || undefined);
+  const deleteReview = useDeleteProductReview(productId || undefined);
+  const wishlistToggle = useWishlistToggle();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const currentUser = useAuthStore((state) => state.user);
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [isLiked, setIsLiked] = useState(false);
+  const { data: wishlist = [] } = useWishlist();
+  const isLiked = productId ? wishlist.some((item) => item.productId === productId) : false;
   const [isCopied, setIsCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<"description" | "specs" | "store" | "reviews">("description");
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const [entered, setEntered] = useState(false);
@@ -74,6 +87,7 @@ export function ProductDetailView({
   const sellerSlug = product?.shop?.slug || "official-store";
 
   const selectedVariant = product?.variants?.find((v: any) => v.id === selectedVariantId);
+  const ownReview = reviewData?.reviews?.find((review: { userId: string }) => review.userId === currentUser?.id);
   const currentPrice = selectedVariant ? selectedVariant.price : product?.basePrice;
   const currentStock = selectedVariant ? selectedVariant.stock : (product?.stock ?? 0);
 
@@ -126,11 +140,52 @@ export function ProductDetailView({
             </button>
             <button
               type="button"
-              onClick={() => setIsLiked(!isLiked)}
-              className="p-2 text-slate-500 hover:text-rose-600 rounded-full hover:bg-slate-100 transition-colors flex items-center justify-center h-9 w-9"
-              title="Add to Wishlist"
+              disabled={wishlistToggle.isPending}
+              onClick={() => {
+                if (!productId) return;
+                wishlistToggle.mutate(
+                  {
+                    productId,
+                    saved: isLiked,
+                    productData: product
+                      ? {
+                          id: product.id,
+                          name: product.name,
+                          basePrice: currentPrice || product.basePrice,
+                          stock: currentStock,
+                          shop: product.shop,
+                          images: product.images || [],
+                        }
+                      : undefined,
+                  },
+                  {
+                    onSuccess: () => {
+                      toast.add({
+                        title: isLiked ? "Removed from wishlist" : "Added to wishlist",
+                        description: isLiked
+                          ? `"${product?.name}" removed from wishlist.`
+                          : `"${product?.name}" saved to wishlist.`,
+                        type: "success",
+                      });
+                    },
+                    onError: () => {
+                      toast.add({
+                        title: "Failed to update wishlist",
+                        description: "Please try again.",
+                        type: "error",
+                      });
+                    },
+                  }
+                );
+              }}
+              className="p-2 text-slate-500 hover:text-rose-600 rounded-full hover:bg-slate-100 transition-colors flex items-center justify-center h-9 w-9 cursor-pointer"
+              title={isLiked ? "Remove from Wishlist" : "Add to Wishlist"}
             >
-              <Heart className={`h-4 w-4 ${isLiked ? "fill-rose-600 text-rose-600" : ""}`} />
+              <Heart
+                className={`h-4 w-4 transition-transform active:scale-125 ${
+                  isLiked ? "fill-rose-600 text-rose-600" : ""
+                }`}
+              />
             </button>
             <div className="h-4 w-px bg-slate-200 mx-1" />
             <button
@@ -224,10 +279,10 @@ export function ProductDetailView({
                         <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                       ))}
                     </div>
-                    <span className="font-bold text-slate-900 ml-1">4.9</span>
+                    <span className="font-bold text-slate-900 ml-1">{reviewData?.averageRating || "New"}</span>
                   </div>
                   <span className="text-slate-300">|</span>
-                  <span className="hover:underline cursor-pointer">8 Reviews</span>
+                  <span className="hover:underline cursor-pointer">{reviewData?.reviewCount ?? 0} Reviews</span>
                   <span className="text-slate-300">|</span>
                   <span className="text-slate-900 font-semibold">40+ Sold</span>
                 </div>
@@ -366,7 +421,7 @@ export function ProductDetailView({
                         : "border-transparent text-slate-400 hover:text-slate-700"
                     }`}
                   >
-                    {tab === "reviews" ? "Reviews (8)" : tab}
+                    {tab === "reviews" ? `Reviews (${reviewData?.reviewCount ?? 0})` : tab}
                   </button>
                 ))}
               </div>
@@ -455,23 +510,35 @@ export function ProductDetailView({
                           <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
                         ))}
                       </div>
-                      <span className="font-bold text-slate-900 text-sm">5.0 / 5.0 Rating</span>
+                      <span className="font-bold text-slate-900 text-sm">{reviewData?.averageRating ?? "New"} / 5.0 Rating</span>
                     </div>
 
-                    <div className="space-y-2 pt-1">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-900 text-xs">John Smith</span>
-                          <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-semibold uppercase">
-                            Verified
-                          </span>
+                    {isAuthenticated && (
+                      <form
+                        className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          saveReview.mutate({ rating: reviewRating, comment: reviewComment.trim() || undefined }, {
+                            onSuccess: () => {
+                              toast.add({ title: "Review saved", description: "Your review has been published.", type: "success" });
+                              setReviewComment("");
+                            },
+                            onError: () => toast.add({ title: "Unable to save review", description: "Please sign in with an eligible account and try again.", type: "error" }),
+                          });
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-900">{ownReview ? "Update your review" : "Review this product"}</span>
+                          {ownReview && <button type="button" className="text-xs text-rose-600 hover:underline" disabled={deleteReview.isPending} onClick={() => deleteReview.mutate(ownReview.id, { onSuccess: () => toast.add({ title: "Review deleted", description: "Your review was removed.", type: "success" }) })}><Trash2 className="mr-1 inline size-3" />Delete</button>}
                         </div>
-                        <span className="text-[11px] text-slate-400">2 days ago</span>
-                      </div>
-                      <p className="text-xs text-slate-600 leading-relaxed">
-                        Item arrived quickly and exactly as described. Packaging was secure and build quality is top-notch.
-                      </p>
-                    </div>
+                        <div className="flex gap-1" aria-label="Rating">
+                          {[1, 2, 3, 4, 5].map((value) => <button key={value} type="button" aria-label={`${value} stars`} onClick={() => setReviewRating(value)}><Star className={`size-5 ${value <= reviewRating ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} /></button>)}
+                        </div>
+                        <textarea value={reviewComment} onChange={(event) => setReviewComment(event.target.value)} maxLength={2000} placeholder="Share your experience (optional)" className="min-h-20 w-full rounded-lg border border-slate-200 bg-white p-2 text-xs outline-none focus:border-orange-400" />
+                        <Button type="submit" disabled={saveReview.isPending} size="sm" className="rounded-lg bg-slate-900 text-white hover:bg-slate-700">{saveReview.isPending ? <Loader2 className="mr-2 size-3 animate-spin" /> : <Pencil className="mr-2 size-3" />}{ownReview ? "Update review" : "Submit review"}</Button>
+                      </form>
+                    )}
+                    <div className="space-y-4 pt-1">{reviewData?.reviews?.length ? reviewData.reviews.map((review: { id: string; userId: string; rating: number; comment?: string; createdAt: string; user: { name: string }; reply?: { comment: string } | null }) => <div key={review.id} className="border-b border-slate-100 pb-3"><div className="flex items-center justify-between"><span className="font-bold text-slate-900 text-xs">{review.user.name}{review.userId === currentUser?.id ? " (You)" : ""}</span><span className="text-[11px] text-slate-400">{new Date(review.createdAt).toLocaleDateString()}</span></div><div className="mt-1 flex text-amber-400">{Array.from({ length: review.rating }).map((_, index) => <Star key={index} className="size-3 fill-current" />)}</div>{review.comment && <p className="mt-2 text-xs leading-relaxed text-slate-600">{review.comment}</p>}{review.reply && <div className="mt-3 rounded-lg bg-slate-50 p-2 text-xs text-slate-600"><span className="font-bold text-slate-900">Seller response: </span>{review.reply.comment}</div>}</div>) : <p className="text-xs text-slate-500">No customer reviews yet.</p>}</div>
                   </div>
                 )}
 

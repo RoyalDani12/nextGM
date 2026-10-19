@@ -93,4 +93,76 @@ export const adminApi = {
         const res = await api.patch(`${base}/shops/${id}/status`, { status });
         return res.data;
     },
+
+    listReviews: async (filters: AdminReviewFilters = {}): Promise<AdminReviewsResponse> => {
+        const res = await api.get(`${base}/reviews`, { params: filters });
+        return res.data.data;
+    },
+
+    toggleReviewVisibility: async (id: string, isVisible: boolean) => {
+        const res = await api.patch(`${base}/reviews/${id}/visibility`, { isVisible });
+        return res.data;
+    },
+
+    deleteReview: async (id: string) => {
+        const res = await api.delete(`${base}/reviews/${id}`);
+        return res.data;
+    },
 };
+
+export type AdminReview = {
+    id: string;
+    shopId: string;
+    productId: string;
+    userId: string;
+    rating: number;
+    comment: string | null;
+    isVisible: boolean;
+    createdAt: string;
+    updatedAt: string;
+    product: {
+        id: string;
+        name: string;
+        slug: string;
+        images: { url: string }[];
+    };
+    shop: {
+        id: string;
+        slug: string;
+        profile: { name: string } | null;
+    };
+    user: {
+        id: string;
+        name: string;
+        email: string;
+    };
+    reply: {
+        id: string;
+        comment: string;
+        createdAt: string;
+    } | null;
+};
+
+export type AdminReviewsResponse = {
+    reviews: AdminReview[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    stats: {
+        totalPlatformReviews: number;
+        visibleCount: number;
+        hiddenCount: number;
+        avgRating: number;
+    };
+};
+
+export type AdminReviewFilters = {
+    search?: string;
+    rating?: number;
+    isVisible?: boolean;
+    shopId?: string;
+    page?: number;
+    limit?: number;
+};
+

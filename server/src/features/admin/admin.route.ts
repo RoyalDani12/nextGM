@@ -10,6 +10,9 @@ import {
     listShopsController,
     getShopByIdController,
     updateShopStatusController,
+    listReviewsController,
+    toggleReviewVisibilityController,
+    deleteReviewAdminController,
 } from "./admin.controller.js";
 
 const router = express.Router();
@@ -31,4 +34,10 @@ router.get("/shops", listShopsController);
 router.get("/shops/:id", getShopByIdController);
 router.patch("/shops/:id/status", updateShopStatusController);
 
+// Reviews
+router.get("/reviews", listReviewsController);
+router.patch("/reviews/:id/visibility", toggleReviewVisibilityController);
+router.delete("/reviews/:id", deleteReviewAdminController);
+
 export default router;
+

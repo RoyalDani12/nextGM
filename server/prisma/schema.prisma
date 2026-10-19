@@ -156,6 +156,7 @@ model User {
   couponUsages         CouponUsage[]
   paymentMethods       PaymentMethod[]
   checkouts            Checkout[]
+  wishlistItems        WishlistItem[]
 
   @@index([email])
   @@index([status])
@@ -421,6 +422,7 @@ platformCategory    Category? @relation(fields: [platformCategoryId], references
   digitalAsset DigitalAsset?
   orderItems   OrderItem[]
   reviews      Review[]
+  wishlistItems WishlistItem[]
   analytics    ProductAnalytics[]
 
   @@index([shopId,status])
@@ -716,6 +718,19 @@ model ReviewReply {
   comment   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId, createdAt])
+  @@index([productId])
 }
 
 // ─────────────────────────────────────────

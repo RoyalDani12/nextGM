@@ -8,6 +8,9 @@ import {
     listShopsAdmin,
     getShopByIdAdmin,
     updateShopStatusAdmin,
+    listReviewsAdmin,
+    updateReviewVisibilityAdmin,
+    deleteReviewAdmin,
 } from "./admin.repository.js";
 
 export const getPlatformStatsService = async () => {
@@ -69,3 +72,23 @@ export const updateShopStatusService = async (id: string, status: string) => {
     if (shop.status === "CLOSED") throw new AppError("Cannot change status of a closed shop", 400);
     return updateShopStatusAdmin(id, status);
 };
+
+export const listReviewsService = async (filters: {
+    search?: string;
+    rating?: number;
+    isVisible?: boolean;
+    shopId?: string;
+    page?: number;
+    limit?: number;
+}) => {
+    return listReviewsAdmin(filters);
+};
+
+export const toggleReviewVisibilityService = async (id: string, isVisible: boolean) => {
+    return updateReviewVisibilityAdmin(id, isVisible);
+};
+
+export const deleteReviewAdminService = async (id: string) => {
+    return deleteReviewAdmin(id);
+};
+

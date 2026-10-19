@@ -1,37 +1,25 @@
-import { useState, type Dispatch, type SetStateAction } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Zap, Compass, Tag, HelpCircle, Languages, ChevronDown, Check, User, LogOut, Menu, BadgeCheck, Flame, TrendingUp } from "lucide-react";
+import { Zap, Compass, Tag, HelpCircle, User, LogOut, Menu, BadgeCheck, Flame, TrendingUp, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useMarketplaceCategories } from "./marketplace.hooks";
 
-const LANGUAGES = [
-  { code: "en", name: "English", country: "us" },
-  { code: "am", name: "አማርኛ", country: "et" },
-  { code: "fr", name: "Français", country: "fr" },
-  { code: "ar", name: "العربية", country: "sa" },
-];
-
 const NAV_ITEMS = [
   { label: "Explore", path: "/", icon: Compass },
+  { label: "Wishlist", path: "/wishlist", icon: Heart },
   { label: "Categories", path: "/categories", icon: Tag },
   { label: "How It Works", path: "/how-it-works", icon: HelpCircle },
-  { label: "Pricing", path: "/pricing", icon: Zap },
 ];
 
 interface MarketplaceMobileMenuProps {
-  language: { code: string; name: string; country: string };
-  setLanguage: Dispatch<SetStateAction<{ code: string; name: string; country: string }>>;
   isAuthenticated: boolean;
   logout: () => void;
   isLoggingOut: boolean;
 }
 
 export const MarketplaceMobileMenu = ({
-  language,
-  setLanguage,
   isAuthenticated,
   logout,
   isLoggingOut,
@@ -94,36 +82,6 @@ export const MarketplaceMobileMenu = ({
           <div className="space-y-2 border-b border-slate-800 py-4">
             <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Marketplace highlights</p>
             {[[BadgeCheck, "Verified Vendors", "Trusted independent stores", "text-emerald-400"], [Flame, "Hot Deals & Drops", "Limited time offers", "text-orange-400"], [TrendingUp, "Trending Items", "What shoppers love", "text-sky-400"]].map(([Icon, title, description, color]) => { const HighlightIcon = Icon as typeof BadgeCheck; return <button key={title as string} onClick={() => goTo("/")} className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/60 px-3 text-left"><HighlightIcon className={`size-5 ${color}`}/><span><span className="block text-sm font-bold text-white">{title as string}</span><span className="text-xs text-slate-400">{description as string}</span></span></button>; })}
-          </div>
-
-          <div className="py-2 border-b border-[#232f3e] px-3">
-            <DropdownMenu>
-              <DropdownMenuTrigger className="w-full flex items-center justify-between py-2 text-sm font-bold text-stone-300 hover:text-sky-100 outline-none cursor-pointer">
-                <div className="flex items-center gap-2.5">
-                  <Languages className="size-4 mr-1 text-stone-400" />
-                  <img src={`https://flagcdn.com/${language.country}.svg`} alt={language.name} className="w-7 h-5 rounded-sm object-cover border border-[#232f3e] shadow-sm" />
-                  <span className="uppercase font-bold text-sm text-stone-200">{language.code}</span>
-                </div>
-                <ChevronDown className="size-4 opacity-50" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-[250px] bg-[#131921] border border-[#232f3e] p-1 shadow-2xl">
-                <div className="text-xs font-extrabold text-stone-400 uppercase tracking-wider px-2 py-1.5">Choose Language</div>
-                <DropdownMenuSeparator className="bg-[#232f3e] my-1" />
-                {LANGUAGES.map((lang) => {
-                  const isSelected = language.code === lang.code;
-                  return (
-                    <DropdownMenuItem key={lang.code} onClick={() => setLanguage(lang)} className={`cursor-pointer font-semibold text-sm flex items-center justify-between py-2 px-2.5 rounded-lg transition-all ${isSelected ? "bg-sky-500/10 text-sky-100 font-bold" : "text-stone-300 focus:bg-sky-500/10 focus:text-sky-100"}`}>
-                      <div className="flex items-center">
-                        <img src={`https://flagcdn.com/${lang.country}.svg`} alt={lang.name} className="w-7 h-5 mr-3 rounded-sm object-cover border border-[#232f3e] shadow-sm" />
-                        <span className="uppercase font-bold text-xs mr-2 text-stone-500">[{lang.code}]</span>
-                        <span>{lang.name}</span>
-                      </div>
-                      <Check className={`size-4 text-sky-200 ${isSelected ? "opacity-100" : "opacity-0"}`} />
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
 
           {!isAuthenticated ? (

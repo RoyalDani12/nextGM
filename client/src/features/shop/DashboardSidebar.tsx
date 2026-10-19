@@ -11,6 +11,7 @@ import {
     Percent,
     PanelLeft,
     Store,
+    MessageSquare,
 } from "lucide-react";
 
 const PIN_STORAGE_KEY = "dashboard-sidebar-pinned";
@@ -51,6 +52,11 @@ export function DashboardSidebar({
                   href: `/dashboard/shop/${shopId}/orders`,
                   icon: ShoppingBag,
                   badge: "12",
+              },
+              {
+                  title: "Reviews",
+                  href: `/dashboard/shop/${shopId}/reviews`,
+                  icon: MessageSquare,
               },
               {
                   title: "Discounts",

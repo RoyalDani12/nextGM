@@ -9,6 +9,9 @@ import {
     listShopsService,
     getShopByIdService,
     updateShopStatusService,
+    listReviewsService,
+    toggleReviewVisibilityService,
+    deleteReviewAdminService,
 } from "./admin.service.js";
 
 // ─── Platform Stats ───────────────────────────
@@ -74,3 +77,35 @@ export const updateShopStatusController = asyncHandler(async (req: Request, res:
     const data = await updateShopStatusService(id, status);
     res.status(200).json({ success: true, message: "Shop status updated", data });
 });
+
+// ─── Reviews ──────────────────────────────────
+export const listReviewsController = asyncHandler(async (req: Request, res: Response) => {
+    const { search, rating, isVisible, shopId, page, limit } = req.query as Record<string, string>;
+    const data = await listReviewsService({
+        search,
+        rating: rating ? parseInt(rating) : undefined,
+        isVisible: isVisible !== undefined ? isVisible === "true" : undefined,
+        shopId,
+        page: page ? parseInt(page) : undefined,
+        limit: limit ? parseInt(limit) : undefined,
+    });
+    res.status(200).json({ success: true, data });
+});
+
+export const toggleReviewVisibilityController = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    const { isVisible } = req.body as { isVisible: boolean };
+    const data = await toggleReviewVisibilityService(id, isVisible);
+    res.status(200).json({
+        success: true,
+        message: `Review ${isVisible ? "shown" : "hidden"} successfully`,
+        data,
+    });
+});
+
+export const deleteReviewAdminController = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    await deleteReviewAdminService(id);
+    res.status(200).json({ success: true, message: "Review deleted successfully" });
+});
+

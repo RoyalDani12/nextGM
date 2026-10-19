@@ -11,6 +11,7 @@ import {
   Trophy,
   TrendingUp,
   ShoppingCart,
+  Heart,
 } from "lucide-react";
 
 import {
@@ -100,56 +101,18 @@ const EXPLORE_MEGA_MENU = {
   ],
 };
 
-const CATEGORIES_MEGA_MENU = [
-  {
-    title: "Apparel & Style",
-    items: [
-      "Men's & Women's Wear",
-      "Footwear & Sneakers",
-      "Bags & Leather Goods",
-      "Custom Merchandise",
-      "Watches & Jewelry",
-    ],
-  },
-  {
-    title: "Tech & Electronics",
-    items: [
-      "Smartphones & Accessories",
-      "Audio & Headphones",
-      "Power Banks & Chargers",
-      "Smart Home Hardware",
-      "Cable Management",
-    ],
-  },
-  {
-    title: "Home & Workspace",
-    items: [
-      "Ergonomic Desk Setup",
-      "Mechanical Keyboards",
-      "Office & Ambient Lighting",
-      "Desk Organizers",
-      "Decor & Furniture",
-    ],
-  },
-  {
-    title: "Sports & Personal Care",
-    items: [
-      "Fitness Gear & Equipment",
-      "Outdoor & Camping",
-      "Skincare & Grooming",
-      "Travel Accessories",
-    ],
-  },
-];
-
 interface MarketplaceDesktopNavProps {
   cartItemCount: number;
   onCart: () => void;
+  wishlistItemCount?: number;
+  onWishlist?: () => void;
 }
 
 export const MarketplaceDesktopNav = ({
   cartItemCount,
   onCart,
+  wishlistItemCount = 0,
+  onWishlist,
 }: MarketplaceDesktopNavProps) => {
   return (
     <NavigationMenu className="hidden lg:flex">
@@ -248,14 +211,27 @@ export const MarketplaceDesktopNav = ({
           </Link>
         </NavigationMenuItem>
 
-        {/* Pricing */}
+        {/* Wishlist */}
         <NavigationMenuItem>
-          <Link
-            to="/pricing"
-            className={`${navigationMenuTriggerStyle()} bg-transparent text-sm font-semibold px-3 py-2 rounded-xl transition-all text-slate-300 hover:text-white hover:bg-slate-800 cursor-pointer`}
+          <button
+            onClick={onWishlist}
+            aria-label="Wishlist"
+            className="relative flex items-center gap-2 px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-all group cursor-pointer ml-1"
           >
-            Pricing
-          </Link>
+            <div className="relative">
+              <Heart className="size-6 group-hover:scale-105 group-hover:text-rose-400 transition-all" />
+
+              {wishlistItemCount > 0 && (
+                <span className="absolute -top-1.5 -right-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-extrabold text-white shadow-sm">
+                  {wishlistItemCount}
+                </span>
+              )}
+            </div>
+
+            <span className="text-xs font-bold hidden xl:inline">
+              Wishlist
+            </span>
+          </button>
         </NavigationMenuItem>
 
         {/* Cart */}
