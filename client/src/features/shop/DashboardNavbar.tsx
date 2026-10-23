@@ -26,12 +26,15 @@ import {
 import { useAuthStore } from "@/store/auth.store";
 import { useLogout } from "@/features/auth/auth.hooks";
 import { DashboardSidebar } from "./DashboardSidebar";
+import { useMyShops } from "./shop.hooks";
 
 export function DashboardNavbar() {
     const user = useAuthStore((state) => state.user);
     const logout = useLogout();
     const navigate = useNavigate();
     const { shopId } = useParams<{ shopId: string }>();
+    const { data: shopsResponse } = useMyShops();
+    const activeShop = shopsResponse?.data?.find((shop) => shop.id === shopId);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
 
     const initials = user?.name
@@ -113,7 +116,7 @@ export function DashboardNavbar() {
                         variant="ghost"
                         size="icon"
                         className="hidden sm:inline-flex rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 size-9 cursor-pointer"
-                        onClick={() => window.open("/", "_blank")}
+                        onClick={() => window.open(activeShop ? `/${activeShop.slug}` : "/", "_blank")}
                         title="View Live Store"
                     >
                         <ExternalLink className="size-4" />

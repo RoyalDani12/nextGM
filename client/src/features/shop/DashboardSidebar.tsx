@@ -13,6 +13,7 @@ import {
     Store,
     MessageSquare,
 } from "lucide-react";
+import { useMyShops } from "./shop.hooks";
 
 const PIN_STORAGE_KEY = "dashboard-sidebar-pinned";
 
@@ -27,6 +28,8 @@ export function DashboardSidebar({
 }: SidebarProps) {
     const location = useLocation();
     const { shopId } = useParams<{ shopId: string }>();
+    const { data: shopsResponse } = useMyShops();
+    const activeShop = shopsResponse?.data?.find((shop) => shop.id === shopId);
 
     const isMobile = variant === "mobile";
 
@@ -225,11 +228,11 @@ export function DashboardSidebar({
                 <div className="p-2 border-t border-slate-100 shrink-0 space-y-0.5">
                     {/* SWITCH SHOP */}
                     <Link
-                        to="/dashboard/shops"
+                        to="/shops"
                         onClick={onNavItemClick}
                         className={`relative flex items-center justify-center px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                             location.pathname ===
-                            "/dashboard/shops"
+                            "/shops"
                                 ? "bg-orange-50 text-orange-600 font-semibold"
                                 : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                         }`}
@@ -238,7 +241,7 @@ export function DashboardSidebar({
                             <Store
                                 className={`size-4 shrink-0 ${
                                     location.pathname ===
-                                    "/dashboard/shops"
+                                    "/shops"
                                         ? "text-orange-600"
                                         : "text-slate-500"
                                 }`}
@@ -254,7 +257,7 @@ export function DashboardSidebar({
 
                     {/* VIEW STORE */}
                     <a
-                        href="/"
+                        href={activeShop ? `/${activeShop.slug}` : "/"}
                         target="_blank"
                         rel="noreferrer"
                         className="relative flex items-center justify-center px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
