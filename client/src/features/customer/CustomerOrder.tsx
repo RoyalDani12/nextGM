@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   Clock,
   Copy,
-  ExternalLink,
   Package,
   PackageCheck,
   RefreshCw,

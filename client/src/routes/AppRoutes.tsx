@@ -42,6 +42,7 @@ import { AdminReviewsPage } from "@/features/pages/superAdmin/AdminReviewsPage";
 import { AdminShipmentsPage } from "@/features/pages/superAdmin/AdminShipmentsPage";
 import WishlistPage from "@/features/customer/WishlistPage";
 import CouponsPage from "@/features/shop/CouponsPage";
+import { StorefrontPage } from "@/features/marketplace/pages/StorefrontPage";
 export function AppRoutes() {
    return (
       <Routes>
@@ -53,6 +54,7 @@ export function AppRoutes() {
          <Route path="/verify-email" element={<VerifyEmailPage />} />
          <Route path="/forgot-password" element={<ForgetPassword />} />
          <Route path="/reset-password" element={<ResetPasswordPage />} />
+         <Route path="/:shopSlug" element={<StorefrontPage />} />
 
          <Route path="/wishlist" element={<WishlistPage />} />
          <Route path="/cart" element={<CartPage />} />

@@ -1,7 +1,7 @@
 
 import { api } from "@/lib/axios";
 
-export type MarketplaceFilters = { search?: string; categorySlug?: string; categoryId?: string; type?: "PHYSICAL" | "DIGITAL"; minPrice?: string; maxPrice?: string; minRating?: number; inStockOnly?: boolean; verifiedShopsOnly?: boolean; sort?: "createdAt" | "basePrice" | "rating" | "name"; order?: "asc" | "desc" };
+export type MarketplaceFilters = { search?: string; shopId?: string; categorySlug?: string; categoryId?: string; type?: "PHYSICAL" | "DIGITAL"; minPrice?: string; maxPrice?: string; minRating?: number; inStockOnly?: boolean; verifiedShopsOnly?: boolean; sort?: "createdAt" | "basePrice" | "rating" | "name"; order?: "asc" | "desc" };
 export type MarketplaceCategory = { id: string; name: string; slug: string; icon?: string | null; imageUrl?: string | null; description?: string | null; productCount: number; children: MarketplaceCategory[] };
 export type MarketplaceBrowseResult = { products: any[]; pagination: { total: number; page: number; limit: number; totalPages: number }; categoryBreadcrumb?: Array<{ id: string; name: string; slug: string }> };
 export const fetchMarketplaceProducts = async (filters: MarketplaceFilters = {}): Promise<MarketplaceBrowseResult> => {
@@ -26,6 +26,7 @@ export const fetchMarketplaceCategories = async (): Promise<MarketplaceCategory[
   const { data } = await api.get("/categories");
   return data?.data || [];
 };
+export const fetchStorefront = async (slug: string) => (await api.get(`/shops/${slug}`)).data.data;
 export const fetchProductReviews = async (productId: string) => (await api.get(`/products/${productId}/reviews`)).data.data;
 export type ProductReviewInput = { rating: number; comment?: string };
 export const saveProductReview = async (productId: string, review: ProductReviewInput) => (await api.post(`/products/${productId}/reviews`, review)).data.data;

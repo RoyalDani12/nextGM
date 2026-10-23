@@ -87,11 +87,11 @@ export default function Hero() {
           <div className="hero-halo absolute inset-10 rounded-full" />
           <div className="relative grid grid-cols-2 gap-4 p-4 sm:gap-5 sm:p-6">
             <div className="hero-product hero-product-tall row-span-2 overflow-hidden rounded-[2rem] border border-white/20 bg-slate-800 shadow-2xl shadow-slate-950/50">
-              {heroProducts[0]?.images?.[0]?.url ? <img src={heroProducts[0].images[0].url} alt={heroProducts[0].name} className="h-full w-full object-cover" /> : <div className="hero-product-fallback h-full" />}
+              {heroProducts[0]?.images?.[0]?.url ? <img src={heroProducts[0]?.images?.[0]?.url} alt={heroProducts[0]?.name} className="h-full w-full object-cover" /> : <div className="hero-product-fallback h-full" />}
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 to-transparent p-5 pt-16"><p className="text-xs font-medium text-slate-300">Curated for you</p><p className="mt-1 font-bold">{heroProducts[0]?.name || "Everyday essentials"}</p></div>
             </div>
             <div className="hero-product hero-product-small overflow-hidden rounded-[1.65rem] border border-white/20 bg-orange-200 shadow-xl shadow-slate-950/30">
-              {heroProducts[1]?.images?.[0]?.url ? <img src={heroProducts[1].images[0].url} alt={heroProducts[1].name} className="h-full w-full object-cover" /> : <div className="hero-product-fallback-alt h-full" />}
+              {heroProducts[1]?.images?.[0]?.url ? <img src={heroProducts[1]?.images?.[0]?.url} alt={heroProducts[1]?.name} className="h-full w-full object-cover" /> : <div className="hero-product-fallback-alt h-full" />}
             </div>
             <div className="hero-stat rounded-[1.65rem] border border-white/15 bg-white/10 p-5 backdrop-blur-xl"><span className="text-3xl font-black tracking-tight">100%</span><p className="mt-1 text-xs font-medium leading-5 text-slate-300">Independent<br />storefronts</p></div>
           </div>
@@ -104,7 +104,7 @@ export default function Hero() {
       <div className="compact-hero-glow absolute -right-16 -top-24 hidden h-[430px] w-[430px] rounded-full lg:block" />
       <div className="absolute inset-y-0 right-0 hidden w-[48%] lg:block">
         <div className="absolute inset-0 z-10 bg-gradient-to-r from-[#18223c] via-transparent to-transparent" />
-        {compactHeroProduct?.images?.[0]?.url ? <img src={compactHeroProduct.images[0].url} alt="Featured product" className="h-full w-full object-cover opacity-90" /> : <div className="h-full w-full compact-hero-art" />}
+        {compactHeroProduct?.images?.[0]?.url ? <img src={compactHeroProduct?.images?.[0]?.url} alt="Featured product" className="h-full w-full object-cover opacity-90" /> : <div className="h-full w-full compact-hero-art" />}
       </div>
       <div className="relative mx-auto flex h-full max-w-7xl items-center px-5 sm:px-8 lg:px-10">
         <div className="compact-hero-content max-w-xl">

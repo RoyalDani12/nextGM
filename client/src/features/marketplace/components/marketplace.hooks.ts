@@ -10,6 +10,7 @@ import {
   fetchProductReviews,
   fetchPromotedProducts,
   fetchWishlist,
+  fetchStorefront,
   removeWishlistItem,
   saveProductReview,
   type MarketplaceFilters,
@@ -47,6 +48,13 @@ export const useMarketplaceCategories = () =>
     queryFn: fetchMarketplaceCategories,
     staleTime: 1000 * 60 * 10,
   });
+
+export const useStorefront = (slug?: string) => useQuery({
+  queryKey: ["storefront", slug],
+  queryFn: () => fetchStorefront(slug!),
+  enabled: Boolean(slug),
+  staleTime: 1000 * 60 * 5,
+});
 
 export const useProductReviews = (productId?: string) =>
   useQuery({

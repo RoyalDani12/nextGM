@@ -10,7 +10,6 @@ import {
   Copy,
   CreditCard,
   ExternalLink,
-  FileText,
   HelpCircle,
   MapPin,
   Package,

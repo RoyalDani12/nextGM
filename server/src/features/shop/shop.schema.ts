@@ -40,6 +40,10 @@ export const updateShopProfileSchema = z.object({
             country: z.string().trim().max(100).optional(),
 
             website: z.string().url("Website must be a valid URL.").max(2048).optional(),
+
+            shippingPolicy: z.string().trim().max(2000, "Shipping policy cannot exceed 2000 characters.").optional(),
+
+            returnsPolicy: z.string().trim().max(2000, "Returns policy cannot exceed 2000 characters.").optional(),
         })
         .strict(),
 });

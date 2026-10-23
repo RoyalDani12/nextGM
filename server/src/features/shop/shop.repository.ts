@@ -74,6 +74,8 @@ export const updateShopProfileRepository = async (
         city: string;
         country: string;
         website: string;
+        shippingPolicy: string;
+        returnsPolicy: string;
     }>,
 ) => {
     return prisma.shopProfile.update({
@@ -90,7 +92,9 @@ export const findActiveShopBySlug=async(slug:string)=>{
             status:"ACTIVE"
         },
         select:{
+            id: true,
             slug:true,
+            owner: { select: { name: true } },
             profile:{
 
                 select:{
@@ -102,9 +106,13 @@ export const findActiveShopBySlug=async(slug:string)=>{
                     email:true,
                     city:true,
                     country:true,
-                    website:true
+                    website:true,
+                    address: true,
+                    shippingPolicy: true,
+                    returnsPolicy: true,
                 }
-            }
+            },
+            _count: { select: { products: { where: { status: "ACTIVE", deletedAt: null } } } },
         }
     })
 }

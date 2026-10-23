@@ -267,6 +267,8 @@ model ShopProfile {
   city        String?
   country     String?
   website     String?
+  shippingPolicy String?
+  returnsPolicy  String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

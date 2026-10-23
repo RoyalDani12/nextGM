@@ -56,6 +56,8 @@ export const getMyShopsService = async (ownerId: string) => {
                   city: shop.profile.city,
                   country: shop.profile.country,
                   website: shop.profile.website,
+                  shippingPolicy: shop.profile.shippingPolicy,
+                  returnsPolicy: shop.profile.returnsPolicy,
               }
             : null,
     }));
@@ -93,6 +95,8 @@ export const updateShopProfileService = async (
         city: updatedProfile.city,
         country: updatedProfile.country,
         website: updatedProfile.website,
+        shippingPolicy: updatedProfile.shippingPolicy,
+        returnsPolicy: updatedProfile.returnsPolicy,
     };
 };
 
@@ -105,6 +109,9 @@ export const getShopBySlugService = async (slug: string) => {
 
     return {
         slug: shop.slug,
+        id: shop.id,
+        owner: { name: shop.owner.name },
+        productCount: shop._count.products,
         profile: shop.profile,
     };
 };

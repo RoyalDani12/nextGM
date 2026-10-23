@@ -16,6 +16,8 @@ export interface ShopProfile {
   city: string | null;
   country: string | null;
   website: string | null;
+  shippingPolicy: string | null;
+  returnsPolicy: string | null;
 }
 
 export interface ShopLegalInfo {
@@ -61,6 +63,8 @@ export interface UpdateShopProfilePayload {
   city?: string;
   country?: string;
   website?: string;
+  shippingPolicy?: string;
+  returnsPolicy?: string;
 }
 
 export interface UpdateShopLegalInfoPayload {

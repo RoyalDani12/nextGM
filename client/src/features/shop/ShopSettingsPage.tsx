@@ -60,6 +60,8 @@ export function ShopSettingsPage() {
     website: "",
     logo: "",
     banner: "",
+    shippingPolicy: "",
+    returnsPolicy: "",
   });
 
   // Legal Info Form State
@@ -86,6 +88,8 @@ export function ShopSettingsPage() {
         website: shop.profile?.website ?? "",
         logo: shop.profile?.logo ?? "",
         banner: shop.profile?.banner ?? "",
+        shippingPolicy: shop.profile?.shippingPolicy ?? "",
+        returnsPolicy: shop.profile?.returnsPolicy ?? "",
       });
 
       if (shop.legalInfo) {
@@ -247,7 +251,7 @@ export function ShopSettingsPage() {
             variant="outline"
             size="sm"
             className="rounded-full gap-1.5 text-xs font-bold"
-            onClick={() => window.open(`/?search=${encodeURIComponent(shop.slug)}`, "_blank")}
+            onClick={() => window.open(`/${shop.slug}`, "_blank")}
           >
             <ExternalLink className="size-3.5" /> View Public Storefront
           </Button>
@@ -538,6 +542,14 @@ export function ShopSettingsPage() {
                     className="pl-10 rounded-xl"
                   />
                 </div>
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="shippingPolicy" className="text-xs font-bold text-slate-700">Shipping policy</Label>
+                <Textarea id="shippingPolicy" rows={3} value={profileForm.shippingPolicy || ""} onChange={(e) => setProfileForm({ ...profileForm, shippingPolicy: e.target.value })} placeholder="Dispatch times, delivery regions, and pickup instructions…" className="rounded-xl text-sm" />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="returnsPolicy" className="text-xs font-bold text-slate-700">Returns & refunds policy</Label>
+                <Textarea id="returnsPolicy" rows={3} value={profileForm.returnsPolicy || ""} onChange={(e) => setProfileForm({ ...profileForm, returnsPolicy: e.target.value })} placeholder="Return window, condition requirements, and refund handling…" className="rounded-xl text-sm" />
               </div>
             </div>
 
