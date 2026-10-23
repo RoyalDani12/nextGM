@@ -11,6 +11,7 @@ import {
     listReviewsAdmin,
     updateReviewVisibilityAdmin,
     deleteReviewAdmin,
+    listShipmentsAdmin,
 } from "./admin.repository.js";
 
 export const getPlatformStatsService = async () => {
@@ -91,4 +92,6 @@ export const toggleReviewVisibilityService = async (id: string, isVisible: boole
 export const deleteReviewAdminService = async (id: string) => {
     return deleteReviewAdmin(id);
 };
+
+export const listShipmentsService = (filters: { status?: string; search?: string; page?: number; limit?: number }) => listShipmentsAdmin(filters);
 

@@ -179,6 +179,33 @@ export const updateShopStatusAdmin = async (id: string, status: string) => {
     return prisma.shop.update({ where: { id }, data: { status: status as any } });
 };
 
+export const listShipmentsAdmin = async (filters: { status?: string; search?: string; page?: number; limit?: number }) => {
+    const { status, search, page = 1, limit = 20 } = filters;
+    const skip = (page - 1) * limit;
+    const where: any = {
+        shipment: { isNot: null },
+        ...(status ? { status: status as any } : {}),
+        ...(search ? { OR: [
+            { id: { contains: search, mode: "insensitive" } },
+            { shop: { profile: { name: { contains: search, mode: "insensitive" } } } },
+            { shipment: { trackingNumber: { contains: search, mode: "insensitive" } } },
+        ] } : {}),
+    };
+    const [shipments, total, pending, shipped, delivered] = await Promise.all([
+        prisma.order.findMany({ where, skip, take: limit, orderBy: { createdAt: "desc" }, select: {
+            id: true, status: true, createdAt: true, totalAmount: true,
+            shop: { select: { id: true, slug: true, profile: { select: { name: true } } } },
+            customer: { select: { name: true, email: true } },
+            shipment: { select: { method: true, fee: true, carrier: true, trackingNumber: true, trackingUrl: true, estimatedDeliveryEnd: true, shippedAt: true, deliveredAt: true } },
+        }}),
+        prisma.order.count({ where }),
+        prisma.order.count({ where: { shipment: { isNot: null }, status: { in: ["PENDING", "CONFIRMED", "PROCESSING"] } } }),
+        prisma.order.count({ where: { shipment: { isNot: null }, status: "SHIPPED" } }),
+        prisma.order.count({ where: { shipment: { isNot: null }, status: "DELIVERED" } }),
+    ]);
+    return { shipments, total, page, limit, totalPages: Math.ceil(total / limit), stats: { pending, shipped, delivered } };
+};
+
 // ─────────────────────────────────────────────
 // REVIEWS
 // ─────────────────────────────────────────────

@@ -12,6 +12,7 @@ import {
     listReviewsService,
     toggleReviewVisibilityService,
     deleteReviewAdminService,
+    listShipmentsService,
 } from "./admin.service.js";
 
 // ─── Platform Stats ───────────────────────────
@@ -107,5 +108,11 @@ export const deleteReviewAdminController = asyncHandler(async (req: Request, res
     const { id } = req.params as { id: string };
     await deleteReviewAdminService(id);
     res.status(200).json({ success: true, message: "Review deleted successfully" });
+});
+
+export const listShipmentsController = asyncHandler(async (req: Request, res: Response) => {
+    const { status, search, page, limit } = req.query as Record<string, string>;
+    const data = await listShipmentsService({ status, search, page: page ? Number(page) : undefined, limit: limit ? Number(limit) : undefined });
+    res.status(200).json({ success: true, data });
 });
 

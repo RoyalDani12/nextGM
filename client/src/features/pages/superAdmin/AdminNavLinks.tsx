@@ -9,7 +9,8 @@ import {
   Shield, 
   LifeBuoy,
   LogOut,
-  MessageSquare
+  MessageSquare,
+  Truck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
@@ -56,6 +57,7 @@ export const AdminNavLinks = () => {
           <NavItem href="/superadmin/users" icon={Users} label="Users" />
           <NavItem href="/superadmin/categories" icon={Tags} label="Categories" />
           <NavItem href="/superadmin/reviews" icon={MessageSquare} label="Reviews & Moderation" />
+          <NavItem href="/superadmin/shipments" icon={Truck} label="Fulfillment" />
           <NavItem href="#" icon={CreditCard} label="Global Billing" />
         </div>
 

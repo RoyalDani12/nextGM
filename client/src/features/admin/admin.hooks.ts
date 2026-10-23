@@ -100,3 +100,6 @@ export const useAdminDeleteReview = () => {
     });
 };
 
+export const useAdminShipments = (filters: { status?: string; search?: string; page?: number; limit?: number }) =>
+    useQuery({ queryKey: ["admin", "shipments", filters], queryFn: () => adminApi.listShipments(filters), placeholderData: (previous) => previous });
+

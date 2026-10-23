@@ -108,6 +108,10 @@ export const adminApi = {
         const res = await api.delete(`${base}/reviews/${id}`);
         return res.data;
     },
+    listShipments: async (filters: { status?: string; search?: string; page?: number; limit?: number } = {}) => {
+        const res = await api.get(`${base}/shipments`, { params: filters });
+        return res.data.data as { shipments: any[]; total: number; stats: { pending: number; shipped: number; delivered: number } };
+    },
 };
 
 export type AdminReview = {

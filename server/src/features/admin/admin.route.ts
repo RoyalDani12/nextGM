@@ -13,6 +13,7 @@ import {
     listReviewsController,
     toggleReviewVisibilityController,
     deleteReviewAdminController,
+    listShipmentsController,
 } from "./admin.controller.js";
 
 const router = express.Router();
@@ -38,6 +39,8 @@ router.patch("/shops/:id/status", updateShopStatusController);
 router.get("/reviews", listReviewsController);
 router.patch("/reviews/:id/visibility", toggleReviewVisibilityController);
 router.delete("/reviews/:id", deleteReviewAdminController);
+
+router.get("/shipments", listShipmentsController);
 
 export default router;
 
