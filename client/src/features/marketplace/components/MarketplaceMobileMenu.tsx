@@ -32,14 +32,14 @@ export const MarketplaceMobileMenu = ({
   return (
     <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
       <div className="flex items-center gap-3">
-        <SheetTrigger className="lg:hidden p-2 text-stone-300 hover:bg-sky-500/10 hover:text-sky-100 rounded-lg transition-all outline-none" aria-label="Open mobile menu">
+        <SheetTrigger className="lg:hidden p-2 text-slate-700 hover:bg-blue-50 hover:text-[#3665f3] rounded-lg transition-all outline-none" aria-label="Open mobile menu">
           <Menu className="size-5" />
         </SheetTrigger>
         <Link to="/" className="flex items-center gap-2.5 group">
           <div className="flex items-center justify-center size-9 rounded-xl bg-[#374151] shadow-lg overflow-hidden group-hover:scale-105 transition-transform">
             <img src="/ChatGPT Image Sep 5, 2026, 12_33_26 AM.png" alt="NextG Logo" className="size-full object-cover" />
           </div>
-          <span className="text-2xl font-black tracking-tight text-stone-100">NextG<span className="text-stone-400">.</span></span>
+          <span className="text-2xl font-black tracking-tight text-slate-900">NextG<span className="text-[#3665f3]">.</span></span>
         </Link>
       </div>
 

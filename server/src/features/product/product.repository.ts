@@ -262,7 +262,28 @@ export const findPublicProductById = async (productId: string) => {
                     sku: true,
                 },
             },
+            coupons: {
+                where: { coupon: { isActive: true, type: { in: ["PERCENTAGE", "FIXED_AMOUNT"] }, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] } },
+                select: { coupon: { select: { code: true, type: true, value: true, minOrderAmount: true, expiresAt: true } } },
+                take: 1,
+            },
         },
+    });
+};
+
+export const listPromotedProductsRepository = async () => {
+    const now = new Date();
+    return prisma.couponProduct.findMany({
+        where: {
+            coupon: { isActive: true, type: { in: ["PERCENTAGE", "FIXED_AMOUNT"] }, OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
+            product: { status: "ACTIVE", deletedAt: null, stock: { gt: 0 }, shop: { status: "ACTIVE", deletedAt: null } },
+        },
+        select: {
+            coupon: { select: { id: true, code: true, type: true, value: true, minOrderAmount: true, expiresAt: true } },
+            product: { select: { id: true, name: true, slug: true, basePrice: true, shop: { select: { slug: true, profile: { select: { name: true } } } }, images: { take: 1, orderBy: { isPrimary: "desc" }, select: { url: true } } } },
+        },
+        orderBy: { coupon: { updatedAt: "desc" } },
+        take: 16,
     });
 };
 
@@ -340,13 +361,18 @@ export const browseProductRepository = async (options: BrowseProductsOptions) =>
                 },
                 platformCategory: { select: { id: true, name: true, slug: true, parent: { select: { id: true, name: true, slug: true } } } },
                 reviews: { where: { isVisible: true }, select: { rating: true } },
+                coupons: {
+                    where: { coupon: { isActive: true, type: { in: ["PERCENTAGE", "FIXED_AMOUNT"] }, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] } },
+                    select: { coupon: { select: { code: true, type: true, value: true, minOrderAmount: true, expiresAt: true } } },
+                    take: 1,
+                },
             },
             orderBy: sort === "rating" ? { createdAt: "desc" } : { [sort]: order },
         });
-    const ratedProducts = productsWithRatings.map(({ reviews, ...product }) => {
+    const ratedProducts = productsWithRatings.map(({ reviews, coupons, ...product }) => {
         const reviewCount = reviews.length;
         const averageRating = reviewCount ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviewCount : 0;
-        return { ...product, averageRating: Number(averageRating.toFixed(1)), reviewCount };
+        return { ...product, averageRating: Number(averageRating.toFixed(1)), reviewCount, promotion: coupons[0]?.coupon ?? null };
     }).filter((product) => !minRating || product.averageRating >= minRating);
     if (sort === "rating") ratedProducts.sort((a, b) => order === "asc" ? a.averageRating - b.averageRating : b.averageRating - a.averageRating);
     return { products: ratedProducts.slice(skip, skip + take), total: ratedProducts.length, categoryBreadcrumb };

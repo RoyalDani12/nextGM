@@ -32,6 +32,7 @@ export const notifyUser = async (params :{
 
   if(!categoryEnabled){
     logger.info({ userId,type },"Notification skipped - category disabled by user.")
+    return
   }
 
   const emailEnabled = pref ? pref.emailEnabled : true

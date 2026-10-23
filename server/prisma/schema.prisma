@@ -68,6 +68,12 @@ enum OrderStatus {
   REFUND_PENDING
 }
 
+enum ShippingMethod {
+  STANDARD
+  EXPRESS
+  PICKUP
+}
+
 enum CheckoutStatus {
   PENDING
   COMPLETED
@@ -424,6 +430,7 @@ platformCategory    Category? @relation(fields: [platformCategoryId], references
   reviews      Review[]
   wishlistItems WishlistItem[]
   analytics    ProductAnalytics[]
+  coupons      CouponProduct[]
 
   @@index([shopId,status])
   @@index([status])
@@ -549,6 +556,7 @@ model Order {
   items           OrderItem[]
   statusHistory   OrderStatusHistory[]
   shippingAddress ShippingAddress?
+  shipment        OrderShipment?
 
   @@index([checkoutId])
   @@index([shopId])
@@ -599,6 +607,27 @@ model ShippingAddress {
   country    String
   postalCode String?
   createdAt  DateTime @default(now())
+}
+
+model OrderShipment {
+  id                     String         @id @default(cuid())
+  orderId                String         @unique
+  order                  Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  method                 ShippingMethod @default(STANDARD)
+  fee                    Decimal        @default(0)
+  estimatedDeliveryStart DateTime?
+  estimatedDeliveryEnd   DateTime?
+  carrier                String?
+  trackingNumber         String?
+  trackingUrl            String?
+  note                   String?
+  shippedAt              DateTime?
+  deliveredAt            DateTime?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+
+  @@index([method])
+  @@index([trackingNumber])
 }
 
 // ─────────────────────────────────────────
@@ -666,10 +695,21 @@ model Coupon {
 
   usages CouponUsage[]
   orders Order[]
+  products CouponProduct[]
 
   @@unique([shopId, code])
   @@index([shopId])
   @@index([code])
+}
+
+model CouponProduct {
+  couponId  String
+  productId String
+  coupon    Coupon  @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([couponId, productId])
+  @@index([productId])
 }
 
 model CouponUsage {

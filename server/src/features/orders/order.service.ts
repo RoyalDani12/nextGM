@@ -10,14 +10,20 @@ import {
     getCustomerOrdersRepository,
     getShopOrderByIdRepository,
     getShopOrdersRepository,
+    markOrderShippedRepository,
     updateOrderStatusRepository,
 } from "./order.repository.js";
-import { GetOrdersQuery, shipAddressInput } from "./order.types.js";
+import { GetOrdersQuery, shipAddressInput, ShipmentUpdateInput, ShippingMethodInput } from "./order.types.js";
 import { scheduleOrderExpiration } from "../../infrastructure/queue/orderExpiration.helpers.js";
 import { notifyUser } from "../notification/notification.service.js";
 import { renderOrderPlacedEmail } from "../../services/email.templates.js";
 
-export const checkoutService = async (customerId: string, shippingAddress: shipAddressInput) => {
+export const checkoutService = async (
+    customerId: string,
+    shippingAddress: shipAddressInput,
+    couponCodes?: Record<string, string>,
+    shippingMethods?: Record<string, ShippingMethodInput>,
+) => {
     const cart = await getCartWithItems(customerId);
 
     if (!cart || cart.items.length === 0) {
@@ -73,7 +79,13 @@ export const checkoutService = async (customerId: string, shippingAddress: shipA
     const shopGroups = Object.values(shopGroupMap);
 
     //create all orders in one transaction
-    const { checkout, orders: createdOrders } = await createOrdersFromCart(customerId, shopGroups, shippingAddress);
+    const { checkout, orders: createdOrders } = await createOrdersFromCart(
+        customerId,
+        shopGroups,
+        shippingAddress,
+        couponCodes,
+        shippingMethods,
+    );
 
     try {
         await Promise.all(createdOrders.map((order) => scheduleOrderExpiration(order.id)));
@@ -141,6 +153,7 @@ export const getCustomerOrdersService = async (customerId: string, query: GetOrd
         id: order.id,
         status: order.status,
         totalAmount: order.totalAmount,
+        discountAmount: order.discountAmount,
         createdAt: order.createdAt,
         shop: {
             slug: order.shop.slug,
@@ -148,7 +161,15 @@ export const getCustomerOrdersService = async (customerId: string, query: GetOrd
             logo: order.shop.profile?.logo ?? null,
         },
         itemCount: order.items.length,
+        items: order.items.map((i) => ({
+            id: i.id,
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
+            productName: i.product?.name ?? "Product",
+            imageUrl: i.product?.images?.[0]?.url ?? null,
+        })),
         payment: null, // Payment is now tracked at Checkout level
+        shipment: order.shipment,
     }));
 
     return {
@@ -171,7 +192,10 @@ export const getCustomerrderByIdService = async (orderId: string, customerId: st
         throw new AppError("Order not found.", 404);
     }
 
-    return order;
+    return {
+        ...order,
+        payment: order.checkout?.payment ?? null,
+    };
 };
 
 export const cancelOrderService = async (orderId: string, customerId: string) => {
@@ -184,7 +208,11 @@ export const cancelOrderService = async (orderId: string, customerId: string) =>
     if (!["PENDING", "CONFIRMED"].includes(order.status)) {
         throw new AppError(`Order cannot be cancelled - current status is ${order.status}`, 400);
     }
-    return cancelOrderRepository(orderId, order.items);
+    return cancelOrderRepository(orderId, order.items, {
+        couponId: order.couponId,
+        customerId: order.customerId,
+        wasPending: order.status === "PENDING",
+    });
 };
 
 export const getShopOrdersService = async (shopId: string, query: GetOrdersQuery) => {
@@ -212,7 +240,8 @@ export const getShopOrdersService = async (shopId: string, query: GetOrdersQuery
             city: order.shippingAddress?.city ?? null,
             country: order.shippingAddress?.country ?? null,
         },
-        paymentStatus: null, // Payment is now tracked at Checkout level
+        paymentStatus: (order as any).checkout?.payment?.status ?? null,
+        shipment: order.shipment,
     }));
 
     return {
@@ -235,7 +264,10 @@ export const getShopOrderByIdService = async (orderId: string, shopId: string) =
         throw new AppError("Order not found.", 404);
     }
 
-    return order;
+    return {
+        ...order,
+        payment: order.checkout?.payment ?? null,
+    };
 };
 
 const SHOP_ALLOWED_TRANSITIONS: Record<string, string[]> = {
@@ -265,13 +297,19 @@ export const updateOrderStatusService = async (
         throw new AppError(`Cannot transition order from ${order.status} to ${newStatus}.`, 400);
     }
 
-    if (newStatus === "SHIPPED" || newStatus === "DELIVERED") {
+    if (newStatus === "SHIPPED") {
+        throw new AppError("Add carrier and tracking details before marking an order as shipped.", 400);
+    }
+
+    const result = await updateOrderStatusRepository(orderId, shopId, order.status, newStatus);
+
+    if (newStatus === "DELIVERED") {
         try {
             await notifyUser({
                 userId: order.customerId,
-                type: newStatus === "SHIPPED" ? "ORDER_SHIPPED" : "ORDER_DELIVERED",
-                title: newStatus === "SHIPPED" ? "Order shipped" : "Order delivered",
-                body: `Your order #${orderId} has been ${newStatus === "SHIPPED" ? "shipped" : "delivered"}.`,
+                type: "ORDER_DELIVERED",
+                title: "Order delivered",
+                body: `Your order #${orderId} has been delivered.`,
                 shopId,
             });
         } catch (err) {
@@ -279,5 +317,35 @@ export const updateOrderStatusService = async (
         }
     }
 
-    return updateOrderStatusRepository(orderId, shopId, order.status, newStatus);
+    return result;
+};
+
+export const markOrderShippedService = async (
+    orderId: string,
+    shopId: string,
+    shipmentInput: ShipmentUpdateInput,
+) => {
+    const result = await markOrderShippedRepository(orderId, shopId, shipmentInput);
+
+    try {
+        await notifyUser({
+            userId: result.order.customerId,
+            type: "ORDER_SHIPPED",
+            title: result.shipment.method === "PICKUP" ? "Order ready for pickup" : "Order shipped",
+            body: result.shipment.trackingNumber
+                ? `Your order #${orderId} is on its way. Tracking number: ${result.shipment.trackingNumber}.`
+                : `Your order #${orderId} is ready for pickup from ${result.shipment.carrier}.`,
+            shopId,
+            meta: {
+                orderId,
+                trackingNumber: result.shipment.trackingNumber,
+                carrier: result.shipment.carrier,
+                trackingUrl: result.shipment.trackingUrl,
+            },
+        });
+    } catch (err) {
+        logger.error({ err, orderId }, "Failed to send shipment notification");
+    }
+
+    return result;
 };

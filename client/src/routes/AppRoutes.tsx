@@ -30,10 +30,9 @@ import { OrderConfirmationPage } from "@/features/order/OrderConfirmationPage";
 import CustomerOrderDetailPage from "@/features/customer/CustomerOrderDetailPage";
 import { ShopOrdersPage } from "@/features/shop/ShopOrdersPage";
 import { ShopReviewsPage } from "@/features/shop/ShopReviewsPage";
-const DashboardSettings = () => <div className="p-6 font-semibold">Settings Page</div>;
+import { ShopSettingsPage as DashboardSettings } from "@/features/shop/ShopSettingsPage";
 const DashboardAnalytics = () => <div className="p-6 font-semibold">Analitics Page</div>;
 import { PayoutDashboard as DashboardPayouts } from "@/features/shop/payouts/PayoutDashboard";
-const DashboardDiscounts = () => <div className="p-6 font-semibold">discount Page</div>;
 import OrdersPage from "@/features/customer/CustomerOrder";
 import ShopSelectionPage from "@/features/shop/ShopSelectionPage";
 // import ShopOrderDetailPage from "@/components/layout/shop/ShopOrderDetailPage";
@@ -41,6 +40,7 @@ import ShopOrderDetailPage from "@/features/shop/components/ShopOrderDetailPage"
 import { AdminCategoriesPage } from "@/features/pages/superAdmin/AdminCategoriesPage";
 import { AdminReviewsPage } from "@/features/pages/superAdmin/AdminReviewsPage";
 import WishlistPage from "@/features/customer/WishlistPage";
+import CouponsPage from "@/features/shop/CouponsPage";
 export function AppRoutes() {
    return (
       <Routes>
@@ -79,7 +79,7 @@ export function AppRoutes() {
                <Route path="orders" element={<ShopOrdersPage />} />
                <Route path="reviews" element={<ShopReviewsPage />} />
                <Route path="analytics" element={<DashboardAnalytics />} />
-               <Route path="discounts" element={<DashboardDiscounts />} />
+               <Route path="discounts" element={<CouponsPage />} />
                <Route path="payouts" element={<DashboardPayouts />} />
                <Route path="settings" element={<DashboardSettings />} />
             </Route>

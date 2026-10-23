@@ -63,6 +63,20 @@ CREATE UNIQUE INDEX IF NOT EXISTS "ShopWallet_stripeAccountId_key" ON "ShopWalle
 
 -- 7. Payment — drop orderId if exists, add checkoutId
 ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "checkoutId" TEXT;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'Payment' AND column_name = 'orderId'
+  ) THEN
+    EXECUTE 'UPDATE "Payment" AS payment
+             SET "checkoutId" = orders."checkoutId"
+             FROM "Order" AS orders
+             WHERE payment."orderId" = orders."id"
+               AND payment."checkoutId" IS NULL';
+    EXECUTE 'ALTER TABLE "Payment" DROP COLUMN "orderId"';
+  END IF;
+END $$;
 CREATE UNIQUE INDEX IF NOT EXISTS "Payment_checkoutId_key" ON "Payment"("checkoutId");
 ALTER TABLE "Payment" DROP CONSTRAINT IF EXISTS "Payment_checkoutId_fkey";
 ALTER TABLE "Payment" ADD CONSTRAINT "Payment_checkoutId_fkey"

@@ -8,6 +8,7 @@ import {
   fetchProductById,
   fetchMarketplaceCategories,
   fetchProductReviews,
+  fetchPromotedProducts,
   fetchWishlist,
   removeWishlistItem,
   saveProductReview,
@@ -15,6 +16,12 @@ import {
   type ProductReviewInput,
   type WishlistItem,
 } from "../marketplace.api";
+
+export const usePromotedProducts = () => useQuery({
+  queryKey: ["marketplace-promotions"],
+  queryFn: fetchPromotedProducts,
+  staleTime: 1000 * 60,
+});
 
 export const useMarketplaceProducts = (filters: MarketplaceFilters | string = {}) => {
   const normalized = typeof filters === "string" ? { search: filters } : filters;
@@ -171,7 +178,7 @@ export const useWishlistToggle = () => {
                 stock: productData?.stock ?? 10,
                 status: productData?.status || "ACTIVE",
                 type: productData?.type || "PHYSICAL",
-                shop: productData?.shop || { slug: "store", profile: { name: "Store" } },
+                shop: productData?.shop || { id: "guest_shop", slug: "store", profile: { name: "Store" } },
                 images: productData?.images || [],
               },
             };

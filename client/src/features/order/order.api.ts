@@ -53,3 +53,20 @@ export const updateShopOrderStatusRequest = async (
 
   return data;
 };
+
+export const markShopOrderShippedRequest = async (
+  shopId: string,
+  orderId: string,
+  shipment: {
+    carrier: string;
+    trackingNumber?: string;
+    trackingUrl?: string;
+    note?: string;
+  },
+) => {
+  const { data } = await api.patch(
+    `/orders/${shopId}/orders/${orderId}/shipment`,
+    shipment,
+  );
+  return data;
+};

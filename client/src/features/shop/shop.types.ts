@@ -18,12 +18,19 @@ export interface ShopProfile {
   website: string | null;
 }
 
+export interface ShopLegalInfo {
+  legalBusinessName: string;
+  taxId: string;
+  entityType: string;
+}
+
 export interface Shop {
   id: string;
   slug: string;
   status: ShopStatus;
   createdAt: string;
   profile: ShopProfile;
+  legalInfo?: ShopLegalInfo | null;
 }
 
 export interface CreateShopPayload {
@@ -54,6 +61,12 @@ export interface UpdateShopProfilePayload {
   city?: string;
   country?: string;
   website?: string;
+}
+
+export interface UpdateShopLegalInfoPayload {
+  legalBusinessName: string;
+  taxId: string;
+  entityType: string;
 }
 
 export type PublishReadinessChecks = {

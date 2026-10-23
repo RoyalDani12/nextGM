@@ -43,6 +43,8 @@ export const checkoutSchema = z.object({
                 .optional(),
 
         }).strict(),
+        couponCodes: z.record(z.string().min(1), z.string().trim().min(3).max(32)).optional(),
+        shippingMethods: z.record(z.string().min(1), z.enum(["STANDARD", "EXPRESS", "PICKUP"])).optional(),
 
     }).strict(),
 })
@@ -76,10 +78,18 @@ export const updateOrderStatusSchema = z.object({
     status: z.enum([
       "CONFIRMED",
       "PROCESSING",
-      "SHIPPED",
       "DELIVERED",
     ], {
-      message: "Status must be CONFIRMED, PROCESSING, SHIPPED, or DELIVERED."
+      message: "Status must be CONFIRMED, PROCESSING, or DELIVERED."
     })
   }).strict()
+});
+
+export const markOrderShippedSchema = z.object({
+  body: z.object({
+    carrier: z.string().trim().min(2).max(100),
+    trackingNumber: z.string().trim().min(2).max(100).optional(),
+    trackingUrl: z.string().trim().url().max(500).refine((url) => /^https?:\/\//i.test(url), "Tracking link must use http or https.").optional(),
+    note: z.string().trim().max(500).optional(),
+  }).strict(),
 });

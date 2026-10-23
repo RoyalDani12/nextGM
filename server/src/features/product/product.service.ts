@@ -13,6 +13,7 @@ import {
     updateProductStatusRepository,
     softDeleteProductRepository,
     findPublicProductById,
+    listPromotedProductsRepository,
     browseProductRepository,
     getProductImagesRepository,
     addProductImageRepository,
@@ -318,6 +319,8 @@ export const getPublicProductService = async (productId: string) => {
 
     return product;
 };
+
+export const getPromotedProductsService = () => listPromotedProductsRepository();
 
 export const browseProductsService = async (query: BrowseProductsQuery) => {
     const page = Math.max(1, query.page ?? 1);

@@ -29,6 +29,8 @@ export const orderExpirationWorker = new Worker(
         const order = await tx.order.findUnique({
           where:{ id: orderId },
           select :{
+            couponId:true,
+            customerId:true,
             items :{
               select :{ productId:true,variantId:true ,quantity:true}
             }
@@ -37,6 +39,11 @@ export const orderExpirationWorker = new Worker(
 
         if(!order){
           return
+        }
+
+        if (order.couponId) {
+          const released = await tx.couponUsage.deleteMany({ where: { couponId: order.couponId, userId: order.customerId } })
+          if (released.count) await tx.coupon.update({ where: { id: order.couponId }, data: { usedCount: { decrement: 1 } } })
         }
 
         await Promise.all(

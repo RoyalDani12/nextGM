@@ -17,6 +17,11 @@ export const fetchProductById = async (productId: string) => {
   const { data } = await api.get(`/products/${productId}`);
   return data?.data?.product || data?.data || data;
 };
+export type PromotedProduct = {
+  coupon: { id: string; code: string; type: "PERCENTAGE" | "FIXED_AMOUNT"; value: number | string; minOrderAmount: number | string | null; expiresAt: string | null };
+  product: { id: string; name: string; slug: string; basePrice: number | string; images: Array<{ url: string }>; shop: { slug: string; profile?: { name?: string } | null } };
+};
+export const fetchPromotedProducts = async (): Promise<PromotedProduct[]> => (await api.get("/products/promotions")).data.data || [];
 export const fetchMarketplaceCategories = async (): Promise<MarketplaceCategory[]> => {
   const { data } = await api.get("/categories");
   return data?.data || [];

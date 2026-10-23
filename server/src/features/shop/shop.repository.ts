@@ -3,7 +3,7 @@ import { prisma } from "../../config/db.js";
 export const findShopsByOwnerId = async (ownerId: string) => {
     return prisma.shop.findMany({
         where: { ownerId, deletedAt: null },
-        include: { profile: true },
+        include: { profile: true, legalInfo: true },
         orderBy: { createdAt: "desc" },
     });
 }

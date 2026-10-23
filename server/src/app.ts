@@ -25,6 +25,7 @@ import shopRoute from "./features/shop/shop.routes.js"
 import adminRoute from "./features/admin/admin.route.js"
 import categoryRoute from "./features/category/category.routes.js"
 import engagementRoute from "./features/engagement/engagement.routes.js"
+import couponRoute from "./features/coupon/coupon.routes.js"
 
 
 // security first
@@ -61,6 +62,7 @@ app.use('/api/v1/users',userRoute)
 app.use('/api/v1/shops',shopRoute)
 app.use('/api/v1/uploads',uploadRoute)
 app.use('/api/v1/shops/:shopId/products',productRoute)
+app.use('/api/v1/shops/:shopId/coupons', couponRoute)
 app.use('/api/v1/products', productPublicRoute)
 app.use('/api/v1/categories', categoryRoute)
 app.use('/api/v1', engagementRoute)

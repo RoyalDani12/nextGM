@@ -90,6 +90,8 @@ export function ProductDetailView({
   const ownReview = reviewData?.reviews?.find((review: { userId: string }) => review.userId === currentUser?.id);
   const currentPrice = selectedVariant ? selectedVariant.price : product?.basePrice;
   const currentStock = selectedVariant ? selectedVariant.stock : (product?.stock ?? 0);
+  const productPromotion = product?.coupons?.[0]?.coupon;
+  const promotionLabel = productPromotion ? productPromotion.type === "PERCENTAGE" ? `${Number(productPromotion.value)}% OFF` : `$${Number(productPromotion.value).toFixed(2)} OFF` : null;
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -240,9 +242,7 @@ export function ProductDetailView({
 
                 {/* Main Image */}
                 <div className="relative flex-1 aspect-square max-h-80 sm:max-h-96 w-full overflow-hidden rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center p-4">
-                  <span className="absolute top-3 left-3 z-10 bg-rose-600 text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded shadow-sm tracking-wider">
-                    40% OFF
-                  </span>
+                  {promotionLabel && <span className="absolute top-3 left-3 z-10 bg-rose-600 text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded shadow-sm tracking-wider">{promotionLabel}</span>}
                   {images[selectedImageIndex]?.url ? (
                     <img
                       src={images[selectedImageIndex].url}

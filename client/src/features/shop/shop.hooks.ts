@@ -8,6 +8,7 @@ import {
   closeShopRequest,
   getPublishReadinessRequest,
   publishShopRequest,
+  updateShopLegalInfoRequest,
   getShopReviewsRequest,
   replyShopReviewRequest,
   deleteShopReviewReplyRequest,
@@ -18,9 +19,9 @@ import {
   uploadToCloudinary,
   type UploadResourceType,
 } from "../upload/upload.api";
-import { getShopOrdersRequest ,getShopOrderByIdRequest ,  updateShopOrderStatusRequest,} from "../order/order.api";
+import { getShopOrdersRequest, getShopOrderByIdRequest, markShopOrderShippedRequest, updateShopOrderStatusRequest } from "../order/order.api";
 
-import type { CreateShopPayload, UpdateShopProfilePayload, } from "./shop.types";
+import type { CreateShopPayload, UpdateShopProfilePayload, UpdateShopLegalInfoPayload } from "./shop.types";
 
 export const useMyShops = () => {
   return useQuery({
@@ -85,6 +86,29 @@ export const useUpdateShopProfile = () => {
   });
 };
 
+
+export const useUpdateShopLegalInfo = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      shopId,
+      payload,
+    }: {
+      shopId: string;
+      payload: UpdateShopLegalInfoPayload;
+    }) => updateShopLegalInfoRequest(shopId, payload),
+
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["my-shops"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["shop-publish-readiness", variables.shopId],
+      });
+    },
+  });
+};
 
 export const useShopImageUpload = () => {
   return useMutation({
@@ -185,6 +209,27 @@ export const useUpdateShopOrderStatus = () => {
           variables.orderId,
         ],
       });
+    },
+  });
+};
+
+export const useMarkShopOrderShipped = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      shopId,
+      orderId,
+      shipment,
+    }: {
+      shopId: string;
+      orderId: string;
+      shipment: { carrier: string; trackingNumber?: string; trackingUrl?: string; note?: string };
+    }) => markShopOrderShippedRequest(shopId, orderId, shipment),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["shop-orders", variables.shopId] });
+      queryClient.invalidateQueries({ queryKey: ["shop-order", variables.shopId, variables.orderId] });
+      queryClient.invalidateQueries({ queryKey: ["customer-order", variables.orderId] });
+      queryClient.invalidateQueries({ queryKey: ["customer-order"] });
     },
   });
 };

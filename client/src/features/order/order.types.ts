@@ -7,8 +7,12 @@ export interface ShippingAddress {
   postalCode?: string;
 }
 
+export type ShippingMethod = "STANDARD" | "EXPRESS" | "PICKUP";
+
 export interface CheckoutPayload {
   shippingAddress: ShippingAddress;
+  couponCodes?: Record<string, string>;
+  shippingMethods?: Record<string, ShippingMethod>;
 }
 
 export interface CheckoutOrder {
@@ -16,6 +20,13 @@ export interface CheckoutOrder {
   shopId: string;
   shopSlug: string;
   totalAmount: string;
+  discountAmount?: string;
+  shipping?: {
+    method: ShippingMethod;
+    fee: string;
+    estimatedDeliveryStart: string;
+    estimatedDeliveryEnd: string;
+  };
   itemCount: number;
 }
 

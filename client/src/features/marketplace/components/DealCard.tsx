@@ -11,7 +11,7 @@ export interface DealCardProps {
   seller?: string;
   price: number | string;
   originalPrice?: number | string;
-  discount?: string;
+  promotion?: { code: string; type: "PERCENTAGE" | "FIXED_AMOUNT"; value: number | string; minOrderAmount?: number | string | null; expiresAt?: string | null } | null;
   type?: string;
   moq?: string;
   sold?: string | number;
@@ -19,7 +19,6 @@ export interface DealCardProps {
   verified?: boolean;
   years?: number;
   country?: string;
-  badge?: string;
   onSelect?: (id: string) => void;
 }
 
@@ -30,14 +29,13 @@ export function DealCard({
   seller,
   price,
   originalPrice,
-  discount,
+  promotion,
   moq,
   sold,
   reorderRate,
   verified,
   years,
   country,
-  badge,
   onSelect,
 }: DealCardProps) {
   const { data: wishlist = [] } = useWishlist();
@@ -45,6 +43,11 @@ export function DealCard({
   const isLiked = wishlist.some((item) => item.productId === id);
 
   const numericPrice = typeof price === "number" ? price : parseFloat(price) || 0;
+  const appliesToPrice = !promotion?.minOrderAmount || numericPrice >= Number(promotion.minOrderAmount);
+  const salePrice = promotion && appliesToPrice
+    ? promotion.type === "PERCENTAGE" ? numericPrice * (1 - Number(promotion.value) / 100) : Math.max(0, numericPrice - Number(promotion.value))
+    : numericPrice;
+  const realDiscountLabel = promotion ? promotion.type === "PERCENTAGE" ? `${Number(promotion.value)}% OFF` : `$${Number(promotion.value).toFixed(2)} OFF` : null;
 
   const handleToggleWishlist = (e: React.MouseEvent) => {
     e.stopPropagation(); // Do not trigger onSelect (opening the detail drawer)
@@ -57,7 +60,7 @@ export function DealCard({
           name,
           basePrice: numericPrice,
           stock: 10,
-          shop: { slug: seller || "store", profile: { name: seller || "Store" } },
+          shop: { id: `guest_shop_${id}`, slug: seller || "store", profile: { name: seller || "Store" } },
           images: image ? [{ url: image }] : [],
         },
       },
@@ -129,9 +132,9 @@ export function DealCard({
         <div className="space-y-1 px-0.5">
           {/* Badges */}
           <div className="flex items-center gap-1 flex-wrap">
-            {(badge || discount) && (
+            {realDiscountLabel && (
               <span className="bg-orange-500 text-white font-extrabold text-[8px] px-1 py-0.2 rounded uppercase tracking-wider">
-                {badge || discount}
+                {realDiscountLabel}
               </span>
             )}
           </div>
@@ -152,13 +155,13 @@ export function DealCard({
           {/* Price */}
           <div className="pt-0.5 flex items-baseline gap-1">
             <span className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight">
-              ${numericPrice.toFixed(2)}
+              ${salePrice.toFixed(2)}
             </span>
-            {originalPrice && (
+            {(promotion && appliesToPrice) || originalPrice ? (
               <span className="text-[10px] text-slate-400 line-through font-normal hidden sm:inline">
-                ${Number(originalPrice).toFixed(2)}
+                ${Number(originalPrice ?? numericPrice).toFixed(2)}
               </span>
-            )}
+            ) : null}
           </div>
 
           {/* MOQ & Sales */}

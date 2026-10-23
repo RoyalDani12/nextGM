@@ -8,6 +8,7 @@ import {
     getCustomerrderByIdService,
     getShopOrderByIdService,
     getShopOrdersService,
+    markOrderShippedService,
     updateOrderStatusService,
 } from "./order.service.js";
 import { OrderStatus } from "@prisma/client";
@@ -18,9 +19,9 @@ export const checkoutController = asyncHandler(async (req: Request, res: Respons
         throw new AppError("Unauthorized.", 401);
     }
 
-    const { shippingAddress } = req.body;
+    const { shippingAddress, couponCodes, shippingMethods } = req.body;
 
-    const result = await checkoutService(userId, shippingAddress);
+    const result = await checkoutService(userId, shippingAddress, couponCodes, shippingMethods);
 
     res.status(201).json({
         success: true,
@@ -116,6 +117,18 @@ export const updateOrderStatusController = asyncHandler(async (req: Request, res
         success: true,
         statusCode: 200,
         message: "Order status updated successfully.",
+        data: result,
+    });
+});
+
+export const markOrderShippedController = asyncHandler(async (req: Request, res: Response) => {
+    const { shopId, orderId } = req.params as { shopId: string; orderId: string };
+    const result = await markOrderShippedService(orderId, shopId, req.body);
+
+    res.status(200).json({
+        success: true,
+        statusCode: 200,
+        message: "Shipment details saved and customer notified.",
         data: result,
     });
 });

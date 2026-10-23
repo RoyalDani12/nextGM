@@ -29,6 +29,10 @@ export const updatePaymentProvider = async ( paymentId:string,providerPaymentId:
 }
 export const markPaymentFailed = async (checkoutId: string) => {
     return prisma.$transaction(async (tx) => {
+        const couponOrders = await tx.order.findMany({
+            where: { checkoutId, status: "PENDING", couponId: { not: null } },
+            select: { couponId: true, customerId: true },
+        });
         await tx.payment.updateMany({
             where: { checkoutId, status: "PENDING" },
             data: { status: "FAILED" },
@@ -38,6 +42,14 @@ export const markPaymentFailed = async (checkoutId: string) => {
             where: { id: checkoutId, status: "PENDING" },
             data: { status: "FAILED" },
         });
+
+        // A coupon is reserved during checkout to prevent exceeding its limits. If the
+        // payment fails, release that reservation so the customer can try again.
+        for (const order of couponOrders) {
+            if (!order.couponId) continue;
+            const released = await tx.couponUsage.deleteMany({ where: { couponId: order.couponId, userId: order.customerId } });
+            if (released.count) await tx.coupon.update({ where: { id: order.couponId }, data: { usedCount: { decrement: 1 } } });
+        }
 
         const checkout = await tx.checkout.findUnique({
             where: { id: checkoutId },

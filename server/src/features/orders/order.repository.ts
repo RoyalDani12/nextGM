@@ -6,58 +6,129 @@ import {
     GetShopOrdersOptions,
     shipAddressInput,
     shopGroup,
+    ShipmentUpdateInput,
+    ShippingMethodInput,
 } from "./order.types.js";
 import crypto from "crypto";
 import { getReservationExpiryTimestamp } from "../../infrastructure/queue/orderExpiration.helpers.js";
+
+const calculateDiscount = (type: "PERCENTAGE" | "FIXED_AMOUNT", value: number, subtotal: number) =>
+    type === "PERCENTAGE" ? (subtotal * value) / 100 : Math.min(value, subtotal);
+
+const SHIPPING_QUOTES: Record<ShippingMethodInput, { fee: number; minDays: number; maxDays: number }> = {
+    STANDARD: { fee: 5, minDays: 5, maxDays: 7 },
+    EXPRESS: { fee: 15, minDays: 2, maxDays: 3 },
+    PICKUP: { fee: 0, minDays: 1, maxDays: 2 },
+};
+
+const addDays = (date: Date, days: number) => {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+};
 
 export const createOrdersFromCart = async (
     customerId: string,
     shopGroups: shopGroup[],
     shippingAddress: shipAddressInput,
+    couponCodes: Record<string, string> = {},
+    shippingMethods: Record<string, ShippingMethodInput> = {},
 ) => {
     return prisma.$transaction(async (tx) => {
-        let checkoutTotal = 0;
+        const preparedGroups: Array<{
+            group: shopGroup;
+            subtotal: number;
+            discountAmount: number;
+            freeShipping: boolean;
+            couponId?: string;
+            couponCode?: string;
+            shipping: { method: ShippingMethodInput; fee: number; estimatedDeliveryStart: Date; estimatedDeliveryEnd: Date };
+        }> = [];
 
-        // Calculate checkout total first
+        // Validate and reserve each coupon before creating any order. Everything below runs
+        // in one transaction, so a failed coupon leaves no order, stock update, or usage behind.
         for (const group of shopGroups) {
-            for (const item of group.items) {
-                const unitPrice = item.variant
-                    ? Number(item.variant.price)
-                    : Number(item.product.basePrice);
-                checkoutTotal += unitPrice * Number(item.quantity);
+            const subtotal = group.items.reduce((sum, item) => {
+                const unitPrice = item.variant ? Number(item.variant.price) : Number(item.product.basePrice);
+                return sum + unitPrice * Number(item.quantity);
+            }, 0);
+            const couponCode = couponCodes[group.shopId]?.trim().toUpperCase();
+            let couponId: string | undefined;
+            let discountAmount = 0;
+            let freeShipping = false;
+
+            if (couponCode) {
+                const coupon = await tx.coupon.findUnique({
+                    where: { shopId_code: { shopId: group.shopId, code: couponCode } },
+                    select: { id: true, type: true, value: true, minOrderAmount: true, maxUses: true, isActive: true, expiresAt: true, products: { select: { productId: true } } },
+                });
+                if (!coupon || !coupon.isActive) throw new AppError(`Coupon ${couponCode} is not available for this shop.`, 400);
+                if (coupon.expiresAt && coupon.expiresAt <= new Date()) throw new AppError(`Coupon ${couponCode} has expired.`, 400);
+                const targetedProductIds = new Set(coupon.products.map((target) => target.productId));
+                const eligibleSubtotal = targetedProductIds.size
+                    ? group.items.reduce((sum, item) => targetedProductIds.has(item.productId)
+                        ? sum + (item.variant ? Number(item.variant.price) : Number(item.product.basePrice)) * Number(item.quantity)
+                        : sum, 0)
+                    : subtotal;
+                if (targetedProductIds.size && eligibleSubtotal === 0) {
+                    throw new AppError(`Coupon ${couponCode} does not apply to products in this cart.`, 400);
+                }
+                if (coupon.minOrderAmount && eligibleSubtotal < Number(coupon.minOrderAmount)) {
+                    throw new AppError(`Coupon ${couponCode} requires a minimum order of ${Number(coupon.minOrderAmount).toFixed(2)}.`, 400);
+                }
+                const priorUsage = await tx.couponUsage.findUnique({ where: { couponId_userId: { couponId: coupon.id, userId: customerId } } });
+                if (priorUsage) throw new AppError(`Coupon ${couponCode} has already been used on this account.`, 409);
+
+                const usageGuard = coupon.maxUses === null
+                    ? await tx.coupon.updateMany({ where: { id: coupon.id }, data: { usedCount: { increment: 1 } } })
+                    : await tx.coupon.updateMany({ where: { id: coupon.id, usedCount: { lt: coupon.maxUses } }, data: { usedCount: { increment: 1 } } });
+                if (!usageGuard.count) throw new AppError(`Coupon ${couponCode} has reached its usage limit.`, 409);
+                await tx.couponUsage.create({ data: { couponId: coupon.id, userId: customerId } });
+
+                couponId = coupon.id;
+                if (coupon.type === "FREE_SHIPPING") {
+                    freeShipping = true;
+                } else {
+                    discountAmount = calculateDiscount(coupon.type, Number(coupon.value), eligibleSubtotal);
+                }
             }
+            const method = shippingMethods[group.shopId] ?? "STANDARD";
+            const quote = SHIPPING_QUOTES[method];
+            const today = new Date();
+            preparedGroups.push({
+                group,
+                subtotal,
+                discountAmount,
+                freeShipping,
+                couponId,
+                couponCode,
+                shipping: {
+                    method,
+                    fee: freeShipping ? 0 : quote.fee,
+                    estimatedDeliveryStart: addDays(today, quote.minDays),
+                    estimatedDeliveryEnd: addDays(today, quote.maxDays),
+                },
+            });
         }
 
+        const checkoutTotal = preparedGroups.reduce((sum, item) => sum + item.subtotal - item.discountAmount + item.shipping.fee, 0);
         const checkout = await tx.checkout.create({
-            data: {
-                customerId,
-                totalAmount: checkoutTotal.toFixed(2),
-                status: "PENDING",
-                idempotencyKey: crypto.randomUUID(),
-            }
+            data: { customerId, totalAmount: checkoutTotal.toFixed(2), status: "PENDING", idempotencyKey: crypto.randomUUID() },
         });
-
         const createdOrders = [];
 
-        for (const group of shopGroups) {
-            // Calculate order total
-            let totalAmount = 0;
+        for (const { group, subtotal, discountAmount, couponId, shipping } of preparedGroups) {
+            const discountedTotal = subtotal - discountAmount;
+            const totalWithShipping = discountedTotal + shipping.fee;
 
-            for (const item of group.items) {
-                const unitPrice = item.variant
-                    ? Number(item.variant.price)
-                    : Number(item.product.basePrice);
-
-                totalAmount += unitPrice * Number(item.quantity);
-            }
-
-            // create order row
             const order = await tx.order.create({
                 data: {
                     checkoutId: checkout.id,
                     shopId: group.shopId,
                     customerId,
-                    totalAmount: totalAmount.toFixed(2),
+                    totalAmount: totalWithShipping.toFixed(2),
+                    couponId,
+                    discountAmount: discountAmount.toFixed(2),
                     status: "PENDING",
                     idempotencyKey: crypto.randomUUID(),
                     reservationExpiresAt: getReservationExpiryTimestamp(),
@@ -92,6 +163,15 @@ export const createOrdersFromCart = async (
                     postalCode: shippingAddress.postalCode,
                 },
             });
+            await tx.orderShipment.create({
+                data: {
+                    orderId: order.id,
+                    method: shipping.method,
+                    fee: shipping.fee.toFixed(2),
+                    estimatedDeliveryStart: shipping.estimatedDeliveryStart,
+                    estimatedDeliveryEnd: shipping.estimatedDeliveryEnd,
+                },
+            });
             // create initial order status history
             await tx.orderStatusHistory.create({
                 data: {
@@ -123,7 +203,14 @@ export const createOrdersFromCart = async (
                 id: order.id,
                 shopId: group.shopId,
                 shopSlug: group.shopSlug,
-                totalAmount: totalAmount.toFixed(2),
+                totalAmount: totalWithShipping.toFixed(2),
+                discountAmount: discountAmount.toFixed(2),
+                shipping: {
+                    method: shipping.method,
+                    fee: shipping.fee.toFixed(2),
+                    estimatedDeliveryStart: shipping.estimatedDeliveryStart,
+                    estimatedDeliveryEnd: shipping.estimatedDeliveryEnd,
+                },
                 status: "PENDING",
                 itemCount: group.items.length,
             });
@@ -147,6 +234,7 @@ export const getCustomerOrdersRepository = async (options: GetCustomerOrdersOpti
                 id: true,
                 status: true,
                 totalAmount: true,
+                discountAmount: true,
                 createdAt: true,
                 shop: {
                     select: {
@@ -160,7 +248,34 @@ export const getCustomerOrdersRepository = async (options: GetCustomerOrdersOpti
                     },
                 },
                 items: {
-                    select: { id: true },
+                    select: {
+                        id: true,
+                        quantity: true,
+                        unitPrice: true,
+                        product: {
+                            select: {
+                                id: true,
+                                name: true,
+                                images: {
+                                    where: { isPrimary: true },
+                                    select: { url: true },
+                                    take: 1,
+                                },
+                            },
+                        },
+                    },
+                },
+                shipment: {
+                    select: {
+                        method: true,
+                        fee: true,
+                        estimatedDeliveryStart: true,
+                        estimatedDeliveryEnd: true,
+                        carrier: true,
+                        trackingNumber: true,
+                        shippedAt: true,
+                        deliveredAt: true,
+                    },
                 },
             },
             orderBy: { createdAt: "desc" },
@@ -182,6 +297,8 @@ export const getCustomerOrderByIdRepository = async (orderId: string, customerId
         select: {
             id: true,
             status: true,
+            couponId: true,
+            customerId: true,
             totalAmount: true,
             discountAmount: true,
             notes: true,
@@ -235,12 +352,40 @@ export const getCustomerOrderByIdRepository = async (orderId: string, customerId
                     postalCode: true,
                 },
             },
-            payment: {
+            shipment: {
                 select: {
+                    method: true,
+                    fee: true,
+                    estimatedDeliveryStart: true,
+                    estimatedDeliveryEnd: true,
+                    carrier: true,
+                    trackingNumber: true,
+                    trackingUrl: true,
+                    note: true,
+                    shippedAt: true,
+                    deliveredAt: true,
+                },
+            },
+            checkout: {
+                select: {
+                    id: true,
                     status: true,
-                    amount: true,
-                    currency: true,
-                    provider: true,
+                    payment: {
+                        select: {
+                            status: true,
+                            amount: true,
+                            currency: true,
+                            provider: true,
+                        },
+                    },
+                },
+            },
+            coupon: {
+                select: {
+                    id: true,
+                    code: true,
+                    type: true,
+                    value: true,
                 },
             },
             statusHistory: {
@@ -261,6 +406,8 @@ export const findOrderForCancelRepository = async (orderId: string, customerId: 
         select: {
             id: true,
             status: true,
+            couponId: true,
+            customerId: true,
             items: {
                 select: {
                     productId: true,
@@ -277,6 +424,7 @@ const CANCELABLE_STATUSES = ["PENDING", "CONFIRMED"] as const;
 export const cancelOrderRepository = async (
     orderId: string,
     items: { productId: string; variantId: string | null; quantity: number }[],
+    coupon?: { couponId: string | null; customerId: string; wasPending: boolean },
 ) => {
     return prisma.$transaction(async (tx) => {
         /* 
@@ -292,6 +440,10 @@ export const cancelOrderRepository = async (
 
         if (guard.count === 0) {
             throw new AppError("Order can no longer be cancelled -its status has changed.", 409);
+        }
+        if (coupon?.couponId && coupon.wasPending) {
+            const released = await tx.couponUsage.deleteMany({ where: { couponId: coupon.couponId, userId: coupon.customerId } });
+            if (released.count) await tx.coupon.update({ where: { id: coupon.couponId }, data: { usedCount: { decrement: 1 } } });
         }
         // restore stock — increment is always safe, no gte guard needed
         await Promise.all(
@@ -328,6 +480,72 @@ export const cancelOrderRepository = async (
     });
 };
 
+export const markOrderShippedRepository = async (
+    orderId: string,
+    shopId: string,
+    shipmentInput: ShipmentUpdateInput,
+) => {
+    return prisma.$transaction(async (tx) => {
+        const order = await tx.order.findFirst({
+            where: { id: orderId, shopId, deletedAt: null },
+            select: {
+                id: true,
+                customerId: true,
+                status: true,
+                shipment: { select: { method: true } },
+            },
+        });
+
+        if (!order) throw new AppError("Order not found.", 404);
+        if (order.status !== "PROCESSING") {
+            throw new AppError(`Cannot dispatch an order with status ${order.status}.`, 400);
+        }
+
+        if (order.shipment?.method !== "PICKUP" && !shipmentInput.trackingNumber) {
+            throw new AppError("A tracking number is required for shipped deliveries.", 400);
+        }
+
+        const guard = await tx.order.updateMany({
+            where: { id: orderId, shopId, status: "PROCESSING" },
+            data: { status: "SHIPPED" },
+        });
+        if (!guard.count) throw new AppError("Order status changed before this shipment could apply.", 409);
+
+        const shipment = await tx.orderShipment.update({
+            where: { orderId },
+            data: {
+                carrier: shipmentInput.carrier,
+                trackingNumber: shipmentInput.trackingNumber || null,
+                trackingUrl: shipmentInput.trackingUrl || null,
+                note: shipmentInput.note || null,
+                shippedAt: new Date(),
+            },
+            select: {
+                method: true,
+                carrier: true,
+                trackingNumber: true,
+                trackingUrl: true,
+                note: true,
+                shippedAt: true,
+                estimatedDeliveryStart: true,
+                estimatedDeliveryEnd: true,
+            },
+        });
+
+        await tx.orderStatusHistory.create({
+            data: {
+                orderId,
+                status: "SHIPPED",
+                note: shipmentInput.trackingNumber
+                    ? `Handed to ${shipmentInput.carrier}. Tracking: ${shipmentInput.trackingNumber}.`
+                    : `Ready for ${shipmentInput.carrier} pickup.`,
+            },
+        });
+
+        return { order: { id: order.id, customerId: order.customerId, status: "SHIPPED" as const }, shipment };
+    });
+};
+
 export const getShopOrdersRepository = async (options: GetShopOrdersOptions) => {
     const { shopId, status, skip, take } = options;
 
@@ -351,8 +569,24 @@ export const getShopOrdersRepository = async (options: GetShopOrdersOptions) => 
                 shippingAddress: {
                     select: { fullName: true, city: true, country: true },
                 },
-                payment: {
-                    select: { status: true },
+                checkout: {
+                    select: {
+                        payment: {
+                            select: { status: true },
+                        },
+                    },
+                },
+                shipment: {
+                    select: {
+                        method: true,
+                        fee: true,
+                        estimatedDeliveryStart: true,
+                        estimatedDeliveryEnd: true,
+                        carrier: true,
+                        trackingNumber: true,
+                        shippedAt: true,
+                        deliveredAt: true,
+                    },
                 },
             },
             orderBy: { createdAt: "desc" },
@@ -411,12 +645,40 @@ export const getShopOrderByIdRepository = async (orderId: string, shopId: string
                     postalCode: true,
                 },
             },
-            payment: {
+            shipment: {
                 select: {
+                    method: true,
+                    fee: true,
+                    estimatedDeliveryStart: true,
+                    estimatedDeliveryEnd: true,
+                    carrier: true,
+                    trackingNumber: true,
+                    trackingUrl: true,
+                    note: true,
+                    shippedAt: true,
+                    deliveredAt: true,
+                },
+            },
+            checkout: {
+                select: {
+                    id: true,
                     status: true,
-                    amount: true,
-                    currency: true,
-                    provider: true,
+                    payment: {
+                        select: {
+                            status: true,
+                            amount: true,
+                            currency: true,
+                            provider: true,
+                        },
+                    },
+                },
+            },
+            coupon: {
+                select: {
+                    id: true,
+                    code: true,
+                    type: true,
+                    value: true,
                 },
             },
             statusHistory: {
@@ -459,6 +721,13 @@ export const updateOrderStatusRepository = async (
                 note: note ?? `Order marked as ${newStatus} by shop.`,
             },
         });
+
+        if (newStatus === "DELIVERED") {
+            await tx.orderShipment.update({
+                where: { orderId },
+                data: { deliveredAt: new Date() },
+            });
+        }
 
         return tx.order.findUnique({
             where: { id: orderId },

@@ -120,18 +120,18 @@ export const MarketplaceDesktopNav = ({
 
         {/* Explore */}
         <NavigationMenuItem>
-          <NavigationMenuTrigger className="bg-transparent text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800 data-[state=open]:bg-slate-800 data-[state=open]:text-white px-3 py-2 rounded-xl transition-all cursor-pointer">
+          <NavigationMenuTrigger className="bg-transparent text-sm font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 data-[state=open]:bg-slate-100 data-[state=open]:text-slate-950 px-3 py-2 rounded-full transition-all cursor-pointer">
             Explore
           </NavigationMenuTrigger>
 
-          <NavigationMenuContent className="p-6 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-[850px] grid grid-cols-12 gap-6 text-slate-100">
+          <NavigationMenuContent className="grid w-[850px] grid-cols-12 gap-6 rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-2xl">
             <div className="col-span-8 grid grid-cols-2 gap-6">
               {EXPLORE_MEGA_MENU.sections.map((section) => (
                 <div
                   key={section.title}
                   className="space-y-3"
                 >
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                     {section.title}
                   </h4>
 
@@ -143,18 +143,18 @@ export const MarketplaceDesktopNav = ({
                         <Link
                           key={link.name}
                           to={link.href}
-                          className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-800 transition-all group"
+                          className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-all group"
                         >
-                          <div className="p-2 rounded-lg bg-slate-800 text-slate-400 group-hover:bg-orange-500/20 group-hover:text-orange-400 transition-all shadow-xs">
+                          <div className="p-2 rounded-lg bg-blue-50 text-[#3665f3] group-hover:bg-[#3665f3] group-hover:text-white transition-all shadow-xs">
                             <Icon className="size-4" />
                           </div>
 
                           <div>
-                            <div className="text-sm font-semibold text-slate-200 group-hover:text-white transition-colors">
+                            <div className="text-sm font-semibold text-slate-800 group-hover:text-[#3665f3] transition-colors">
                               {link.name}
                             </div>
 
-                            <p className="text-xs text-slate-400 line-clamp-1">
+                            <p className="text-xs text-slate-500 line-clamp-1">
                               {link.desc}
                             </p>
                           </div>
@@ -166,24 +166,24 @@ export const MarketplaceDesktopNav = ({
               ))}
             </div>
 
-            <div className="col-span-4 rounded-xl p-5 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/60 flex flex-col justify-between relative overflow-hidden shadow-xl">
+            <div className="relative col-span-4 flex flex-col justify-between overflow-hidden rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-100 p-5 shadow-xl">
               <div className="space-y-2">
-                <span className="inline-block bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full tracking-wide">
+                <span className="inline-block bg-white border border-blue-200 text-[#3665f3] text-[10px] font-bold uppercase px-2 py-0.5 rounded-full tracking-wide">
                   {EXPLORE_MEGA_MENU.featured.badge}
                 </span>
 
-                <h3 className="text-base font-bold text-white leading-snug">
+                <h3 className="text-base font-bold text-slate-900 leading-snug">
                   {EXPLORE_MEGA_MENU.featured.title}
                 </h3>
 
-                <p className="text-xs text-slate-400 leading-relaxed">
+                <p className="text-xs text-slate-600 leading-relaxed">
                   {EXPLORE_MEGA_MENU.featured.description}
                 </p>
               </div>
 
               <Link
                 to={EXPLORE_MEGA_MENU.featured.href}
-                className="mt-4 flex items-center justify-between font-bold text-xs text-orange-400 hover:text-orange-300 transition-colors group"
+                className="mt-4 flex items-center justify-between font-bold text-xs text-[#3665f3] hover:text-[#2854d9] transition-colors group"
               >
                 <span>Browse Collection</span>
                 <ArrowRight className="size-4 transform group-hover:translate-x-1 transition-transform" />
@@ -194,7 +194,7 @@ export const MarketplaceDesktopNav = ({
 
         {/* Categories */}
         <NavigationMenuItem>
-          <NavigationMenuTrigger className="bg-transparent text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800 data-[state=open]:bg-slate-800 data-[state=open]:text-white px-3 py-2 rounded-xl transition-all cursor-pointer">
+          <NavigationMenuTrigger className="bg-transparent text-sm font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 data-[state=open]:bg-slate-100 data-[state=open]:text-slate-950 px-3 py-2 rounded-full transition-all cursor-pointer">
             Categories
           </NavigationMenuTrigger>
 
@@ -205,7 +205,7 @@ export const MarketplaceDesktopNav = ({
         <NavigationMenuItem>
           <Link
             to="/how-it-works"
-            className={`${navigationMenuTriggerStyle()} bg-transparent text-sm font-semibold px-3 py-2 rounded-xl transition-all text-slate-300 hover:text-white hover:bg-slate-800 cursor-pointer`}
+            className={`${navigationMenuTriggerStyle()} bg-transparent text-sm font-semibold px-3 py-2 rounded-full transition-all text-slate-700 hover:text-slate-950 hover:bg-slate-100 cursor-pointer`}
           >
             How It Works
           </Link>
@@ -216,7 +216,7 @@ export const MarketplaceDesktopNav = ({
           <button
             onClick={onWishlist}
             aria-label="Wishlist"
-            className="relative flex items-center gap-2 px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-all group cursor-pointer ml-1"
+            className="relative ml-1 flex items-center gap-2 rounded-full px-3 py-2 text-slate-700 transition-all group cursor-pointer hover:bg-rose-50 hover:text-rose-500"
           >
             <div className="relative">
               <Heart className="size-6 group-hover:scale-105 group-hover:text-rose-400 transition-all" />
@@ -239,7 +239,7 @@ export const MarketplaceDesktopNav = ({
           <button
             onClick={onCart}
             aria-label="Shopping Cart"
-            className="relative flex items-center gap-2 px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-all group cursor-pointer ml-1"
+            className="relative ml-1 flex items-center gap-2 rounded-full px-3 py-2 text-slate-700 transition-all group cursor-pointer hover:bg-blue-50 hover:text-[#3665f3]"
           >
             <div className="relative">
               <ShoppingCart className="size-6 group-hover:scale-105 transition-transform" />

@@ -1,14 +1,22 @@
 import {Prisma } from "@prisma/client"
 import { OrderStatus } from "@prisma/client";
-import { number, string } from "zod";
 export interface shipAddressInput {
   fullName :  string
   phone :      string
   address :     string
   city :       string
   country :    string
-  postalCode : string
+  postalCode?: string
 }
+
+export type ShippingMethodInput = "STANDARD" | "EXPRESS" | "PICKUP";
+
+export type ShipmentUpdateInput = {
+  carrier: string;
+  trackingNumber?: string;
+  trackingUrl?: string;
+  note?: string;
+};
 
 export interface ccartItemForCheckOut {
    id:          string

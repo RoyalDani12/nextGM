@@ -8,12 +8,18 @@ import {
     updateProductStatusService,
     deleteProductService,
     getPublicProductService,
+    getPromotedProductsService,
     browseProductsService,
     addProductImageService,
     createVaraintService,
     updateVariantService,
     deleteVariantService,
 } from "./product.service.js";
+
+export const getPromotedProductsController = asyncHandler(async (_req: Request, res: Response) => {
+    const data = await getPromotedProductsService();
+    res.status(200).json({ success: true, data });
+});
 
 export const createProductController = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;

@@ -209,6 +209,14 @@ Shop owners connect a real bank account via **Stripe Express** onboarding. Once 
 - Shop-side order management with status transitions (`PENDING → CONFIRMED → PROCESSING → SHIPPED → DELIVERED`)
 - **Reservation TTL system:** unpaid orders auto-expire (default 15 min) via BullMQ
 
+### Shipping & Fulfillment
+- Per-shop shipment records are created atomically during checkout
+- Customers select **Standard**, **Express**, or **Store Pickup** for every shop in a multi-shop cart
+- Shipping fee and delivery estimate are captured with the order, so later shop changes cannot alter an existing purchase
+- Shop owners dispatch orders with carrier, tracking number, tracking link, and a delivery note
+- Customers see a delivery estimate, shipment timeline, carrier details, and a safe external tracking link in their order details
+- `ORDER_SHIPPED` and `ORDER_DELIVERED` updates are delivered in-app and by email, respecting notification preferences
+
 ### Payment Module
 - Stripe PaymentIntent + Elements (card data never touches the server)
 - Atomic webhook idempotency (insert + state update in single transaction)

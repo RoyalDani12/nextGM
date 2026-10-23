@@ -66,7 +66,7 @@ export const getCartService = async (userId: string) => {
     const shopMap: Record<
         string,
         {
-            shop: { slug: string; name: string };
+            shop: { id: string; slug: string; name: string };
             items: any[];
             subtotal: number;
         }
@@ -82,7 +82,7 @@ export const getCartService = async (userId: string) => {
 
         if (!shopMap[shopSlug]) {
             shopMap[shopSlug] = {
-                shop: { slug: shopSlug, name: shopName },
+                shop: { id: item.product.shopId, slug: shopSlug, name: shopName },
                 items: [],
                 subtotal: 0,
             };

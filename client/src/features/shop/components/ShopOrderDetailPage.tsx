@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import {
   ArrowLeft,
   Calendar,
@@ -12,7 +13,7 @@ import {
   Truck,
   User,
 } from "lucide-react";
-import { useUpdateShopOrderStatus } from "@/features/shop/shop.hooks";
+import { useMarkShopOrderShipped, useUpdateShopOrderStatus } from "@/features/shop/shop.hooks";
 
 // shadcn/ui components
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,8 @@ export const ShopOrderDetailPage = () => {
     orderId ?? ""
   );
   const updateStatus = useUpdateShopOrderStatus();
+  const markShipped = useMarkShopOrderShipped();
+  const [shipmentForm, setShipmentForm] = useState({ carrier: "", trackingNumber: "", trackingUrl: "", note: "" });
 
   // Extract order object from response safely
   const order = data?.data ?? data;
@@ -104,7 +107,7 @@ export const ShopOrderDetailPage = () => {
   const nextStatusMap: Record<string, string | null> = {
   PENDING: "CONFIRMED",
   CONFIRMED: "PROCESSING",
-  PROCESSING: "SHIPPED",
+  PROCESSING: null,
   SHIPPED: "DELIVERED",
   DELIVERED: null,
   CANCELLED: null,
@@ -123,6 +126,21 @@ const nextStatus = nextStatusMap[order.status];
   });
 }
 
+  const handleShipmentSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!shopId || !orderId) return;
+    markShipped.mutate({
+      shopId,
+      orderId,
+      shipment: {
+        carrier: shipmentForm.carrier,
+        trackingNumber: shipmentForm.trackingNumber || undefined,
+        trackingUrl: shipmentForm.trackingUrl || undefined,
+        note: shipmentForm.note || undefined,
+      },
+    });
+  };
+
   const {
     id,
     status,
@@ -133,6 +151,7 @@ const nextStatus = nextStatusMap[order.status];
     shippingAddress,
     payment,
     statusHistory = [],
+    shipment,
   } = order;
 
   return (
@@ -166,7 +185,7 @@ const nextStatus = nextStatusMap[order.status];
           Sync Details
         </Button>
       </div>
-      <div>
+      <div className="flex flex-wrap items-center gap-3">
  {nextStatus && (
   <Button
     onClick={handleStatusChange}
@@ -177,6 +196,9 @@ const nextStatus = nextStatusMap[order.status];
       : `Mark as ${nextStatus}`}
   </Button>
 )}
+        {status === "PROCESSING" && (
+          <span className="text-sm font-medium text-muted-foreground">Add dispatch details below to mark this order as shipped.</span>
+        )}
       </div>
 
       {/* Main Grid Content */}
@@ -252,6 +274,24 @@ const nextStatus = nextStatusMap[order.status];
             </CardContent>
           </Card>
 
+          {status === "PROCESSING" && (
+            <Card className="border-primary/20">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2"><Truck className="h-5 w-5 text-primary" /><CardTitle className="text-base">Dispatch this order</CardTitle></div>
+                <p className="text-xs text-muted-foreground">Save the carrier and tracking information before notifying the customer.</p>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleShipmentSubmit} className="grid gap-3 sm:grid-cols-2">
+                  <input required value={shipmentForm.carrier} onChange={(event) => setShipmentForm((current) => ({ ...current, carrier: event.target.value }))} placeholder={shipment?.method === "PICKUP" ? "Pickup location or contact" : "Carrier (e.g. DHL)"} className="h-10 rounded-md border bg-background px-3 text-sm" />
+                  {shipment?.method !== "PICKUP" && <input required value={shipmentForm.trackingNumber} onChange={(event) => setShipmentForm((current) => ({ ...current, trackingNumber: event.target.value }))} placeholder="Tracking number" className="h-10 rounded-md border bg-background px-3 text-sm" />}
+                  <input value={shipmentForm.trackingUrl} onChange={(event) => setShipmentForm((current) => ({ ...current, trackingUrl: event.target.value }))} placeholder="Tracking link (optional)" type="url" className="h-10 rounded-md border bg-background px-3 text-sm" />
+                  <input value={shipmentForm.note} onChange={(event) => setShipmentForm((current) => ({ ...current, note: event.target.value }))} placeholder="Delivery note (optional)" className="h-10 rounded-md border bg-background px-3 text-sm" />
+                  <div className="sm:col-span-2 flex items-center gap-3"><Button type="submit" disabled={markShipped.isPending}>{markShipped.isPending ? "Sending update..." : shipment?.method === "PICKUP" ? "Notify ready for pickup" : "Save & mark as shipped"}</Button>{markShipped.isError && <span className="text-xs text-destructive">Could not save shipment. Check the details and try again.</span>}</div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Status Timeline History */}
           <Card>
             <CardHeader className="pb-3">
@@ -298,6 +338,13 @@ const nextStatus = nextStatusMap[order.status];
               </div>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
+              {shipment && (
+                <div className="rounded-lg border bg-muted/30 p-3 text-xs">
+                  <div className="flex justify-between font-semibold"><span>{shipment.method.replace("_", " ")} delivery</span><span>{Number(shipment.fee) === 0 ? "Free" : `$${Number(shipment.fee).toFixed(2)}`}</span></div>
+                  {shipment.estimatedDeliveryEnd && <p className="mt-1 text-muted-foreground">Expected by {new Date(shipment.estimatedDeliveryEnd).toLocaleDateString()}</p>}
+                  {shipment.trackingNumber && <p className="mt-1 font-medium">Tracking: {shipment.trackingNumber}</p>}
+                </div>
+              )}
               {shippingAddress ? (
                 <>
                   <div className="flex items-center gap-2 font-medium">
@@ -353,12 +400,13 @@ const nextStatus = nextStatusMap[order.status];
 
               <div className="flex justify-between text-muted-foreground">
                 <span>Subtotal</span>
-                <span>${totalAmount}</span>
+                <span>${(Number(totalAmount) + Number(discountAmount || 0) - Number(shipment?.fee || 0)).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-muted-foreground">
                 <span>Discount</span>
                 <span>-${discountAmount || "0.00"}</span>
               </div>
+              <div className="flex justify-between text-muted-foreground"><span>Shipping</span><span>{Number(shipment?.fee || 0) === 0 ? "Free" : `$${Number(shipment?.fee).toFixed(2)}`}</span></div>
               <Separator />
               <div className="flex justify-between font-bold text-base pt-1">
                 <span>Total Amount</span>

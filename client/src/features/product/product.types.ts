@@ -71,6 +71,7 @@ export interface ProductsResponse {
 }
 
 export interface FetchProductsParams {
+  status?: ProductStatus;
   page?: number;
   limit?: number;
   search?: string;

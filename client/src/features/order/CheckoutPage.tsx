@@ -7,6 +7,7 @@ import en from "react-phone-number-input/locale/en.json";
 import "react-phone-number-input/style.css";
 
 import { useCheckout } from "./order.hooks";
+import type { ShippingMethod } from "./order.types";
 import { useCart } from "../cart/cart.hook";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -116,6 +117,8 @@ export function CheckoutPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [couponCodes, setCouponCodes] = useState<Record<string, string>>({});
+  const [shippingMethods, setShippingMethods] = useState<Record<string, ShippingMethod>>({});
   
   const isSubmittingRef = useRef(false);
 
@@ -146,7 +149,13 @@ export function CheckoutPage() {
   const cartData = cartResponse?.data;
   const groupedBy = cartData?.groupedBy ?? [];
   const totalItems = cartData?.totalItems ?? 0;
-  const grandTotal = Number(cartData?.totalPrice ?? 0);
+  const itemsTotal = Number(cartData?.totalPrice ?? 0);
+  const shippingFeeFor = (shopId: string) => {
+    const method = shippingMethods[shopId] ?? "STANDARD";
+    return method === "EXPRESS" ? 15 : method === "STANDARD" ? 5 : 0;
+  };
+  const shippingTotal = groupedBy.reduce((sum: number, group: any) => sum + shippingFeeFor(group.shop.id), 0);
+  const grandTotal = itemsTotal + shippingTotal;
 
   const handleCountryChange = (country: Country) => {
     setPhoneCountry(country);
@@ -200,7 +209,8 @@ export function CheckoutPage() {
     setIsSubmitting(true);
 
     try {
-     const checkoutResult = await checkoutMutation.mutateAsync({ shippingAddress });
+     const codes = Object.fromEntries(Object.entries(couponCodes).filter(([, code]) => code.trim()));
+     const checkoutResult = await checkoutMutation.mutateAsync({ shippingAddress, couponCodes: codes, shippingMethods });
 
       if (rememberMe) {
         localStorage.setItem("checkout_remember_me", "true");
@@ -329,12 +339,44 @@ export function CheckoutPage() {
               </div>
             </div>
 
+            <div className="rounded-xl border bg-white p-6">
+              <div className="mb-1 flex items-center gap-2">
+                <span className="flex size-7 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-blue-700">2</span>
+                <h2 className="text-xl font-semibold">Delivery options</h2>
+              </div>
+              <p className="mb-5 text-sm text-gray-500">Choose a delivery speed for each shop. Orders from different shops may arrive separately.</p>
+              <div className="space-y-5">
+                {groupedBy.map((group: any) => {
+                  const selected = shippingMethods[group.shop.id] ?? "STANDARD";
+                  const options: Array<{ value: ShippingMethod; title: string; detail: string; fee: number }> = [
+                    { value: "STANDARD", title: "Standard delivery", detail: "Estimated in 5–7 business days", fee: 5 },
+                    { value: "EXPRESS", title: "Express delivery", detail: "Estimated in 2–3 business days", fee: 15 },
+                    { value: "PICKUP", title: "Store pickup", detail: "Ready in 1–2 business days", fee: 0 },
+                  ];
+                  return (
+                    <section key={group.shop.id} className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                      <h3 className="mb-3 text-sm font-bold text-slate-900">{group.shop.name}</h3>
+                      <div className="grid gap-2 sm:grid-cols-3">
+                        {options.map((option) => (
+                          <label key={option.value} className={`cursor-pointer rounded-lg border p-3 transition ${selected === option.value ? "border-blue-600 bg-blue-50 ring-1 ring-blue-600" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+                            <input type="radio" name={`shipping-${group.shop.id}`} checked={selected === option.value} onChange={() => setShippingMethods((current) => ({ ...current, [group.shop.id]: option.value }))} className="sr-only" />
+                            <div className="flex items-center justify-between gap-2 text-sm font-semibold text-slate-900"><span>{option.title}</span><span>{option.fee === 0 ? "Free" : `$${option.fee}`}</span></div>
+                            <p className="mt-1 text-xs text-slate-500">{option.detail}</p>
+                          </label>
+                        ))}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+            </div>
+
             <button 
               type="submit" 
               disabled={checkoutMutation.isPending || isSubmitting || showSuccessAlert || !shippingAddress.phone} 
               className="w-full rounded-lg bg-black px-6 py-4 font-semibold text-white transition hover:bg-gray-800 disabled:opacity-50"
             >
-              {checkoutMutation.isPending || isSubmitting ? "Processing checkout..." : `Proceed to Payment — $${grandTotal.toFixed(2)}`}
+              {checkoutMutation.isPending || isSubmitting ? "Preparing secure checkout..." : `Proceed to Payment — $${grandTotal.toFixed(2)}`}
             </button>
 
             {checkoutMutation.isError && <p className="text-sm text-red-600">Unable to create your order. Please try again.</p>}
@@ -361,10 +403,25 @@ export function CheckoutPage() {
                       </div>
                     ))}
                   </div>
+                  <div className="mt-3 flex gap-2">
+                    <input
+                      value={couponCodes[group.shop.id] ?? ""}
+                      onChange={(e) => setCouponCodes((current) => ({ ...current, [group.shop.id]: e.target.value.toUpperCase() }))}
+                      placeholder="Coupon code"
+                      aria-label={`Coupon code for ${group.shop.name}`}
+                      className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm uppercase outline-none focus:border-black"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-sm text-slate-600">
+                    <span>{(shippingMethods[group.shop.id] ?? "STANDARD").toLowerCase().replace(/^./, (letter: string) => letter.toUpperCase())} delivery</span>
+                    <span>{shippingFeeFor(group.shop.id) === 0 ? "Free" : `$${shippingFeeFor(group.shop.id).toFixed(2)}`}</span>
+                  </div>
                 </div>
               ))}
             </div>
             <div className="border-t" />
+            <div className="flex justify-between text-sm text-slate-600"><span>Items</span><span>${itemsTotal.toFixed(2)}</span></div>
+            <div className="flex justify-between text-sm text-slate-600"><span>Delivery</span><span>{shippingTotal === 0 ? "Free" : `$${shippingTotal.toFixed(2)}`}</span></div>
             <div className="flex justify-between text-lg font-bold">
               <span>Total</span>
               <span>${grandTotal.toFixed(2)}</span>
