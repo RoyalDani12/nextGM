@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AdminNavLinks } from "./AdminNavLinks";
+import { NotificationDropdown } from "@/features/notification/NotificationDropdown";
 
 export const SuperAdminHeader = () => {
   const [open, setOpen] = useState(false);
@@ -74,11 +75,8 @@ export const SuperAdminHeader = () => {
           </span>
         </div>
 
-        {/* Notifications Button */}
-        <Button variant="ghost" size="icon" className="relative rounded-full">
-          <Bell size={18} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full"></span>
-        </Button>
+        {/* Notifications Dropdown */}
+        <NotificationDropdown triggerClassName="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-all cursor-pointer" />
 
         {/* Profile Avatar & Menu */}
         <DropdownMenu>

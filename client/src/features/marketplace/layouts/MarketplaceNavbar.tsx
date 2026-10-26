@@ -10,6 +10,7 @@ import { useCart } from "@/features/cart/cart.hook";
 import { useWishlist } from "../components/marketplace.hooks";
 import { MarketplaceDesktopNav } from "../components/MarketplaceDesktopNav";
 import { MarketplaceMobileMenu } from "../components/MarketplaceMobileMenu";
+import { NotificationDropdown } from "@/features/notification/NotificationDropdown";
 
 type CartGroup = { items: Array<{ quantity: number }> };
 
@@ -133,7 +134,9 @@ export const MarketplaceNavbar = () => {
                 </Button>
               </div>
             ) : (
-              <DropdownMenu>
+              <div className="flex items-center gap-2">
+                <NotificationDropdown triggerClassName="p-2 text-slate-700 hover:text-slate-950 hover:bg-slate-100 rounded-full transition-all cursor-pointer" />
+                <DropdownMenu>
                 <DropdownMenuTrigger className="flex items-center gap-2 outline-none group cursor-pointer">
                   <div className="size-9 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-sm font-bold text-[#3665f3] group-hover:border-[#3665f3] transition-all">
                     {user?.name?.[0]?.toUpperCase() || "U"}
@@ -189,6 +192,7 @@ export const MarketplaceNavbar = () => {
                   </div>
                 </DropdownMenuContent>
               </DropdownMenu>
+              </div>
             )}
           </div>
         </div>

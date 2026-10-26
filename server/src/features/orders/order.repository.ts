@@ -405,6 +405,7 @@ export const findOrderForCancelRepository = async (orderId: string, customerId: 
         where: { id: orderId, customerId, deletedAt: null },
         select: {
             id: true,
+            shopId: true,
             status: true,
             couponId: true,
             customerId: true,

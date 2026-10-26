@@ -296,3 +296,43 @@ export const renderOrderPlacedEmail = (params: {
         bodyHtml,
     });
 };
+
+export const renderGenericNotificationEmail = (params: {
+    userName: string;
+    title: string;
+    body: string;
+    actionUrl?: string;
+    actionText?: string;
+}) => {
+    const { userName, title, body, actionUrl, actionText } = params;
+
+    const bodyHtml = `
+      <p style="margin:0 0 16px 0; font-size:15px; color:${TEXT_COLOR}; line-height:1.6;">
+        Hi ${userName},
+      </p>
+      <p style="margin:0 0 24px 0; font-size:15px; color:${TEXT_COLOR}; line-height:1.6;">
+        ${body}
+      </p>
+      ${
+        actionUrl && actionText
+          ? `
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 24px auto;">
+        <tr>
+          <td style="border-radius:8px; background-color:${BRAND_COLOR};">
+            <a href="${actionUrl}" style="display:inline-block; padding:14px 32px; font-size:15px; font-weight:600; color:#ffffff; text-decoration:none;">
+              ${actionText}
+            </a>
+          </td>
+        </tr>
+      </table>
+      `
+          : ""
+      }
+    `;
+
+    return renderBaseTemplate({
+        previewText: title,
+        heading: title,
+        bodyHtml,
+    });
+};

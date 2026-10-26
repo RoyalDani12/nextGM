@@ -5,6 +5,7 @@ import { authenticate } from "../../middleware/auth.middleware.js";
 import { validate } from "../../middleware/validate.middleware.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { AppError } from "../../middleware/appError.js";
+import { notifyUser, notifyShopOwner } from "../notification/notification.service.js";
 
 const router = express.Router();
 const productParams = z.object({ params: z.object({ productId: z.string().cuid() }) });
@@ -57,7 +58,7 @@ router.post(
         const productId = req.params.productId as string;
         const product = await prisma.product.findFirst({
             where: { id: productId, status: "ACTIVE", deletedAt: null },
-            select: { shopId: true },
+            select: { name: true, shopId: true },
         });
         if (!product) throw new AppError("Product not found.", 404);
         const deliveredPurchase = await prisma.orderItem.findFirst({
@@ -88,6 +89,23 @@ router.post(
                 updatedAt: true,
             },
         });
+
+        try {
+            await notifyShopOwner({
+                shopId: product.shopId,
+                type: "REVIEW_RECEIVED",
+                title: "New Review Received ⭐",
+                body: `Your product "${product.name}" received a ${req.body.rating}-star review.`,
+                meta: {
+                    productId,
+                    reviewId: review.id,
+                    rating: req.body.rating,
+                },
+            });
+        } catch (err) {
+            console.error("Failed to notify shop owner of review:", err);
+        }
+
         res.status(201).json({ success: true, message: "Review saved.", data: review });
     }),
 );
@@ -245,10 +263,14 @@ router.post(
         const review = await prisma.review.findUnique({
             where: { id: req.params.reviewId as string },
             select: {
+                userId: true,
+                product: { select: { name: true } },
                 shop: {
                     select: {
+                        id: true,
                         ownerId: true,
                         employees: { where: { userId: req.user!.id }, select: { id: true } },
+                        profile: { select: { name: true } },
                     },
                 },
             },
@@ -264,6 +286,19 @@ router.post(
             create: { reviewId: req.params.reviewId as string, comment: req.body.comment },
             update: { comment: req.body.comment },
         });
+
+        try {
+            await notifyUser({
+                userId: review.userId,
+                type: "REVIEW_RECEIVED",
+                title: "Response to your review 💬",
+                body: `${review.shop.profile?.name || "The merchant"} replied to your review on ${review.product?.name || "a product"}.`,
+                shopId: review.shop.id,
+            });
+        } catch (err) {
+            console.error("Failed to notify customer of review reply:", err);
+        }
+
         res.status(201).json({ success: true, message: "Reply saved.", data: reply });
     }),
 );

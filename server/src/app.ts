@@ -26,6 +26,7 @@ import adminRoute from "./features/admin/admin.route.js"
 import categoryRoute from "./features/category/category.routes.js"
 import engagementRoute from "./features/engagement/engagement.routes.js"
 import couponRoute from "./features/coupon/coupon.routes.js"
+import notificationRoute from "./features/notification/notification.routes.js"
 
 
 // security first
@@ -72,6 +73,7 @@ app.use('/api/v1/payment',paymentRoute)
 app.use('/api/v1/admin/orders', paymentAdminRoute) 
 app.use('/api/v1/payouts', payoutRoute)
 app.use('/api/v1/admin', adminRoute)
+app.use('/api/v1/notifications', notificationRoute)
 
 app.get('/',(req ,res)=>{
   res.json({message:"server running successfully"})

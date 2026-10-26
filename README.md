@@ -266,13 +266,15 @@ Customer pays $500 once
 - [x] Review moderation (visibility toggle, list all reviews)
 - [x] Admin-initiated Stripe refunds
 
-#### 🔔 Notification Infrastructure
-- [x] `Notification` Prisma model (in-app notifications stored in DB)
-- [x] `NotificationPreference` model (per-user per-category toggles: `orderUpdates`, `promotions`, `reviews`)
-- [x] `notificationQueue` (BullMQ): async in-app record creation + email hand-off
-- [x] `notificationWorker`: creates DB record + dispatches email via `emailQueue`
-- [x] Email templates: order placed (`renderOrderPlacedEmail`), extensible pattern for other events
-- [x] Notification service wired into order placed and payment events
+#### 🔔 In-App Notification Center & Transactional Emails
+- [x] Full REST API endpoints (`GET /notifications`, `GET /notifications/unread-count`, `PATCH /:id/read`, `PATCH /read-all`, `DELETE /:id`)
+- [x] Reusable `NotificationDropdown` with animated unread counter, category badges, relative time, and smart deep-linking
+- [x] Live notification bell integrated into **Shop Owner Dashboard**, **Customer Marketplace**, and **Super Admin Header**
+- [x] Account Notification & Email Preferences management (`orderUpdates`, `promotions`, `reviews`, `emailEnabled`)
+- [x] Automated notification triggers: Order placed (customer + merchant), shipped, delivered, cancelled, and reviews/replies
+- [x] `Notification` & `NotificationPreference` Prisma models
+- [x] `notificationQueue` (BullMQ): async in-app record creation + branded transactional email hand-off
+- [x] Professional responsive HTML email templates (`renderOrderPlacedEmail`, `renderGenericNotificationEmail`)
 
 #### ⚙️ Background Jobs (BullMQ Worker Process)
 - [x] Email queue: verification, password reset, transactional order/payment notifications
@@ -289,11 +291,6 @@ Customer pays $500 once
 ---
 
 ### 🚧 In Progress / Partially Built
-
-#### 🔔 In-App Notification UI (Bell Dropdown)
-- **Backend**: ✅ Worker, queue, DB model, and notification service all wired and functional
-- **Frontend**: ❌ `DashboardNavbar.tsx` bell shows hardcoded static text ("New order #1024 received")
-- **Missing**: `GET /api/v1/notifications` endpoint · `PATCH /api/v1/notifications/:id/read` endpoint · live bell dropdown with real unread count badge and "Mark all as read" button
 
 #### 📊 Shop Analytics Dashboard
 - **Route**: `/dashboard/shop/:shopId/analytics` → currently renders `<div>Analytics Page</div>` placeholder
@@ -641,6 +638,17 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_xxx
 | POST | `/categories` | Create category | SUPER_ADMIN |
 | PUT | `/categories/:id` | Update category | SUPER_ADMIN |
 | DELETE | `/categories/:id` | Delete category | SUPER_ADMIN |
+
+### Notifications
+| Method | Endpoint | Description | Auth |
+|---|---|---|---|
+| GET | `/notifications` | List user notifications (paginated, unread filter, shop filter) | Required |
+| GET | `/notifications/unread-count` | Get fast count of unread notifications | Required |
+| PATCH | `/notifications/:id/read` | Mark single notification as read | Required |
+| PATCH | `/notifications/read-all` | Mark all notifications as read (optionally shop-scoped) | Required |
+| DELETE | `/notifications/:id` | Delete a notification | Required |
+| GET | `/notifications/preferences` | Get user notification & email channel settings | Required |
+| PUT | `/notifications/preferences` | Update notification & email preferences | Required |
 
 ### Super Admin
 | Method | Endpoint | Description | Auth |

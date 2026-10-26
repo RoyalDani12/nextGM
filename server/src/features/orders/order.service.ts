@@ -15,7 +15,7 @@ import {
 } from "./order.repository.js";
 import { GetOrdersQuery, shipAddressInput, ShipmentUpdateInput, ShippingMethodInput } from "./order.types.js";
 import { scheduleOrderExpiration } from "../../infrastructure/queue/orderExpiration.helpers.js";
-import { notifyUser } from "../notification/notification.service.js";
+import { notifyUser, notifyShopOwner, notifyAdmins } from "../notification/notification.service.js";
 import { renderOrderPlacedEmail } from "../../services/email.templates.js";
 
 export const checkoutService = async (
@@ -96,21 +96,33 @@ export const checkoutService = async (
 
     try {
         await Promise.all(
-            createdOrders.map((order) =>
+            createdOrders.flatMap((order) => [
                 notifyUser({
                     userId: customerId,
                     type: "ORDER_PLACED",
                     title: "Order placed",
-                    body: `Your order at ${order.shopSlug} has been placed sucessfully.`,
-                    shopId:order.shopId,
-                     meta: {
+                    body: `Your order at ${order.shopSlug} has been placed successfully.`,
+                    shopId: order.shopId,
+                    meta: {
                         orderId: order.id,
                         shopName: order.shopSlug, 
                         totalAmount: order.totalAmount,
                         itemCount: order.itemCount,
                     },
                 }),
-            ),
+                notifyShopOwner({
+                    shopId: order.shopId,
+                    type: "ORDER_PLACED",
+                    title: "New order received! 🛍️",
+                    body: `New order #${order.id.slice(-8).toUpperCase()} placed for $${order.totalAmount} (${order.itemCount} item${order.itemCount > 1 ? "s" : ""}).`,
+                    meta: {
+                        orderId: order.id,
+                        shopName: order.shopSlug,
+                        totalAmount: order.totalAmount,
+                        itemCount: order.itemCount,
+                    },
+                }),
+            ]),
         );
     } catch (err) {
         logger.error({ err, customerId }, "Failed to send order-placed notifications");
@@ -208,11 +220,25 @@ export const cancelOrderService = async (orderId: string, customerId: string) =>
     if (!["PENDING", "CONFIRMED"].includes(order.status)) {
         throw new AppError(`Order cannot be cancelled - current status is ${order.status}`, 400);
     }
-    return cancelOrderRepository(orderId, order.items, {
+    const result = await cancelOrderRepository(orderId, order.items, {
         couponId: order.couponId,
         customerId: order.customerId,
         wasPending: order.status === "PENDING",
     });
+
+    try {
+        await notifyShopOwner({
+            shopId: order.shopId,
+            type: "ORDER_PLACED",
+            title: "Order cancelled",
+            body: `Order #${orderId.slice(-8).toUpperCase()} was cancelled by customer.`,
+            meta: { orderId },
+        });
+    } catch (err) {
+        logger.error({ err, orderId }, "Failed to notify shop owner of order cancellation");
+    }
+
+    return result;
 };
 
 export const getShopOrdersService = async (shopId: string, query: GetOrdersQuery) => {

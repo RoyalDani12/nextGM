@@ -27,6 +27,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { useLogout } from "@/features/auth/auth.hooks";
 import { DashboardSidebar } from "./DashboardSidebar";
 import { useMyShops } from "./shop.hooks";
+import { NotificationDropdown } from "@/features/notification/NotificationDropdown";
 
 export function DashboardNavbar() {
     const user = useAuthStore((state) => state.user);
@@ -122,7 +123,8 @@ export function DashboardNavbar() {
                         <ExternalLink className="size-4" />
                     </Button>
 
-                    <DropdownMenu>
+                    <NotificationDropdown shopId={shopId} />
+                    {false && <DropdownMenu>
                         <DropdownMenuTrigger
                             render={
                                 <Button variant="ghost" size="icon" className="relative text-slate-600 hover:bg-slate-100 rounded-full size-9 transition-colors cursor-pointer">
@@ -141,7 +143,7 @@ export function DashboardNavbar() {
                                 <p className="text-[11px] text-slate-400 mt-0.5">2 minutes ago</p>
                             </div>
                         </DropdownMenuContent>
-                    </DropdownMenu>
+                    </DropdownMenu>}
 
                     <div className="h-5 w-px bg-slate-200 mx-1 hidden sm:block" />
 

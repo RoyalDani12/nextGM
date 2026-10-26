@@ -2,7 +2,7 @@ import { Job,Worker } from "bullmq"
 import { redis } from "../../cache/redis.client.js"
 import { createNotificationRecored } from "../../../features/notification/notification.repository.js"
 import { emailQueue } from "../queue.client.js"
-import { renderOrderPlacedEmail } from "../../../services/email.templates.js";
+import { renderOrderPlacedEmail, renderGenericNotificationEmail } from "../../../services/email.templates.js";
 import { findUserById } from "../../../features/auth/auth.repository.js"; 
 
 export const notificationWorker = new Worker(
@@ -12,28 +12,30 @@ export const notificationWorker = new Worker(
 
         await createNotificationRecored({ userId, type, title, body, shopId });
 
-        if (!sendEmail) return
+        if (!sendEmail) return;
               
-            const user = await findUserById(userId);
+        const user = await findUserById(userId);
 
-            if (!user?.email) {
-                console.error(`Cannot send notification email — no email found for user ${userId}`);
-                return;
-            } 
-             let html:string
+        if (!user?.email) {
+            console.error(`Cannot send notification email — no email found for user ${userId}`);
+            return;
+        } 
+        let html: string;
 
-             switch (type) {
-            case "ORDER_PLACED":
-                html = renderOrderPlacedEmail({
-                    customerName: user.name,
-                    orderId: meta.orderId,
-                    shopName: meta.shopName,
-                    totalAmount: meta.totalAmount,
-                    itemCount: meta.itemCount,
-                });
-                break;
-            default:
-                html = `<p>${body}</p>`; 
+        if (type === "ORDER_PLACED" && meta?.orderId && meta?.shopName) {
+            html = renderOrderPlacedEmail({
+                customerName: user.name || "Customer",
+                orderId: meta.orderId,
+                shopName: meta.shopName,
+                totalAmount: String(meta.totalAmount || "0.00"),
+                itemCount: meta.itemCount || 1,
+            });
+        } else {
+            html = renderGenericNotificationEmail({
+                userName: user.name || "Customer",
+                title,
+                body,
+            });
         }
             await emailQueue.add("notification-email", {
                 to: user.email,
