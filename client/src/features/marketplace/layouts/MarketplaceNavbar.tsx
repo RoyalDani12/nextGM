@@ -58,8 +58,10 @@ export const MarketplaceNavbar = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-6">
           <MarketplaceMobileMenu
             isAuthenticated={isAuthenticated}
+            user={user}
             logout={() => logout()}
             isLoggingOut={isLoggingOut}
+            wishlistItemCount={wishlistItemCount}
           />
 
           {/* Search Box */}
@@ -87,19 +89,6 @@ export const MarketplaceNavbar = () => {
             onWishlist={() => navigate("/wishlist")}
           />
 
-          {/* Mobile Wishlist Button */}
-          <button
-            onClick={() => navigate("/wishlist")}
-            className="lg:hidden relative flex items-center justify-center p-2 text-slate-700 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
-            aria-label="Wishlist"
-          >
-            <Heart className="size-6" />
-            {wishlistItemCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 flex items-center justify-center rounded-full bg-rose-500 text-[11px] font-extrabold text-white shadow-xs">
-                {wishlistItemCount}
-              </span>
-            )}
-          </button>
 
           {/* Mobile Cart Button */}
           <button
@@ -118,7 +107,7 @@ export const MarketplaceNavbar = () => {
           <div className="flex items-center gap-3">
             {/* Auth Actions */}
             {!isAuthenticated ? (
-              <div className="hidden sm:flex items-center gap-2">
+              <div className="hidden lg:flex items-center gap-2">
                 <Button
                   variant="ghost"
                   onClick={() => navigate("/login")}
@@ -134,7 +123,7 @@ export const MarketplaceNavbar = () => {
                 </Button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="hidden lg:flex items-center gap-2">
                 <NotificationDropdown triggerClassName="p-2 text-slate-700 hover:text-slate-950 hover:bg-slate-100 rounded-full transition-all cursor-pointer" />
                 <DropdownMenu>
                 <DropdownMenuTrigger className="flex items-center gap-2 outline-none group cursor-pointer">

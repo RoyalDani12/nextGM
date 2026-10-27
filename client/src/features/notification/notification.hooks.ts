@@ -18,7 +18,7 @@ export const useNotifications = (params: GetNotificationsParams = {}, enabled = 
     queryKey: ["notifications", params],
     queryFn: () => getNotificationsRequest(params),
     enabled,
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
     refetchOnWindowFocus: true,
   });
 };
@@ -28,7 +28,7 @@ export const useUnreadNotificationCount = (shopId?: string, enabled = true) => {
     queryKey: ["notifications-unread", shopId],
     queryFn: () => getUnreadCountRequest(shopId),
     enabled,
-    refetchInterval: 20_000, // Poll every 20 seconds for real-time badge updates
+    refetchInterval: 60_000,
     refetchOnWindowFocus: true,
   });
 };
