@@ -7,9 +7,11 @@ import {
   deleteNotificationRequest,
   getNotificationPreferencesRequest,
   updateNotificationPreferencesRequest,
-  GetNotificationsParams,
 } from "./notification.api";
-import type { UpdatePreferencesPayload } from "./notification.types";
+import type {
+  UpdatePreferencesPayload,
+  GetNotificationsParams,
+} from "./notification.types";
 
 export const useNotifications = (params: GetNotificationsParams = {}, enabled = true) => {
   return useQuery({

@@ -1,4 +1,4 @@
-import { Bell, Mail, Package, Sparkles, Star, Loader2, Check } from "lucide-react";
+import { Mail, Package, Sparkles, Star, Loader2 } from "lucide-react";
 import {
   useNotificationPreferences,
   useUpdateNotificationPreferences,

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Bell, Menu } from "lucide-react";
+import { Search, Menu } from "lucide-react";
 import { 
   Sheet,
   SheetContent,

@@ -12,10 +12,8 @@ import {
   Trash2,
   Loader2,
   Sparkles,
-  ExternalLink,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,

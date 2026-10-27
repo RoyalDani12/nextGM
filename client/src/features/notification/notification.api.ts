@@ -3,14 +3,10 @@ import type {
   NotificationListResponse,
   NotificationPreferences,
   UpdatePreferencesPayload,
+  GetNotificationsParams,
 } from "./notification.types";
 
-export interface GetNotificationsParams {
-  page?: number;
-  limit?: number;
-  unreadOnly?: boolean;
-  shopId?: string;
-}
+export type { GetNotificationsParams };
 
 export const getNotificationsRequest = async (
   params: GetNotificationsParams = {},

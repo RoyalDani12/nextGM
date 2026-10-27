@@ -54,3 +54,11 @@ export interface UpdatePreferencesPayload {
   promotions?: boolean;
   reviews?: boolean;
 }
+
+export interface GetNotificationsParams {
+  page?: number;
+  limit?: number;
+  unreadOnly?: boolean;
+  shopId?: string;
+}
+

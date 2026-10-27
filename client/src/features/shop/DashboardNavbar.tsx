@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-    Search, Bell, Plus, Menu, User as UserIcon,
+    Search, Plus, Menu, User as UserIcon,
     Settings, LogOut, Command, ExternalLink,
     Sparkles
 } from "lucide-react";
@@ -128,7 +128,7 @@ export function DashboardNavbar() {
                         <DropdownMenuTrigger
                             render={
                                 <Button variant="ghost" size="icon" className="relative text-slate-600 hover:bg-slate-100 rounded-full size-9 transition-colors cursor-pointer">
-                                    <Bell className="size-4" />
+                                    <span className="size-4" />
                                     <span className="absolute top-2 right-2.5 size-2 bg-orange-500 rounded-full ring-2 ring-white" />
                                 </Button>
                             }
