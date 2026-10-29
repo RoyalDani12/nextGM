@@ -29,6 +29,7 @@ import couponRoute from "./features/coupon/coupon.routes.js"
 import notificationRoute from "./features/notification/notification.routes.js"
 import returnRoute, { sellerRouter as sellerReturnRoute } from "./features/returns/return.routes.js"
 import analyticsRoute from "./features/analytics/analytics.routes.js"
+import supportRoute from "./features/support/support.routes.js"
 
 
 // security first
@@ -79,6 +80,7 @@ app.use('/api/v1/notifications', notificationRoute)
 app.use('/api/v1/returns', returnRoute)
 app.use('/api/v1/shops', sellerReturnRoute)
 app.use('/api/v1/analytics', analyticsRoute)
+app.use('/api/v1/support', supportRoute)
 
 app.get('/',(req ,res)=>{
   res.json({message:"server running successfully"})

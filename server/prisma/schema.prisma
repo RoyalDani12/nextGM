@@ -197,6 +197,7 @@ model User {
   checkouts          Checkout[]
   wishlistItems      WishlistItem[]
   returnRequests     ReturnRequest[]
+  supportTickets     SupportTicket[]
 
   @@index([email])
   @@index([status])
@@ -1015,4 +1016,83 @@ model ActivityLog {
 
   @@index([userId])
   @@index([createdAt])
+}
+
+
+// -----------------------------------------
+// SUPPORT TICKETS
+// -----------------------------------------
+
+model SupportTicket {
+  id           String         @id @default(cuid())
+  ticketNumber String         @unique
+  subject      String
+  category     TicketCategory
+  status       TicketStatus   @default(OPEN)
+  priority     TicketPriority @default(MEDIUM)
+
+  // Can be submitted by guest or logged-in user
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Guest fields (used if userId is null)
+  guestName  String?
+  guestEmail String?
+
+  messages TicketMessage[]
+
+  assignedToId String?
+  // No relation needed - just store admin user id
+
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([priority])
+  @@index([ticketNumber])
+}
+
+model TicketMessage {
+  id       String        @id @default(cuid())
+  ticketId String
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  body String @db.Text
+
+  // Who sent it - either a user (customer) or an admin (by userId + isStaff flag)
+  senderId   String?
+  isStaff    Boolean @default(false)
+  senderName String? // cached display name
+
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+}
+
+enum TicketCategory {
+  ORDER_ISSUE
+  PAYMENT_ISSUE
+  ACCOUNT_ISSUE
+  PRODUCT_ISSUE
+  SHIPPING_ISSUE
+  RETURN_ISSUE
+  GENERAL
+  OTHER
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
 }

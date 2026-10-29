@@ -41,6 +41,7 @@ import { AdminCategoriesPage } from "@/features/pages/superAdmin/AdminCategories
 import { AdminReviewsPage } from "@/features/pages/superAdmin/AdminReviewsPage";
 import { AdminShipmentsPage } from "@/features/pages/superAdmin/AdminShipmentsPage";
 import { AdminReturnsPage } from "@/features/pages/superAdmin/AdminReturnsPage";
+import { AdminSupportPage } from "@/features/pages/superAdmin/AdminSupportPage";
 import WishlistPage from "@/features/customer/WishlistPage";
 import CouponsPage from "@/features/shop/CouponsPage";
 import { StorefrontPage } from "@/features/marketplace/pages/StorefrontPage";
@@ -120,6 +121,7 @@ export function AppRoutes() {
                <Route path="/superadmin/reviews" element={<AdminReviewsPage />} />
                <Route path="/superadmin/shipments" element={<AdminShipmentsPage />} />
                <Route path="/superadmin/returns" element={<AdminReturnsPage />} />
+               <Route path="/superadmin/support" element={<AdminSupportPage />} />
             </Route>
          </Route>
          <Route path="*" element={<div className="flex min-h-screen items-center justify-center p-6 text-center"><div><h1 className="text-2xl font-bold">Page not found</h1><p className="mt-2 text-gray-600">The page you requested does not exist.</p></div></div>} />
