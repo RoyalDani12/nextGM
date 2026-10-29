@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
 import { getCustomerOrderByIdRequest } from "../order/order.api";
+import { useCancelCustomerOrder } from "./customerOrder.hook";
 import {
   ArrowLeft,
   Calendar,
@@ -23,8 +25,19 @@ import {
   Truck,
   XCircle,
   AlertTriangle,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ReturnRequestDialog } from "@/features/returns/ReturnRequestDialog";
+import { useCancelReturnRequest, useCustomerReturns } from "@/features/returns/return.hooks";
 
 const orderSteps = [
   { key: "PLACED", label: "Order Placed", icon: ShoppingBag, statuses: ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"] },
@@ -33,9 +46,24 @@ const orderSteps = [
   { key: "DELIVERED", label: "Delivered", icon: PackageCheck, statuses: ["DELIVERED"] },
 ];
 
+const displayText = (value: unknown, fallback = ""): string => {
+  if (typeof value === "string" || typeof value === "number") return String(value);
+  if (value === null || value === undefined) return fallback;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return fallback;
+  }
+};
+
 export default function CustomerOrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
+  const cancelOrder = useCancelCustomerOrder();
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [isReturnDialogOpen, setIsReturnDialogOpen] = useState(false);
+  const { data: customerReturns = [] } = useCustomerReturns();
+  const cancelReturn = useCancelReturnRequest();
 
   const { data: response, isLoading, isError, refetch } = useQuery({
     queryKey: ["customer-order", orderId],
@@ -45,6 +73,44 @@ export default function CustomerOrderDetailPage() {
 
   const order = response?.data;
   const [copied, setCopied] = useState(false);
+  const canCancel = order?.status === "PENDING" || order?.status === "CONFIRMED";
+  const orderReturns = customerReturns.filter((returnRequest) => returnRequest.orderId === orderId);
+  const activeReturn = orderReturns.find((returnRequest) => returnRequest.status !== "CANCELLED");
+  const goBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate("/customer-order");
+  };
+
+  const confirmCancellation = () => {
+    if (!orderId) return;
+
+    cancelOrder.mutate(orderId, {
+      onSuccess: () => {
+        setIsCancelDialogOpen(false);
+        toast.add({
+          title: "Order cancelled",
+          description: `Order #${orderId.slice(-8).toUpperCase()} was cancelled successfully.`,
+          type: "success",
+        });
+      },
+      onError: (error) => {
+        const message = isAxiosError(error)
+          ? error.response?.data?.message
+          : error instanceof Error
+            ? error.message
+            : "We could not cancel this order.";
+        toast.add({
+          title: "Cancellation failed",
+          description: typeof message === "string" ? message : "We could not cancel this order.",
+          type: "error",
+        });
+      },
+    });
+  };
 
   const copyId = () => {
     if (!orderId) return;
@@ -56,6 +122,13 @@ export default function CustomerOrderDetailPage() {
       type: "info",
     });
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCancelReturn = (returnId: string) => {
+    cancelReturn.mutate(returnId, {
+      onSuccess: () => toast.add({ title: "Return request cancelled", description: "The request has been cancelled.", type: "success" }),
+      onError: (error) => toast.add({ title: "Could not cancel return", description: error instanceof Error ? error.message : "Please try again.", type: "error" }),
+    });
   };
 
   if (isLoading) {
@@ -87,7 +160,7 @@ export default function CustomerOrderDetailPage() {
           </button>
           <button
             type="button"
-            onClick={() => navigate("/customer-order")}
+            onClick={goBack}
             className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 transition"
           >
             Back to Orders
@@ -116,7 +189,7 @@ export default function CustomerOrderDetailPage() {
             <div>
               <button
                 type="button"
-                onClick={() => navigate("/customer-order")}
+                onClick={goBack}
                 className="mb-3 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition"
               >
                 <ArrowLeft className="size-3.5" /> Back to My Orders
@@ -156,6 +229,29 @@ export default function CustomerOrderDetailPage() {
                 <Printer className="size-3.5" /> Print Receipt
               </button>
 
+              {canCancel && (
+                <button
+                  type="button"
+                      onClick={() => {
+                        cancelOrder.reset();
+                        setIsCancelDialogOpen(true);
+                      }}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3.5 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition shadow-xs"
+                >
+                  <XCircle className="size-3.5" /> Cancel Order
+                </button>
+              )}
+
+              {order.status === "DELIVERED" && !activeReturn && (
+                <button
+                  type="button"
+                  onClick={() => setIsReturnDialogOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-orange-500 px-3.5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-orange-600"
+                >
+                  <RotateCcw className="size-3.5" /> Start a Return
+                </button>
+              )}
+
               <span
                 className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold border ${
                   order.status === "DELIVERED"
@@ -176,6 +272,11 @@ export default function CustomerOrderDetailPage() {
               </span>
             </div>
           </div>
+          {!canCancel && !isCancelled && (
+            <p className="mt-3 text-right text-xs text-slate-500">
+              This order can no longer be cancelled because it is already {order.status.toLowerCase()}.
+            </p>
+          )}
         </div>
       </div>
 
@@ -328,7 +429,7 @@ export default function CustomerOrderDetailPage() {
                         </div>
                         {history.note && (
                           <p className="text-xs text-slate-600 mt-1 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                            {history.note}
+                            {displayText(history.note)}
                           </p>
                         )}
                       </div>
@@ -359,7 +460,7 @@ export default function CustomerOrderDetailPage() {
                     </p>
                     <p className="text-xs text-slate-500">@{order.shop.slug}</p>
                     {shopProfile?.phone && (
-                      <p className="text-[11px] text-slate-400 mt-0.5">{shopProfile.phone}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">{displayText(shopProfile.phone)}</p>
                     )}
                   </div>
                 </div>
@@ -380,13 +481,13 @@ export default function CustomerOrderDetailPage() {
                   <MapPin className="size-3.5 text-orange-500" /> Shipping Destination
                 </h3>
                 <div className="text-xs text-slate-600 space-y-1.5 leading-relaxed">
-                  <p className="font-bold text-sm text-slate-900">{order.shippingAddress.fullName}</p>
-                  <p>{order.shippingAddress.address}</p>
+                  <p className="font-bold text-sm text-slate-900">{displayText(order.shippingAddress.fullName)}</p>
+                  <p>{displayText(order.shippingAddress.address)}</p>
                   <p>
-                    {order.shippingAddress.city}, {order.shippingAddress.postalCode || ""}{" "}
-                    ({order.shippingAddress.country})
+                    {displayText(order.shippingAddress.city)}, {displayText(order.shippingAddress.postalCode)}{" "}
+                    ({displayText(order.shippingAddress.country)})
                   </p>
-                  <p className="text-slate-500 pt-1">Phone: {order.shippingAddress.phone}</p>
+                  <p className="text-slate-500 pt-1">Phone: {displayText(order.shippingAddress.phone)}</p>
                 </div>
               </div>
             )}
@@ -401,7 +502,7 @@ export default function CustomerOrderDetailPage() {
                   {order.shipment.carrier && <p>Carrier / pickup: <span className="font-semibold text-slate-800">{order.shipment.carrier}</span></p>}
                   {order.shipment.trackingNumber && <p>Tracking number: <span className="font-mono font-semibold text-slate-800">{order.shipment.trackingNumber}</span></p>}
                   {order.shipment.trackingUrl && <a href={order.shipment.trackingUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-orange-600 hover:text-orange-700">Track with carrier <ExternalLink className="size-3" /></a>}
-                  {order.shipment.note && <p className="border-t border-slate-100 pt-2 text-slate-500">{order.shipment.note}</p>}
+                  {order.shipment.note && <p className="border-t border-slate-100 pt-2 text-slate-500">{displayText(order.shipment.note)}</p>}
                   {order.shipment.deliveredAt && <p className="rounded-xl bg-emerald-50 p-2.5 font-semibold text-emerald-800">Delivered {new Date(order.shipment.deliveredAt).toLocaleDateString()}</p>}
                 </div>
               </div>
@@ -469,6 +570,28 @@ export default function CustomerOrderDetailPage() {
             </div>
 
             {/* Need Assistance Card */}
+            {activeReturn && (
+              <div className="rounded-3xl border border-orange-200 bg-orange-50/60 p-5 shadow-xs">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-600">
+                    <RotateCcw className="size-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold uppercase tracking-wider text-orange-700">Return request</p>
+                    <p className="mt-1 text-sm font-extrabold text-slate-900">{activeReturn.status.replaceAll("_", " ")}</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-600">
+                      {activeReturn.resolution === "REFUND" ? "Refund requested" : "Replacement requested"} · Submitted {new Date(activeReturn.createdAt).toLocaleDateString()}
+                    </p>
+                    {["REQUESTED", "UNDER_REVIEW"].includes(activeReturn.status) && (
+                      <button type="button" onClick={() => handleCancelReturn(activeReturn.id)} disabled={cancelReturn.isPending} className="mt-3 text-xs font-bold text-orange-700 hover:text-orange-900 disabled:opacity-50">
+                        Cancel request
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-xs text-xs text-slate-500 space-y-2">
               <div className="flex items-center gap-2 font-bold text-slate-900">
                 <HelpCircle className="size-4 text-slate-400" /> Need Help?
@@ -486,6 +609,67 @@ export default function CustomerOrderDetailPage() {
           </div>
         </div>
       </div>
+
+      {order.status === "DELIVERED" && (
+        <ReturnRequestDialog
+          open={isReturnDialogOpen}
+          onOpenChange={setIsReturnDialogOpen}
+          orderId={order.id}
+          items={order.items ?? []}
+          onSubmitted={() => setIsReturnDialogOpen(false)}
+        />
+      )}
+
+      <Dialog
+        open={isCancelDialogOpen}
+        onOpenChange={(open) => {
+          if (!open && !cancelOrder.isPending) {
+            setIsCancelDialogOpen(false);
+            cancelOrder.reset();
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel this order?</DialogTitle>
+            <DialogDescription>
+              This order is currently{" "}
+              <strong>{order.status === "PENDING" ? "pending payment" : "confirmed"}</strong>, so it can still be cancelled.
+              Orders cannot be cancelled after they enter processing, shipping, or delivery.
+            </DialogDescription>
+          </DialogHeader>
+          {cancelOrder.isError && (
+            <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
+              {isAxiosError(cancelOrder.error) && typeof cancelOrder.error.response?.data?.message === "string"
+                ? cancelOrder.error.response.data.message
+                : cancelOrder.error instanceof Error
+                  ? cancelOrder.error.message
+                  : "We could not cancel this order."}
+            </p>
+          )}
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => {
+                cancelOrder.reset();
+                setIsCancelDialogOpen(false);
+              }}
+              disabled={cancelOrder.isPending}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+            >
+              Keep order
+            </button>
+            <button
+              type="button"
+              onClick={confirmCancellation}
+              disabled={cancelOrder.isPending}
+              className="rounded-lg bg-rose-600 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {cancelOrder.isPending ? "Cancelling..." : "Yes, cancel order"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

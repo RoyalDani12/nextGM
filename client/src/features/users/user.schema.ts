@@ -10,12 +10,20 @@ export const updateProfileSchema = z.object({
 });
 
 export const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, { message: "Current password is required." }),
-  newPassword: z.string().min(6, { message: "New password must be at least 6 characters." }),
+  oldPassword: z.string().min(1, { message: "Current password is required." }),
+  newPassword: z.string()
+    .min(8, { message: "Password must be at least 8 characters." })
+    .regex(/[A-Z]/, "Include at least one uppercase letter.")
+    .regex(/[a-z]/, "Include at least one lowercase letter.")
+    .regex(/[0-9]/, "Include at least one number.")
+    .regex(/[^A-Za-z0-9]/, "Include at least one special character."),
   confirmPassword: z.string().min(1, { message: "Please confirm your new password." }),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
+}).refine((data) => data.oldPassword !== data.newPassword, {
+  message: "New password must be different from your current password.",
+  path: ["newPassword"],
 });
 
 export const deactivateSchema = z.object({

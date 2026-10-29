@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { isAxiosError } from "axios";
 import {
   ArrowLeft,
   ArrowRight,
@@ -17,8 +18,16 @@ import {
   XCircle,
   AlertTriangle,
 } from "lucide-react";
-import { useCustomerOrder } from "./customerOrder.hook";
+import { useCancelCustomerOrder, useCustomerOrder } from "./customerOrder.hook";
 import { toast } from "@/components/ui/toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export type OrderStatus =
   | "PENDING"
@@ -114,14 +123,58 @@ type TabFilter = "ALL" | "ACTIVE" | "DELIVERED" | "CANCELLED";
 
 export default function CustomerOrder() {
   const navigate = useNavigate();
-  const { data: response, isLoading, isError, refetch, isFetching } = useCustomerOrder();
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+    isFetching,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useCustomerOrder();
+  const cancelOrder = useCancelCustomerOrder();
 
   const orders: CustomerOrderSummary[] = useMemo(() => {
-    return response?.data?.orders ?? (Array.isArray(response?.data) ? response.data : []);
-  }, [response]);
+    return data?.pages.flatMap((page) => page?.data?.orders ?? []) ?? [];
+  }, [data]);
 
   const [activeTab, setActiveTab] = useState<TabFilter>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [orderToCancel, setOrderToCancel] = useState<CustomerOrderSummary | null>(null);
+
+  const cancelErrorMessage = isAxiosError(cancelOrder.error)
+    ? cancelOrder.error.response?.data?.message
+    : cancelOrder.error instanceof Error
+      ? cancelOrder.error.message
+      : null;
+
+  const confirmCancellation = () => {
+    if (!orderToCancel) return;
+
+    cancelOrder.mutate(orderToCancel.id, {
+      onSuccess: () => {
+        setOrderToCancel(null);
+        toast.add({
+          title: "Order cancelled",
+          description: `Order #${orderToCancel.id.slice(-8).toUpperCase()} was cancelled successfully.`,
+          type: "success",
+        });
+      },
+      onError: (error) => {
+        const message = isAxiosError(error)
+          ? error.response?.data?.message
+          : error instanceof Error
+            ? error.message
+            : "We could not cancel this order.";
+        toast.add({
+          title: "Cancellation failed",
+          description: typeof message === "string" ? message : "We could not cancel this order.",
+          type: "error",
+        });
+      },
+    });
+  };
 
   // Copy Order ID with toast feedback
   const copyOrderId = (e: React.MouseEvent, id: string) => {
@@ -367,6 +420,8 @@ export default function CustomerOrder() {
                 year: "numeric",
               });
 
+              const canCancel = order.status === "PENDING" || order.status === "CONFIRMED";
+
               return (
                 <div
                   key={order.id}
@@ -468,9 +523,24 @@ export default function CustomerOrder() {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1.5 font-bold text-orange-600 group-hover:text-orange-700 transition">
+                    <div className="flex items-center gap-3">
+                      {canCancel && (
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            cancelOrder.reset();
+                            setOrderToCancel(order);
+                          }}
+                          className="rounded-lg border border-rose-200 px-2.5 py-1.5 font-semibold text-rose-600 transition hover:bg-rose-50"
+                        >
+                          Cancel order
+                        </button>
+                      )}
+                      <div className="flex items-center gap-1.5 font-bold text-orange-600 group-hover:text-orange-700 transition">
                       <span>View details</span>
                       <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -478,7 +548,68 @@ export default function CustomerOrder() {
             })}
           </div>
         )}
+
+        {!isLoading && !isError && hasNextPage && (
+          <div className="mt-6 flex justify-center">
+            <button
+              type="button"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isFetchingNextPage && <RefreshCw className="size-3.5 animate-spin" />}
+              {isFetchingNextPage ? "Loading orders..." : "Load more orders"}
+            </button>
+          </div>
+        )}
       </div>
+
+      <Dialog
+        open={!!orderToCancel}
+        onOpenChange={(open) => {
+          if (!open && !cancelOrder.isPending) {
+            setOrderToCancel(null);
+            cancelOrder.reset();
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel this order?</DialogTitle>
+            <DialogDescription>
+              Order #{orderToCancel?.id.slice(-8).toUpperCase()} can be cancelled because it is currently{" "}
+              <strong>{orderToCancel?.status === "PENDING" ? "pending payment" : "confirmed"}</strong>.
+              Cancellation is only available before the order enters processing or shipping.
+            </DialogDescription>
+          </DialogHeader>
+          {cancelErrorMessage && (
+            <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
+              {typeof cancelErrorMessage === "string" ? cancelErrorMessage : "We could not cancel this order."}
+            </p>
+          )}
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => {
+                cancelOrder.reset();
+                setOrderToCancel(null);
+              }}
+              disabled={cancelOrder.isPending}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+            >
+              Keep order
+            </button>
+            <button
+              type="button"
+              onClick={confirmCancellation}
+              disabled={cancelOrder.isPending}
+              className="rounded-lg bg-rose-600 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {cancelOrder.isPending ? "Cancelling..." : "Yes, cancel order"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

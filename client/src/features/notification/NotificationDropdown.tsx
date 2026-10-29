@@ -12,6 +12,7 @@ import {
   Trash2,
   Loader2,
   Sparkles,
+  RotateCcw,
 } from "lucide-react";
 
 import {
@@ -49,6 +50,9 @@ const getNotificationIcon = (type: NotificationType) => {
       return <AlertCircle className="size-4 text-rose-600" />;
     case "REVIEW_RECEIVED":
       return <Star className="size-4 text-amber-500 fill-amber-400" />;
+    case "RETURN_REQUESTED":
+    case "RETURN_UPDATED":
+      return <RotateCcw className="size-4 text-orange-600" />;
     default:
       return <Bell className="size-4 text-slate-600" />;
   }
@@ -130,12 +134,22 @@ export function NotificationDropdown({
     }
 
     if (
+      (notification.type === "RETURN_REQUESTED" ||
+        notification.type === "RETURN_UPDATED") &&
+      notification.shopId
+    ) {
+      navigate(`/dashboard/shop/${notification.shopId}/returns`);
+      setIsOpen(false);
+      return;
+    }
+
+    if (
       notification.type === "ORDER_PLACED" ||
       notification.type === "ORDER_SHIPPED" ||
       notification.type === "ORDER_DELIVERED"
     ) {
-      if (shopId) {
-        navigate(`/dashboard/shop/${shopId}/orders`);
+      if (notification.shopId || shopId) {
+        navigate(`/dashboard/shop/${notification.shopId || shopId}/orders`);
       } else {
         navigate("/customer-order");
       }

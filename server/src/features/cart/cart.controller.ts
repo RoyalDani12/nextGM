@@ -7,6 +7,7 @@ import {
     removeCartItemService,
     updateCartItemService,
     clearCartService,
+    mergeCartService,
 } from "./cart.service.js";
 
 export const addToCartController = asyncHandler(async (req: Request, res: Response) => {
@@ -90,3 +91,16 @@ export const clearCartController = asyncHandler(
         })
     }
 )
+
+export const mergeCartController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) throw new AppError("Unauthorized.", 401);
+
+    const result = await mergeCartService(userId, req.body.items);
+    res.status(200).json({
+        success: true,
+        statusCode: 200,
+        message: "Guest cart merged successfully.",
+        data: result,
+    });
+});

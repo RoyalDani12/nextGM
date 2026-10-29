@@ -6,6 +6,8 @@ export type NotificationType =
   | "PAYMENT_REFUNDED"
   | "PAYMENT_FAILED"
   | "REVIEW_RECEIVED"
+  | "RETURN_REQUESTED"
+  | "RETURN_UPDATED"
   | "COUPON_EXPIRING"
   | "MEMBERSHIP_EXPIRING";
 
@@ -18,6 +20,11 @@ export interface Notification {
   body: string;
   isRead: boolean;
   createdAt: string;
+  meta?: {
+    returnRequestId?: string;
+    orderId?: string;
+    status?: string;
+  } | null;
   shop?: {
     id: string;
     slug: string;
@@ -61,4 +68,3 @@ export interface GetNotificationsParams {
   unreadOnly?: boolean;
   shopId?: string;
 }
-

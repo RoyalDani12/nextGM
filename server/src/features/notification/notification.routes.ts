@@ -1,5 +1,6 @@
 import express from "express";
 import { authenticate } from "../../middleware/auth.middleware.js";
+import { notificationLimiter } from "../../middleware/rateLimiter.middleware.js";
 import { validate } from "../../middleware/validate.middleware.js";
 import {
   getNotificationsController,
@@ -19,7 +20,7 @@ import {
 
 const router = express.Router();
 
-router.use(authenticate);
+router.use(authenticate, notificationLimiter);
 
 router.get("/", validate(getNotificationsSchema), getNotificationsController);
 router.get("/unread-count", getUnreadCountController);

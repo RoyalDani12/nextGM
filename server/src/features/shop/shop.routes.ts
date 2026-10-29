@@ -14,6 +14,7 @@ import { createShopController,
      } from "./shop.controller.js"
 import { createShopSchema,updateShopProfileSchema,updateShopStatusSchema,closeShopSchema,updateShopLegalInfoSchema } from "./shop.schema.js"
 import { authorizeShopAccess } from "../../middleware/authorizeShopAccess.middleware.js"
+import { getShopAnalyticsController } from "../analytics/analytics.controller.js"
 
 const router = express.Router()
 
@@ -77,5 +78,12 @@ router.get(
     authorizeShopAccess,
     getShopWalletController,
 )
+router.get(
+    "/:shopId/analytics",
+    authenticate,
+    authorizeShopAccess,
+    getShopAnalyticsController,
+)
+
 export default router
 

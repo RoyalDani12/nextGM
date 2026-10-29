@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/auth.store";
 import {
   addWishlistItem,
@@ -26,9 +26,16 @@ export const usePromotedProducts = () => useQuery({
 
 export const useMarketplaceProducts = (filters: MarketplaceFilters | string = {}) => {
   const normalized = typeof filters === "string" ? { search: filters } : filters;
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ["marketplace-products", normalized],
-    queryFn: () => fetchMarketplaceProducts(normalized),
+    queryFn: ({ pageParam }) => fetchMarketplaceProducts(normalized, pageParam),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      const { pagination } = lastPage;
+      return pagination.hasNextPage || pagination.page < pagination.totalPages
+        ? pagination.page + 1
+        : undefined;
+    },
     staleTime: 1000 * 60 * 2, // 2 minutes cache
   });
 };
@@ -208,4 +215,3 @@ export const useWishlistToggle = () => {
     },
   });
 };
-

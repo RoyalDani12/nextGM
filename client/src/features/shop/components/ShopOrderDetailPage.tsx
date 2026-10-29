@@ -31,6 +31,14 @@ import {
 
 import { useShopOrder } from "@/features/shop/shop.hooks";
 
+const getVariantName = (variant: unknown) => {
+  if (typeof variant === "string") return variant;
+  if (variant && typeof variant === "object" && "name" in variant && typeof variant.name === "string") {
+    return variant.name;
+  }
+  return null;
+};
+
 export const ShopOrderDetailPage = () => {
   const { shopId, orderId } = useParams<{ shopId: string; orderId: string }>();
   const navigate = useNavigate();
@@ -162,7 +170,7 @@ const nextStatus = nextStatusMap[order.status];
           <Button
             variant="outline"
             size="icon"
-            onClick={() => navigate(`/dashboard/shops/${shopId}/orders`)}
+            onClick={() => navigate(`/dashboard/shop/${shopId}/orders`)}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -249,9 +257,9 @@ const nextStatus = nextStatusMap[order.status];
                               <p className="font-medium text-sm line-clamp-1">
                                 {item.product?.name ?? "Product Item"}
                               </p>
-                              {item.variant && (
+                              {getVariantName(item.variant) && (
                                 <p className="text-xs text-muted-foreground">
-                                  Variant: {item.variant}
+                                  Variant: {getVariantName(item.variant)}
                                 </p>
                               )}
                             </div>

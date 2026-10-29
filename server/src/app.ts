@@ -27,6 +27,8 @@ import categoryRoute from "./features/category/category.routes.js"
 import engagementRoute from "./features/engagement/engagement.routes.js"
 import couponRoute from "./features/coupon/coupon.routes.js"
 import notificationRoute from "./features/notification/notification.routes.js"
+import returnRoute, { sellerRouter as sellerReturnRoute } from "./features/returns/return.routes.js"
+import analyticsRoute from "./features/analytics/analytics.routes.js"
 
 
 // security first
@@ -74,6 +76,9 @@ app.use('/api/v1/admin/orders', paymentAdminRoute)
 app.use('/api/v1/payouts', payoutRoute)
 app.use('/api/v1/admin', adminRoute)
 app.use('/api/v1/notifications', notificationRoute)
+app.use('/api/v1/returns', returnRoute)
+app.use('/api/v1/shops', sellerReturnRoute)
+app.use('/api/v1/analytics', analyticsRoute)
 
 app.get('/',(req ,res)=>{
   res.json({message:"server running successfully"})

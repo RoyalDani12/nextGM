@@ -23,6 +23,8 @@ const CATEGORY_MAP: Record<NotificationType, "orderUpdates" | "promotions" | "re
   PAYMENT_FAILED: "orderUpdates",
   COUPON_EXPIRING: "promotions",
   MEMBERSHIP_EXPIRING: "promotions",
+  RETURN_REQUESTED: "orderUpdates",
+  RETURN_UPDATED: "orderUpdates",
   REVIEW_RECEIVED: "reviews",
 };
 

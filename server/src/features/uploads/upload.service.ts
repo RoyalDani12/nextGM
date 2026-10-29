@@ -74,6 +74,17 @@ export const generateUploadSignatureService = async ({
             folder = "categories";
             break;
         }
+        case "return_evidence": {
+            const returnRequest = await prisma.returnRequest.findFirst({
+                where: { id: resourceId, customerId: userId },
+                select: { id: true },
+            });
+            if (!returnRequest) {
+                throw new AppError("Return request not found.", 404);
+            }
+            folder = `return_evidence/${resourceId}`;
+            break;
+        }
         default: {
             throw new AppError("Invalid resource type.", 400);
         }

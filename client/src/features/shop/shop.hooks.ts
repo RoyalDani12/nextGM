@@ -1,4 +1,5 @@
 import { useQuery,useMutation,useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "@/store/auth.store";
 
 import {
   createShopRequest,
@@ -24,10 +25,17 @@ import { getShopOrdersRequest, getShopOrderByIdRequest, markShopOrderShippedRequ
 import type { CreateShopPayload, UpdateShopProfilePayload, UpdateShopLegalInfoPayload } from "./shop.types";
 
 export const useMyShops = () => {
+  const userId = useAuthStore((state) => state.user?.id);
+
   return useQuery({
-    queryKey: ["my-shops"],
+    queryKey: ["my-shops", userId],
     queryFn: getMyShopRequest,
+    enabled: !!userId,
     retry: false,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 };
 
@@ -281,4 +289,3 @@ export const useDeleteShopReviewReply = (shopId: string) => {
     },
   });
 };
-

@@ -3,14 +3,24 @@ import { api } from "@/lib/axios";
 
 export type MarketplaceFilters = { search?: string; shopId?: string; categorySlug?: string; categoryId?: string; type?: "PHYSICAL" | "DIGITAL"; minPrice?: string; maxPrice?: string; minRating?: number; inStockOnly?: boolean; verifiedShopsOnly?: boolean; sort?: "createdAt" | "basePrice" | "rating" | "name"; order?: "asc" | "desc" };
 export type MarketplaceCategory = { id: string; name: string; slug: string; icon?: string | null; imageUrl?: string | null; description?: string | null; productCount: number; children: MarketplaceCategory[] };
-export type MarketplaceBrowseResult = { products: any[]; pagination: { total: number; page: number; limit: number; totalPages: number }; categoryBreadcrumb?: Array<{ id: string; name: string; slug: string }> };
-export const fetchMarketplaceProducts = async (filters: MarketplaceFilters = {}): Promise<MarketplaceBrowseResult> => {
+export type MarketplaceBrowseResult = {
+  products: any[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNextPage?: boolean;
+  };
+  categoryBreadcrumb?: Array<{ id: string; name: string; slug: string }>;
+};
+export const fetchMarketplaceProducts = async (filters: MarketplaceFilters = {}, page = 1): Promise<MarketplaceBrowseResult> => {
   const { data } = await api.get("/products", {
-    params: { ...filters, search: filters.search?.trim() || undefined, limit: 50 },
+    params: { ...filters, search: filters.search?.trim() || undefined, page, limit: 50 },
   });
   
   // Directly targets response.data.data.products based on your exact JSON payload
-  return data?.data || { products: [], pagination: { total: 0, page: 1, limit: 50, totalPages: 0 } };
+  return data?.data || { products: [], pagination: { total: 0, page, limit: 50, totalPages: 0 } };
 };
 
 export const fetchProductById = async (productId: string) => {
@@ -57,4 +67,3 @@ export type WishlistItem = {
 export const addWishlistItem = async (productId: string) => (await api.post(`/wishlist/${productId}`)).data.data;
 export const removeWishlistItem = async (productId: string) => (await api.delete(`/wishlist/${productId}`)).data;
 export const fetchWishlist = async (): Promise<WishlistItem[]> => (await api.get("/wishlist")).data.data;
-

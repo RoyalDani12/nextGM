@@ -1,8 +1,31 @@
-import { Outlet } from "react-router-dom";
+import { useEffect } from "react";
+import { Navigate, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { DashboardSidebar } from "./DashboardSidebar";
 import { DashboardNavbar } from "./DashboardNavbar";
+import { useMyShops } from "./shop.hooks";
 
 export function DashboardLayout() {
+    const { shopId = "" } = useParams<{ shopId: string }>();
+    const location = useLocation();
+    const navigate = useNavigate();
+    const { data: shopsResponse, isLoading, isError } = useMyShops();
+    const shops = shopsResponse?.data ?? [];
+    const hasShopAccess = shops.some((shop) => shop.id === shopId);
+
+    useEffect(() => {
+        if (!isLoading && !isError && shopId && !hasShopAccess) {
+            navigate("/shops", { replace: true, state: { from: location.pathname } });
+        }
+    }, [hasShopAccess, isError, isLoading, location.pathname, navigate, shopId]);
+
+    if (isLoading) {
+        return <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">Loading your shop...</div>;
+    }
+
+    if (isError || !hasShopAccess) {
+        return <Navigate to="/shops" replace />;
+    }
+
     return (
         // h-screen + overflow-hidden locks the shell to the viewport height —
         // this is what stops the whole page (navbar + sidebar included) from

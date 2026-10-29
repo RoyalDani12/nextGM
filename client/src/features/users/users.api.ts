@@ -1,5 +1,5 @@
 import { api } from "../../lib/axios";
-import type { Session, UpdateProfilePayload, UserProfile } from "./user.types";
+import type { ChangePasswordPayload, Session, UpdateProfilePayload, UserProfile } from "./user.types";
 export const getMeRequest = async (): Promise<UserProfile> => {
     const { data } = await api.get("/users/me");
     return data.data;
@@ -14,6 +14,11 @@ export const getUploadSignatureRequest = async()=>{
 
 export const updateProfileRequest = async (payload: UpdateProfilePayload) => {
     const { data } = await api.put("/users/me", payload);
+    return data;
+};
+
+export const changePasswordRequest = async (payload: ChangePasswordPayload) => {
+    const { data } = await api.patch("/users/me/change-password", payload);
     return data;
 };
 

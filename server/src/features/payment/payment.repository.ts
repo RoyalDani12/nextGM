@@ -221,6 +221,23 @@ export const confirmRefundWithEventLog = async (
         await tx.orderStatusHistory.create({
             data: { orderId, status: "REFUNDED", note: "Refund confirmed via Stripe." },
         });
+        const returnRequests = await tx.returnRequest.findMany({
+            where: { orderId, status: "REFUND_PENDING" },
+            select: { id: true },
+        });
+        if (returnRequests.length) {
+            await tx.returnRequest.updateMany({
+                where: { orderId, status: "REFUND_PENDING" },
+                data: { status: "REFUNDED", resolvedAt: new Date() },
+            });
+            await tx.returnStatusHistory.createMany({
+                data: returnRequests.map((request) => ({
+                    returnRequestId: request.id,
+                    status: "REFUNDED" as const,
+                    note: "Refund confirmed by Stripe.",
+                })),
+            });
+        }
         const order = await tx.order.findUnique({
             where: { id: orderId },
             select: { customerId: true },

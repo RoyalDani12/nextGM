@@ -6,7 +6,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import { createPaymentIntent } from "./payment.api";
 
 const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-const stripePromise = publishableKey ? loadStripe(publishableKey) : null;
+const isLiveStripeKey = typeof publishableKey === "string" && publishableKey.startsWith("pk_live_");
+const isSecureStripeContext = typeof window === "undefined" || window.location.protocol === "https:";
+const stripePromise =
+  publishableKey && (!isLiveStripeKey || isSecureStripeContext)
+    ? loadStripe(publishableKey)
+    : null;
 
 function PaymentForm({ checkoutId, onLoadError }: { checkoutId: string; onLoadError: () => void }) {
   const stripe = useStripe();
@@ -107,8 +112,14 @@ export default function PaymentPage() {
     return () => { cancelled = true; };
   }, [checkoutId, attempt]);
 
-  if (!checkoutId || !stripePromise || !publishableKey) {
+  if (!checkoutId || !publishableKey) {
     return <PaymentError message="Stripe is not configured. Add VITE_STRIPE_PUBLISHABLE_KEY to the client environment." />;
+  }
+  if (isLiveStripeKey && !isSecureStripeContext) {
+    return <PaymentError message="Live Stripe payments require HTTPS. Use a secure HTTPS deployment for production payments." />;
+  }
+  if (!stripePromise) {
+    return <PaymentError message="Stripe could not be initialized. Check the publishable key configuration." />;
   }
   if (error) return <PaymentError message={error} onRetry={retry} />;
   if (isLoading || !clientSecret) {

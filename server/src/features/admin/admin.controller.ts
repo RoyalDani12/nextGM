@@ -13,6 +13,9 @@ import {
     toggleReviewVisibilityService,
     deleteReviewAdminService,
     listShipmentsService,
+    listReturnsService,
+    getReturnService,
+    refundReturnService,
 } from "./admin.service.js";
 
 // ─── Platform Stats ───────────────────────────
@@ -116,3 +119,18 @@ export const listShipmentsController = asyncHandler(async (req: Request, res: Re
     res.status(200).json({ success: true, data });
 });
 
+export const listReturnsController = asyncHandler(async (req: Request, res: Response) => {
+    const { status, search, page, limit } = req.query as Record<string, string>;
+    const data = await listReturnsService({ status, search, page: page ? Number(page) : undefined, limit: limit ? Number(limit) : undefined });
+    res.status(200).json({ success: true, data });
+});
+
+export const getReturnController = asyncHandler(async (req: Request, res: Response) => {
+    const data = await getReturnService(req.params.id as string);
+    res.status(200).json({ success: true, data });
+});
+
+export const refundReturnController = asyncHandler(async (req: Request, res: Response) => {
+    const data = await refundReturnService(req.params.id as string);
+    res.status(200).json({ success: true, message: "Refund initiated.", data });
+});

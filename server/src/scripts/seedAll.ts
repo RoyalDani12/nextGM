@@ -9,7 +9,7 @@
  *   ✅ 2  Shop Owners  (with ACTIVE shops, wallets, legal info)
  *   ✅ 4  Customers    (ACTIVE, email-verified)
  *   ✅ Platform categories (4 parents → 18 subcategories)
- *   ✅ 2+ products per subcategory  (~36 products total)
+ *   ✅ 2+ products per subcategory  (80 products total)
  *   ✅ Product images, variants, wishlists
  *   ✅ DELIVERED orders for every customer on every product
  *      (so each customer CAN leave a review on any product)
@@ -113,6 +113,22 @@ const PRODUCTS_BY_CATEGORY: Record<string, ProductTemplate[]> = {
       stock: 60,
       images: ["https://images.unsplash.com/photo-1572804013427-4d7ca7268217?w=800&q=80"],
     },
+    {
+      name: "Premium Merino Knit Cardigan",
+      description: "Soft merino wool blend with a relaxed fit, reinforced seams, and timeless ribbed texture.",
+      basePrice: "68.00",
+      stock: 45,
+      images: [
+        "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=800&q=80",
+        "https://images.unsplash.com/photo-1610652492500-ded49ceeb378?w=800&q=80",
+        "https://images.unsplash.com/photo-1608234807905-4466023792f5?w=800&q=80",
+      ],
+      variants: [
+        { name: "S / Oatmeal", price: "68.00", stock: 12 },
+        { name: "M / Charcoal", price: "68.00", stock: 18 },
+        { name: "L / Navy", price: "72.00", stock: 15 },
+      ],
+    },
   ],
   "Footwear & Sneakers": [
     {
@@ -152,6 +168,22 @@ const PRODUCTS_BY_CATEGORY: Record<string, ProductTemplate[]> = {
       basePrice: "64.99",
       stock: 55,
       images: ["https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&q=80"],
+    },
+    {
+      name: "Convertible Weekender Travel Bag",
+      description: "Water-resistant canvas weekender with a removable shoulder strap, shoe compartment, and brass hardware.",
+      basePrice: "96.00",
+      stock: 35,
+      images: [
+        "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&q=80",
+        "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800&q=80",
+        "https://images.unsplash.com/photo-1556306535-38febf6782e7?w=800&q=80",
+      ],
+      variants: [
+        { name: "Sand / 40L", price: "96.00", stock: 10 },
+        { name: "Olive / 40L", price: "96.00", stock: 15 },
+        { name: "Black / 50L", price: "109.00", stock: 10 },
+      ],
     },
   ],
   "Custom Merchandise": [
@@ -229,6 +261,22 @@ const PRODUCTS_BY_CATEGORY: Record<string, ProductTemplate[]> = {
       basePrice: "99.99",
       stock: 70,
       images: ["https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&q=80"],
+    },
+    {
+      name: "Portable Bluetooth Speaker Duo",
+      description: "Water-resistant stereo speakers with 24-hour battery life, USB-C charging, and party pairing.",
+      basePrice: "119.00",
+      stock: 40,
+      images: [
+        "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=800&q=80",
+        "https://images.unsplash.com/photo-1589003077984-894e133dabab?w=800&q=80",
+        "https://images.unsplash.com/photo-1545454675-3531b543be5d?w=800&q=80",
+      ],
+      variants: [
+        { name: "Graphite / Single", price: "119.00", stock: 15 },
+        { name: "Blue / Single", price: "119.00", stock: 15 },
+        { name: "Graphite / Pair", price: "219.00", stock: 10 },
+      ],
     },
   ],
   "Power Banks & Chargers": [
@@ -374,6 +422,22 @@ const PRODUCTS_BY_CATEGORY: Record<string, ProductTemplate[]> = {
       stock: 45,
       images: ["https://images.unsplash.com/photo-1544476915-ed1370594142?w=800&q=80"],
     },
+    {
+      name: "All-Weather Hiking Backpack 38L",
+      description: "Ventilated back panel, hydration sleeve, rain cover, and adjustable load-bearing hip belt for long trails.",
+      basePrice: "128.00",
+      stock: 30,
+      images: [
+        "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&q=80",
+        "https://images.unsplash.com/photo-1622260614153-03223fb72052?w=800&q=80",
+        "https://images.unsplash.com/photo-1622560480605-d83c853bc5c3?w=800&q=80",
+      ],
+      variants: [
+        { name: "Forest / 38L", price: "128.00", stock: 10 },
+        { name: "Black / 38L", price: "128.00", stock: 12 },
+        { name: "Orange / 45L", price: "139.00", stock: 8 },
+      ],
+    },
   ],
   "Skincare & Grooming": [
     {
@@ -408,6 +472,123 @@ const PRODUCTS_BY_CATEGORY: Record<string, ProductTemplate[]> = {
     },
   ],
 };
+
+const ADDITIONAL_PRODUCT_SPECS: Array<[string, string, string]> = [
+  ["Men's & Women's Wear", "Organic Cotton Overshirt", "59.00"],
+  ["Men's & Women's Wear", "Everyday Wide-Leg Trousers", "62.00"],
+  ["Footwear & Sneakers", "Trail Flex Walking Shoes", "104.00"],
+  ["Footwear & Sneakers", "Classic Canvas High Tops", "58.00"],
+  ["Bags & Leather Goods", "Structured Work Tote", "88.00"],
+  ["Bags & Leather Goods", "Slim RFID Card Wallet", "29.00"],
+  ["Custom Merchandise", "Personalized Embroidered Crewneck", "52.00"],
+  ["Custom Merchandise", "Artist Series Enamel Mug", "18.00"],
+  ["Watches & Jewelry", "Rose Gold Mesh Watch", "135.00"],
+  ["Watches & Jewelry", "Natural Stone Pendant Necklace", "46.00"],
+  ["Smartphones & Accessories", "Magnetic Desktop Phone Stand", "28.00"],
+  ["Smartphones & Accessories", "Braided USB-C Cable Kit", "21.00"],
+  ["Audio & Headphones", "Open-Back Studio Headset", "159.00"],
+  ["Audio & Headphones", "USB Podcast Microphone", "89.00"],
+  ["Power Banks & Chargers", "100W Multi-Port Desktop Charger", "79.00"],
+  ["Power Banks & Chargers", "Solar Outdoor Power Bank", "54.00"],
+  ["Smart Home Hardware", "Smart Motion Sensor Kit", "39.00"],
+  ["Smart Home Hardware", "WiFi Video Doorbell", "129.00"],
+  ["Ergonomic Desk Setup", "Adjustable Monitor Arm", "72.00"],
+  ["Ergonomic Desk Setup", "Memory Foam Footrest", "34.00"],
+  ["Mechanical Keyboards", "Hot-Swap Mechanical Keyboard", "109.00"],
+  ["Mechanical Keyboards", "PBT Keycap Collection", "42.00"],
+  ["Office & Ambient Lighting", "Rechargeable Task Light", "48.00"],
+  ["Office & Ambient Lighting", "Monitor Light Bar Pro", "69.00"],
+  ["Desk Organizers", "Felt Cable Management Tray", "24.00"],
+  ["Desk Organizers", "Modular Drawer Organizer Set", "37.00"],
+  ["Decor & Furniture", "Arched Full-Length Mirror", "149.00"],
+  ["Decor & Furniture", "Handwoven Accent Cushion Set", "39.00"],
+  ["Fitness Gear & Equipment", "Kettlebell Training Set", "118.00"],
+  ["Fitness Gear & Equipment", "Smart Jump Rope", "32.00"],
+  ["Outdoor & Camping", "Rechargeable Camping Lantern", "36.00"],
+  ["Outdoor & Camping", "Insulated Adventure Cooler", "84.00"],
+  ["Skincare & Grooming", "Daily Hydration Face Cream", "28.00"],
+  ["Skincare & Grooming", "Cold Process Botanical Soap Set", "22.00"],
+  ["Travel Accessories", "Expandable Carry-On Suitcase", "119.00"],
+  ["Travel Accessories", "Memory Foam Travel Pillow", "26.00"],
+  ["Audio & Headphones", "Compact Audio Mixer", "99.00"],
+  ["Smart Home Hardware", "Smart Temperature Sensor", "31.00"],
+  ["Footwear & Sneakers", "Leather Everyday Loafers", "112.00"],
+  ["Decor & Furniture", "Solid Wood Side Table", "94.00"],
+];
+
+const ADDITIONAL_IMAGE_IDS = [
+  "photo-1525507119028-ed4c629a60a3",
+  "photo-1523398002811-999ca8dec234",
+  "photo-1542291026-7eec264c27ff",
+  "photo-1495555961986-6d4c1ecb7be3",
+  "photo-1553062407-98eeb64c6a62",
+  "photo-1548036328-c9fa89d128fa",
+  "photo-1515886657613-9f3515b0c78f",
+  "photo-1529139574466-a303027c1d8b",
+  "photo-1523170335258-f5ed11844a49",
+  "photo-1611652022419-a9419f74343d",
+  "photo-1592899677977-9c10ca588bbd",
+  "photo-1601784551446-20c9e07cdbdb",
+  "photo-1505740420928-5e560c06d30e",
+  "photo-1590658268037-6bf12165a8df",
+  "photo-1618354691373-d851c5c3a990",
+  "photo-1609091839311-d5365f9ff1c5",
+  "photo-1558618666-fcd25c85cd64",
+  "photo-1513506003901-1e6a229e2d15",
+  "photo-1497366754035-f200968a6e72",
+  "photo-1497366811353-6870744d04b2",
+  "photo-1587829741301-dc798b83add3",
+  "photo-1595225476474-87563907a212",
+  "photo-1524484485831-a92ffc0de03f",
+  "photo-1565814636199-ae8133055c1c",
+  "photo-1593642632559-0c6d3fc62b89",
+  "photo-1586281380349-632531db7ed4",
+  "photo-1555041469-a586c61ea9bc",
+  "photo-1493663284031-b7e3aefcae8e",
+  "photo-1517836357463-d25dfeac3438",
+  "photo-1598289431512-b97b0917affc",
+  "photo-1504280390367-361c6d9f38f4",
+  "photo-1544476915-ed1370594142",
+  "photo-1620916566398-39f1143ab7be",
+  "photo-1556228578-0d85b1a4d571",
+  "photo-1553062407-98eeb64c6a62",
+  "photo-1527864550417-7fd91fc51a46",
+  "photo-1512428559087-560fa5ceab42",
+  "photo-1494438639946-1ebd1d20bf85",
+  "photo-1497215728101-856f4ea42174",
+  "photo-1524758631624-e2822e304c36",
+];
+
+const ADDITIONAL_PRODUCTS_BY_CATEGORY = ADDITIONAL_PRODUCT_SPECS.reduce<Record<string, ProductTemplate[]>>(
+  (productsByCategory, [category, name, basePrice], index) => {
+    const imageId = ADDITIONAL_IMAGE_IDS[index % ADDITIONAL_IMAGE_IDS.length]!;
+    productsByCategory[category] ??= [];
+    productsByCategory[category].push({
+      name,
+      description: `${name} made with dependable materials and thoughtful details for everyday use.`,
+      basePrice,
+      stock: 35 + (index % 6) * 10,
+      images: [
+        `https://images.unsplash.com/${imageId}?w=800&q=80`,
+        `https://images.unsplash.com/${imageId}?w=801&q=80`,
+      ],
+      variants: [
+        { name: "Standard / Black", price: basePrice, stock: 10 + (index % 5) },
+        { name: "Premium / Natural", price: (Number(basePrice) + 5).toFixed(2), stock: 10 + (index % 4) },
+        { name: "Large / Graphite", price: (Number(basePrice) + 8).toFixed(2), stock: 10 + (index % 3) },
+      ],
+    });
+    return productsByCategory;
+  },
+  {},
+);
+
+const ALL_PRODUCTS_BY_CATEGORY = Object.fromEntries(
+  Object.keys({ ...PRODUCTS_BY_CATEGORY, ...ADDITIONAL_PRODUCTS_BY_CATEGORY }).map((category) => [
+    category,
+    [...(PRODUCTS_BY_CATEGORY[category] ?? []), ...(ADDITIONAL_PRODUCTS_BY_CATEGORY[category] ?? [])],
+  ]),
+) as Record<string, ProductTemplate[]>;
 
 const REVIEW_COMMENTS = [
   "Absolutely love this! Exceeded my expectations in every way. Will buy again.",
@@ -590,7 +771,7 @@ async function main() {
   let shopIndex = 0;
 
   for (const cat of leafCategories) {
-    const templates = PRODUCTS_BY_CATEGORY[cat.name] ?? [];
+    const templates = ALL_PRODUCTS_BY_CATEGORY[cat.name] ?? [];
     if (templates.length === 0) continue;
 
     for (const tmpl of templates) {

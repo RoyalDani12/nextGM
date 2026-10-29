@@ -4,6 +4,7 @@ import type {
   AddToCartPayload,
   AddToCartResponse,
 } from "@/features/cart/cart.types";
+import { getGuestCartItems } from "./guest-cart";
 
 export const addToCartRequest = async (
   payload: AddToCartPayload
@@ -47,7 +48,13 @@ export const removeCartItemRequest = async (
 };
 
 export const mergeCartRequest = async () => {
-  const { data } = await api.post("/cart/merge");
+  const { data } = await api.post("/cart/merge", {
+    items: getGuestCartItems().map(({ productId, variantId, quantity }) => ({
+      productId,
+      variantId,
+      quantity,
+    })),
+  });
 
   return data;
 };

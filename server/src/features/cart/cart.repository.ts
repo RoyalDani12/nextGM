@@ -54,23 +54,35 @@ export const upsertCartItem = async (
         });
     }
     // Scenario 2: Standard Product without a variant
-    return prisma.cartItem.upsert({
-        where: {
-            cartId_productId: {
-                cartId,
-                productId,
-            },
-        },
-        update: {
-            quantity: { increment: quantity },
-        },
-        create: {
-            cartId,
-            productId,
-            quantity,
-        },
-        select: { id: true, productId: true, quantity: true },
+    const existing = await prisma.cartItem.findFirst({
+        where: { cartId, productId, variantId: null },
+        select: { id: true },
     });
+
+    if (existing) {
+        return prisma.cartItem.update({
+            where: { id: existing.id },
+            data: { quantity: { increment: quantity } },
+            select: { id: true, productId: true, variantId: true, quantity: true },
+        });
+    }
+
+    return prisma.cartItem.create({
+        data: { cartId, productId, quantity },
+        select: { id: true, productId: true, variantId: true, quantity: true },
+    });
+};
+
+export const findCartItemQuantity = async (
+    cartId: string,
+    productId: string,
+    variantId?: string,
+) => {
+    const item = await prisma.cartItem.findFirst({
+        where: { cartId, productId, variantId: variantId ?? null },
+        select: { quantity: true },
+    });
+    return item?.quantity ?? 0;
 };
 
 export const getCartWithItems = async (userId: string) => {
@@ -171,3 +183,43 @@ export const clearCart = async (userId:string)=>{
         where :{ cartId :cart.id }
      })
 }
+
+export const mergeCartItems = async (cartId: string, items: Array<{
+    productId: string;
+    variantId?: string;
+    quantity: number;
+}>) => {
+    return prisma.$transaction(async (tx) => {
+        for (const item of items) {
+            if (item.variantId) {
+                await tx.cartItem.upsert({
+                    where: {
+                        cartId_productId_variantId: {
+                            cartId,
+                            productId: item.productId,
+                            variantId: item.variantId,
+                        },
+                    },
+                    update: { quantity: { increment: item.quantity } },
+                    create: { cartId, productId: item.productId, variantId: item.variantId, quantity: item.quantity },
+                });
+            } else {
+                const existing = await tx.cartItem.findFirst({
+                    where: { cartId, productId: item.productId, variantId: null },
+                    select: { id: true },
+                });
+                if (existing) {
+                    await tx.cartItem.update({
+                        where: { id: existing.id },
+                        data: { quantity: { increment: item.quantity } },
+                    });
+                } else {
+                    await tx.cartItem.create({
+                        data: { cartId, productId: item.productId, quantity: item.quantity },
+                    });
+                }
+            }
+        }
+        return tx.cart.findUnique({ where: { id: cartId }, include: { items: true } });
+    });
+};

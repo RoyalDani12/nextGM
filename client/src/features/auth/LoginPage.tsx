@@ -7,6 +7,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { loginSchema, type LoginFormValues } from "./auth.schema";
 import { useLogin } from "./auth.hooks";
 import { useMergeCart } from "../cart/cart.hook";
+import { clearGuestCart, getGuestCartItems } from "../cart/guest-cart";
 import { isDeactivatedResponse, type LoginResponse } from "./auth.types";
 
 import { Button } from "@/components/ui/button";
@@ -75,7 +76,10 @@ export default function LoginPage() {
         }
 
         try {
-          await mergeCart.mutateAsync();
+          if (getGuestCartItems().length > 0) {
+            await mergeCart.mutateAsync();
+            clearGuestCart();
+          }
           navigate(redirectTo, { replace: true });
         } catch (error) {
           console.error("Failed to merge guest cart:", error);

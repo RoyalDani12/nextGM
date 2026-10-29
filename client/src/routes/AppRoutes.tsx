@@ -31,7 +31,7 @@ import CustomerOrderDetailPage from "@/features/customer/CustomerOrderDetailPage
 import { ShopOrdersPage } from "@/features/shop/ShopOrdersPage";
 import { ShopReviewsPage } from "@/features/shop/ShopReviewsPage";
 import { ShopSettingsPage as DashboardSettings } from "@/features/shop/ShopSettingsPage";
-const DashboardAnalytics = () => <div className="p-6 font-semibold">Analitics Page</div>;
+import { AnalyticsPage } from "@/features/shop/analytics/AnalyticsPage";
 import { PayoutDashboard as DashboardPayouts } from "@/features/shop/payouts/PayoutDashboard";
 import OrdersPage from "@/features/customer/CustomerOrder";
 import ShopSelectionPage from "@/features/shop/ShopSelectionPage";
@@ -40,14 +40,26 @@ import ShopOrderDetailPage from "@/features/shop/components/ShopOrderDetailPage"
 import { AdminCategoriesPage } from "@/features/pages/superAdmin/AdminCategoriesPage";
 import { AdminReviewsPage } from "@/features/pages/superAdmin/AdminReviewsPage";
 import { AdminShipmentsPage } from "@/features/pages/superAdmin/AdminShipmentsPage";
+import { AdminReturnsPage } from "@/features/pages/superAdmin/AdminReturnsPage";
 import WishlistPage from "@/features/customer/WishlistPage";
 import CouponsPage from "@/features/shop/CouponsPage";
 import { StorefrontPage } from "@/features/marketplace/pages/StorefrontPage";
+import AboutPage from "@/features/marketplace/pages/AboutPage";
+import ContactSupportPage from "@/features/marketplace/pages/ContactSupportPage";
+import HelpCenterPage from "@/features/marketplace/pages/HelpCenterPage";
+import HowItWorksPage from "@/features/marketplace/pages/HowItWorksPage";
+import CustomerReturnsPage from "@/features/returns/CustomerReturnsPage";
+import ShopReturnsPage from "@/features/returns/ShopReturnsPage";
+import ShopReturnDetailPage from "@/features/returns/ShopReturnDetailPage";
 export function AppRoutes() {
    return (
       <Routes>
          {/* 1. PUBLIC & AUTH ROUTES */}
          <Route path="/" element={<Home />} />
+         <Route path="/how-it-works" element={<HowItWorksPage />} />
+         <Route path="/about" element={<AboutPage />} />
+         <Route path="/contact" element={<ContactSupportPage />} />
+         <Route path="/help" element={<HelpCenterPage />} />
          <Route path="/login" element={<LoginPage />} />
          <Route path="/register" element={<RegisterPage />} />
          <Route path="/verify-email-notice" element={<VerifyEmailNotice />} />
@@ -68,6 +80,7 @@ export function AppRoutes() {
             <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
             <Route path="/customer-order" element={<OrdersPage />} />
             <Route path="/orders/:orderId" element={<CustomerOrderDetailPage />} />
+            <Route path="/returns" element={<CustomerReturnsPage />} />
             <Route path="/shops" element={<ShopSelectionPage />} />
             <Route path="/shops/new" element={<CreateShopPage />} />
          </Route>
@@ -80,8 +93,10 @@ export function AppRoutes() {
                <Route path="products/:productId" element={<ProductDetailPage />} />
                <Route path="orders/:orderId" element={<ShopOrderDetailPage />} />
                <Route path="orders" element={<ShopOrdersPage />} />
+               <Route path="returns" element={<ShopReturnsPage />} />
+               <Route path="returns/:returnId" element={<ShopReturnDetailPage />} />
                <Route path="reviews" element={<ShopReviewsPage />} />
-               <Route path="analytics" element={<DashboardAnalytics />} />
+               <Route path="analytics" element={<AnalyticsPage />} />
                <Route path="discounts" element={<CouponsPage />} />
                <Route path="payouts" element={<DashboardPayouts />} />
                <Route path="settings" element={<DashboardSettings />} />
@@ -104,6 +119,7 @@ export function AppRoutes() {
                <Route path="/superadmin/categories" element={<AdminCategoriesPage />} />
                <Route path="/superadmin/reviews" element={<AdminReviewsPage />} />
                <Route path="/superadmin/shipments" element={<AdminShipmentsPage />} />
+               <Route path="/superadmin/returns" element={<AdminReturnsPage />} />
             </Route>
          </Route>
          <Route path="*" element={<div className="flex min-h-screen items-center justify-center p-6 text-center"><div><h1 className="text-2xl font-bold">Page not found</h1><p className="mt-2 text-gray-600">The page you requested does not exist.</p></div></div>} />

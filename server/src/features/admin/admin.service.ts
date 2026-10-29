@@ -12,7 +12,11 @@ import {
     updateReviewVisibilityAdmin,
     deleteReviewAdmin,
     listShipmentsAdmin,
+    listReturnsAdmin,
+    getReturnAdmin,
+    setReturnRefundPendingAdmin,
 } from "./admin.repository.js";
+import { initiateRefundService } from "../payment/payment.service.js";
 
 export const getPlatformStatsService = async () => {
     return getPlatformStats();
@@ -95,3 +99,33 @@ export const deleteReviewAdminService = async (id: string) => {
 
 export const listShipmentsService = (filters: { status?: string; search?: string; page?: number; limit?: number }) => listShipmentsAdmin(filters);
 
+export const listReturnsService = (filters: { status?: string; search?: string; page?: number; limit?: number }) => listReturnsAdmin(filters);
+
+export const getReturnService = async (id: string) => {
+    const request = await getReturnAdmin(id);
+    if (!request) throw new AppError("Return request not found.", 404);
+    return request;
+};
+
+export const refundReturnService = async (id: string) => {
+    const request = await getReturnAdmin(id);
+    if (!request) throw new AppError("Return request not found.", 404);
+    if (request.resolution !== "REFUND") throw new AppError("This return requests a replacement, not a refund.", 400);
+    if (request.status !== "ITEM_RECEIVED") throw new AppError("The return must be marked as received before refunding.", 400);
+    const updated = await setReturnRefundPendingAdmin(id);
+    if (!updated) throw new AppError("Return request not found.", 404);
+    try {
+        return await initiateRefundService(request.orderId);
+    } catch (error) {
+        await prismaReturnRollback(id);
+        throw error;
+    }
+};
+
+const prismaReturnRollback = async (id: string) => {
+    const { prisma } = await import("../../config/db.js");
+    await prisma.$transaction(async (tx) => {
+        await tx.returnStatusHistory.create({ data: { returnRequestId: id, status: "ITEM_RECEIVED", note: "Refund initiation failed; returned to received state." } });
+        await tx.returnRequest.update({ where: { id }, data: { status: "ITEM_RECEIVED" } });
+    });
+};

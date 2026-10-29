@@ -50,6 +50,24 @@ export type AdminShopsResponse = {
 
 export type AdminUserFilters = { role?: string; status?: string; search?: string; page?: number; limit?: number };
 export type AdminShopFilters = { status?: string; search?: string; page?: number; limit?: number };
+export type AdminReturn = {
+    id: string;
+    orderId: string;
+    status: string;
+    reason: string;
+    resolution: string;
+    customerNote: string | null;
+    sellerNote: string | null;
+    evidenceUrls: string[];
+    createdAt: string;
+    order: { id: string; totalAmount: number | string; customer: { name: string; email: string }; shop: { id: string; slug: string; profile: { name: string } | null } };
+    items: { quantity: number; orderItem: { product: { name: string; images: { url: string }[] }; variant: { name: string } | null } }[];
+};
+export type AdminReturnsResponse = {
+    returns: AdminReturn[];
+    pagination: { page: number; limit: number; total: number; totalPages: number };
+    statusCounts: Record<string, number>;
+};
 
 const base = "/admin";
 
@@ -112,6 +130,18 @@ export const adminApi = {
         const res = await api.get(`${base}/shipments`, { params: filters });
         return res.data.data as { shipments: any[]; total: number; stats: { pending: number; shipped: number; delivered: number } };
     },
+    listReturns: async (filters: { status?: string; search?: string; page?: number; limit?: number } = {}): Promise<AdminReturnsResponse> => {
+        const res = await api.get(`${base}/returns`, { params: filters });
+        return res.data.data;
+    },
+    getReturn: async (id: string): Promise<AdminReturn> => {
+        const res = await api.get(`${base}/returns/${id}`);
+        return res.data.data;
+    },
+    refundReturn: async (id: string) => {
+        const res = await api.post(`${base}/returns/${id}/refund`);
+        return res.data.data;
+    },
 };
 
 export type AdminReview = {
@@ -169,4 +199,3 @@ export type AdminReviewFilters = {
     page?: number;
     limit?: number;
 };
-

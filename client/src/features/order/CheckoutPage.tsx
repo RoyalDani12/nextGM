@@ -10,7 +10,16 @@ import { useCheckout } from "./order.hooks";
 import type { ShippingMethod } from "./order.types";
 import { useCart } from "../cart/cart.hook";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Check,
+  LockKeyhole,
+  MapPin,
+  PackageCheck,
+  Sparkles,
+} from "lucide-react";
+import { toast } from "@/components/ui/toast";
 
 interface ShippingAddress {
   fullName: string;
@@ -121,6 +130,14 @@ export function CheckoutPage() {
   const [shippingMethods, setShippingMethods] = useState<Record<string, ShippingMethod>>({});
   
   const isSubmittingRef = useRef(false);
+  const goBackToCart = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate("/cart");
+  };
 
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
     fullName: "", phone: "", address: "", city: "", country: "ET", postalCode: "",
@@ -149,6 +166,9 @@ export function CheckoutPage() {
   const cartData = cartResponse?.data;
   const groupedBy = cartData?.groupedBy ?? [];
   const totalItems = cartData?.totalItems ?? 0;
+  const unavailableItems = groupedBy.flatMap((group: any) =>
+    group.items.filter((item: any) => !item.isAvailable),
+  );
   const itemsTotal = Number(cartData?.totalPrice ?? 0);
   const shippingFeeFor = (shopId: string) => {
     const method = shippingMethods[shopId] ?? "STANDARD";
@@ -204,6 +224,14 @@ export function CheckoutPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!shippingAddress.phone || isSubmittingRef.current) return;
+    if (unavailableItems.length > 0) {
+      toast.add({
+        title: "Items unavailable",
+        description: "Remove unavailable products or adjust their quantities before checkout.",
+        type: "error",
+      });
+      return;
+    }
 
     isSubmittingRef.current = true;
     setIsSubmitting(true);
@@ -240,17 +268,65 @@ export function CheckoutPage() {
   // Allow rendering even if cart is empty IF the user just returned from a canceled stripe session
   if ((totalItems === 0 || groupedBy.length === 0) && !isCanceled) {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-16 text-center">
-        <h1 className="text-2xl font-bold">Your cart is empty</h1>
-        <button onClick={() => navigate("/")} className="mt-6 rounded-lg bg-black px-5 py-3 text-white">Continue Shopping</button>
+      <div className="min-h-screen bg-slate-950 px-6 py-16 text-center text-white">
+        <button
+          type="button"
+          onClick={() => navigate("/cart")}
+          className="mx-auto mb-12 inline-flex items-center gap-2 text-sm font-semibold text-slate-300 transition hover:text-white"
+        >
+          <ArrowLeft className="size-4" /> Back to cart
+        </button>
+        <div className="mx-auto max-w-3xl">
+          <PackageCheck className="mx-auto size-12 text-orange-400" />
+          <h1 className="mt-5 text-3xl font-bold">Your cart is empty</h1>
+          <p className="mt-3 text-slate-400">Add something you love, then come back here to finish securely.</p>
+          <button onClick={() => navigate("/")} className="mt-8 rounded-full bg-orange-500 px-6 py-3 font-semibold text-white transition hover:bg-orange-400">
+            Continue Shopping
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-7xl px-6 py-10">
-        <h1 className="mb-8 text-3xl font-bold">Checkout</h1>
+    <div className="min-h-screen bg-[#f7f8fc] text-slate-900">
+      <header className="border-b border-slate-200/80 bg-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+          <button
+            type="button"
+            onClick={goBackToCart}
+            className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
+          >
+            <ArrowLeft className="size-4" /> Back to cart
+          </button>
+          <div className="flex items-center gap-2 text-sm font-bold tracking-tight text-slate-950">
+            <span className="flex size-8 items-center justify-center rounded-xl bg-orange-500 text-white">
+              <Sparkles className="size-4" />
+            </span>
+            NextG checkout
+          </div>
+          <div className="hidden items-center gap-1.5 text-xs font-semibold text-emerald-700 sm:flex">
+            <LockKeyhole className="size-3.5" /> Secure checkout
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+        <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-orange-500">Almost there</p>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">Complete your order</h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">A few details and your order will be on its way.</p>
+          </div>
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+            <span className="flex size-7 items-center justify-center rounded-full bg-orange-500 text-white">1</span>
+            <span className="h-px w-8 bg-slate-300" />
+            <span className="flex size-7 items-center justify-center rounded-full bg-slate-900 text-white">2</span>
+            <span className="h-px w-8 bg-slate-300" />
+            <span className="flex size-7 items-center justify-center rounded-full border border-slate-300 bg-white">3</span>
+            <span className="hidden sm:inline">Payment</span>
+          </div>
+        </div>
 
         {/* Shadcn Alert for Canceled Payment */}
         {isCanceled && (
@@ -278,9 +354,28 @@ export function CheckoutPage() {
 
         <div className="grid gap-8 lg:grid-cols-3">
           <form onSubmit={handleSubmit} className="space-y-6 lg:col-span-2">
-            <div className="rounded-xl border bg-white p-6">
+            {unavailableItems.length > 0 && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 shadow-sm">
+                <p className="font-semibold">Some items cannot be checked out</p>
+                <p className="mt-1">Remove or reduce these items before continuing:</p>
+                <ul className="mt-2 list-disc pl-5">
+                  {unavailableItems.map((item: any) => (
+                    <li key={item.id}>
+                      {item.productName}{item.variantName ? ` (${item.variantName})` : ""}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
               <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-xl font-semibold">Shipping Address</h2>
+                <div className="flex items-center gap-3">
+                  <span className="flex size-9 items-center justify-center rounded-xl bg-orange-50 text-orange-600"><MapPin className="size-4" /></span>
+                  <div>
+                    <h2 className="text-lg font-bold">Shipping address</h2>
+                    <p className="text-xs text-slate-500">Where should we deliver your order?</p>
+                  </div>
+                </div>
                 <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-600 select-none">
                   <input
                     type="checkbox"
@@ -339,10 +434,10 @@ export function CheckoutPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border bg-white p-6">
+            <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
               <div className="mb-1 flex items-center gap-2">
                 <span className="flex size-7 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-blue-700">2</span>
-                <h2 className="text-xl font-semibold">Delivery options</h2>
+                <h2 className="text-lg font-bold">Delivery options</h2>
               </div>
               <p className="mb-5 text-sm text-gray-500">Choose a delivery speed for each shop. Orders from different shops may arrive separately.</p>
               <div className="space-y-5">
@@ -373,8 +468,8 @@ export function CheckoutPage() {
 
             <button 
               type="submit" 
-              disabled={checkoutMutation.isPending || isSubmitting || showSuccessAlert || !shippingAddress.phone} 
-              className="w-full rounded-lg bg-black px-6 py-4 font-semibold text-white transition hover:bg-gray-800 disabled:opacity-50"
+              disabled={checkoutMutation.isPending || isSubmitting || showSuccessAlert || !shippingAddress.phone || unavailableItems.length > 0}
+              className="w-full rounded-2xl bg-slate-950 px-6 py-4 font-semibold text-white shadow-lg shadow-slate-950/15 transition hover:-translate-y-0.5 hover:bg-orange-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {checkoutMutation.isPending || isSubmitting ? "Preparing secure checkout..." : `Proceed to Payment — $${grandTotal.toFixed(2)}`}
             </button>
@@ -382,8 +477,14 @@ export function CheckoutPage() {
             {checkoutMutation.isError && <p className="text-sm text-red-600">Unable to create your order. Please try again.</p>}
           </form>
 
-          <div className="h-fit space-y-6 rounded-xl border bg-white p-6">
-            <h2 className="text-xl font-semibold">Order Summary</h2>
+          <div className="h-fit space-y-6 rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm lg:sticky lg:top-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Your selection</p>
+                <h2 className="mt-1 text-xl font-bold">Order summary</h2>
+              </div>
+              <span className="flex size-10 items-center justify-center rounded-2xl bg-orange-50 text-orange-600"><Check className="size-5" /></span>
+            </div>
             <div className="space-y-6">
               {groupedBy.map((group: any, idx: number) => (
                 <div key={idx} className="space-y-3">
@@ -422,10 +523,13 @@ export function CheckoutPage() {
             <div className="border-t" />
             <div className="flex justify-between text-sm text-slate-600"><span>Items</span><span>${itemsTotal.toFixed(2)}</span></div>
             <div className="flex justify-between text-sm text-slate-600"><span>Delivery</span><span>{shippingTotal === 0 ? "Free" : `$${shippingTotal.toFixed(2)}`}</span></div>
-            <div className="flex justify-between text-lg font-bold">
+            <div className="flex justify-between border-t border-slate-100 pt-4 text-xl font-extrabold">
               <span>Total</span>
               <span>${grandTotal.toFixed(2)}</span>
             </div>
+            <p className="flex items-center justify-center gap-1.5 text-center text-xs text-slate-400">
+              <LockKeyhole className="size-3.5 text-emerald-600" /> Your payment details are encrypted and secure
+            </p>
           </div>
         </div>
       </div>

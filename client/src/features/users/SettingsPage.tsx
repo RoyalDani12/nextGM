@@ -1,6 +1,7 @@
-import { ArrowLeft, Bell, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowLeft, Bell, KeyRound, ShieldCheck, UserRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ProfileSection from "./ProfileSection";
+import ChangePasswordSection from "./ChangePasswordSection";
 import SessionsSection from "./SessionsSection";
 import NotificationPreferencesSection from "./NotificationPreferencesSection";
 
@@ -12,7 +13,7 @@ export default function SettingsPage() {
       <div className="mx-auto max-w-5xl">
         <button
           onClick={() => navigate(-1)}
-          className="mb-7 inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-white hover:text-slate-900 cursor-pointer"
+          className="mb-7 inline-flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-white hover:text-slate-900"
         >
           <ArrowLeft className="size-4" /> Back
         </button>
@@ -35,7 +36,6 @@ export default function SettingsPage() {
         </div>
 
         <div className="space-y-6">
-          {/* Personal Details */}
           <section className="overflow-hidden rounded-3xl border border-white bg-white shadow-[0_12px_40px_rgba(15,23,42,0.06)]">
             <div className="flex items-start gap-3 border-b border-slate-100 p-5 sm:p-6">
               <div className="rounded-2xl bg-orange-50 p-2.5 text-orange-600">
@@ -53,10 +53,26 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          {/* Notification Preferences */}
           <section className="overflow-hidden rounded-3xl border border-white bg-white shadow-[0_12px_40px_rgba(15,23,42,0.06)]">
             <div className="flex items-start gap-3 border-b border-slate-100 p-5 sm:p-6">
-              <div className="rounded-2xl bg-blue-50 p-2.5 text-blue-600">
+              <div className="rounded-2xl bg-orange-50 p-2.5 text-orange-600">
+                <KeyRound className="size-5" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-slate-900">Password & security</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Update your password regularly to keep your NextG account safe.
+                </p>
+              </div>
+            </div>
+            <div className="p-5 sm:p-6">
+              <ChangePasswordSection />
+            </div>
+          </section>
+
+          <section className="overflow-hidden rounded-3xl border border-white bg-white shadow-[0_12px_40px_rgba(15,23,42,0.06)]">
+            <div className="flex items-start gap-3 border-b border-slate-100 p-5 sm:p-6">
+              <div className="rounded-2xl bg-orange-50 p-2.5 text-orange-600">
                 <Bell className="size-5" />
               </div>
               <div>
@@ -71,7 +87,6 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          {/* Active Sessions */}
           <section className="rounded-3xl border border-white bg-white p-5 shadow-[0_12px_40px_rgba(15,23,42,0.06)] sm:p-6">
             <SessionsSection />
           </section>

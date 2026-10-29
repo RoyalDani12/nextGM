@@ -15,11 +15,11 @@ export const authorizeShopAccess = asyncHandler(
         }
 
         const shop = await prisma.shop.findFirst({
-            where: { id: shopId as string , deletedAt: null },
+            where: { id: shopId as string, ownerId: userId, deletedAt: null },
             select: { id: true, ownerId: true },
         });
 
-        if (!shop || shop.ownerId !== userId) {
+        if (!shop) {
             throw new AppError("Shop not found.", 404);
         }
 

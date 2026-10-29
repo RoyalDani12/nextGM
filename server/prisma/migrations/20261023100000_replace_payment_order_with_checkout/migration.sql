@@ -1,5 +1,8 @@
 -- Payments now belong to a checkout, which may include multiple orders.
 -- Preserve any legacy payment relationship before removing the obsolete column.
+ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "checkoutId" TEXT;
+ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "checkoutId" TEXT;
+
 DO $$
 BEGIN
   IF EXISTS (

@@ -3,7 +3,7 @@ import { z } from "zod";
 export const getUploadSignatureSchema = z.object({
     query: z
         .object({
-            resourceType: z.enum(["user_avatar", "shop_logo", "shop_banner", "product_image", "category_image"], {
+            resourceType: z.enum(["user_avatar", "shop_logo", "shop_banner", "product_image", "category_image", "return_evidence"], {
                 message: "Invalid asset resource target type.",
             }),
 

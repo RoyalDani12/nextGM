@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShoppingCart, Search, Command, ChevronDown, User, LogOut,Receipt, Package, Heart } from "lucide-react";
+import { ShoppingCart, Search, Command, User, LogOut,Receipt, Package, Heart, RotateCcw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -55,7 +55,7 @@ export const MarketplaceNavbar = () => {
 
       {/* Main Navbar Bar */}
       <div className={`w-full transition-all duration-300 ${isScrolled ? "bg-white/95 py-2 backdrop-blur-xl" : "bg-white py-3"}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-6">
+        <div className="mx-auto flex max-w-7xl items-center justify-start gap-6 px-4 sm:px-6 lg:justify-between lg:px-8">
           <MarketplaceMobileMenu
             isAuthenticated={isAuthenticated}
             user={user}
@@ -93,7 +93,7 @@ export const MarketplaceNavbar = () => {
           {/* Mobile Cart Button */}
           <button
             onClick={() => navigate("/cart")}
-            className="lg:hidden relative flex items-center justify-center p-2 text-slate-700 hover:text-[#3665f3] hover:bg-blue-50 rounded-xl transition-all cursor-pointer"
+            className="relative ml-auto flex cursor-pointer items-center justify-center rounded-xl p-2 text-slate-700 transition-all hover:bg-orange-50 hover:text-orange-600 lg:hidden"
             aria-label="Shopping cart"
           >
             <ShoppingCart className="size-6" />
@@ -126,11 +126,13 @@ export const MarketplaceNavbar = () => {
               <div className="hidden lg:flex items-center gap-2">
                 <NotificationDropdown triggerClassName="p-2 text-slate-700 hover:text-slate-950 hover:bg-slate-100 rounded-full transition-all cursor-pointer" />
                 <DropdownMenu>
-                <DropdownMenuTrigger className="flex items-center gap-2 outline-none group cursor-pointer">
-                  <div className="size-9 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-sm font-bold text-[#3665f3] group-hover:border-[#3665f3] transition-all">
-                    {user?.name?.[0]?.toUpperCase() || "U"}
+                <DropdownMenuTrigger
+                  aria-label="Open account menu"
+                  className="flex items-center gap-2 outline-none group cursor-pointer"
+                >
+                  <div className="size-9 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-[#3665f3] group-hover:border-[#3665f3] transition-all">
+                    <User className="size-4.5" />
                   </div>
-                  <ChevronDown className="hidden md:block size-4 text-slate-500 group-hover:text-slate-950 transition-colors" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 rounded-2xl border border-slate-200 bg-white p-1 shadow-2xl">
                   <div className="border-b border-slate-100 px-3 py-2.5">
@@ -155,6 +157,12 @@ export const MarketplaceNavbar = () => {
                       className="cursor-pointer rounded-xl focus:bg-blue-50 focus:text-[#3665f3]"
                     >
                       <Receipt className="mr-2 size-4 text-slate-400" />Your Orders
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => navigate("/returns")}
+                      className="cursor-pointer rounded-xl focus:bg-orange-50 focus:text-orange-600"
+                    >
+                      <RotateCcw className="mr-2 size-4 text-slate-400" /> Returns & Refunds
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => navigate("/wishlist")}

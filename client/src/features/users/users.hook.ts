@@ -8,9 +8,11 @@ import {
     getSessionsRequest,
     revokeSessionRequest,
     revokeOtherSessionsRequest,
+    changePasswordRequest,
 } from "./users.api";
 import { useAuthStore } from "../../store/auth.store";
 import type { 
+    ChangePasswordPayload,
     UpdateProfilePayload, 
 } from "../users/user.types";
 
@@ -48,6 +50,15 @@ export const useUpdateProfile = () => {
   });
 };
 
+export const useChangePassword = () => {
+  const clearAuth = useAuthStore((state) => state.clearAuth);
+
+  return useMutation({
+    mutationFn: (payload: ChangePasswordPayload) => changePasswordRequest(payload),
+    onSuccess: () => clearAuth(),
+  });
+};
+
 export const useSessions = () => useQuery({
   queryKey: ["users", "sessions"],
   queryFn: getSessionsRequest,
@@ -68,7 +79,6 @@ export const useRevokeOtherSessions = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["users", "sessions"] }),
   });
 };
-
 
 
 

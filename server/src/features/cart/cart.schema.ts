@@ -29,3 +29,13 @@ export const updateCartItemSchema = z.object({
             .max(100, "Quantity cannot exceed 100."),
     }).strict()
 })
+
+export const mergeCartSchema = z.object({
+    body: z.object({
+        items: z.array(z.object({
+            productId: z.string().cuid("Invalid product ID."),
+            variantId: z.string().cuid("Invalid variant ID.").optional(),
+            quantity: z.number().int().min(1).max(100),
+        })).max(100),
+    }).strict(),
+});

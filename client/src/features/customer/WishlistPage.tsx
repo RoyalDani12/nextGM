@@ -23,6 +23,7 @@ import { useAddToCart } from "@/features/cart/cart.hook";
 import { ProductDetailView } from "@/features/marketplace/components/ProductDetailView";
 import { useAuthStore } from "@/store/auth.store";
 import type { WishlistItem } from "@/features/marketplace/marketplace.api";
+import { addGuestCartItem } from "@/features/cart/guest-cart";
 
 export default function WishlistPage() {
   const navigate = useNavigate();
@@ -78,10 +79,17 @@ export default function WishlistPage() {
 
     setMovingItemId(item.id);
     try {
-      await addToCart.mutateAsync({
-        productId: item.productId,
-        quantity: 1,
-      });
+      if (isAuthenticated) {
+        await addToCart.mutateAsync({
+          productId: item.productId,
+          quantity: 1,
+        });
+      } else {
+        addGuestCartItem(item.product, {
+          productId: item.productId,
+          quantity: 1,
+        });
+      }
 
       // Remove from wishlist after successfully adding to cart
       await wishlistToggle.mutateAsync({
@@ -113,10 +121,17 @@ export default function WishlistPage() {
 
     for (const item of inStockItems) {
       try {
-        await addToCart.mutateAsync({
-          productId: item.productId,
-          quantity: 1,
-        });
+        if (isAuthenticated) {
+          await addToCart.mutateAsync({
+            productId: item.productId,
+            quantity: 1,
+          });
+        } else {
+          addGuestCartItem(item.product, {
+            productId: item.productId,
+            quantity: 1,
+          });
+        }
         await wishlistToggle.mutateAsync({
           productId: item.productId,
           saved: true,

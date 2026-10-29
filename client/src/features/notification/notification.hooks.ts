@@ -19,7 +19,8 @@ export const useNotifications = (params: GetNotificationsParams = {}, enabled = 
     queryFn: () => getNotificationsRequest(params),
     enabled,
     refetchInterval: 60_000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
+    staleTime: 30_000,
   });
 };
 
@@ -29,7 +30,8 @@ export const useUnreadNotificationCount = (shopId?: string, enabled = true) => {
     queryFn: () => getUnreadCountRequest(shopId),
     enabled,
     refetchInterval: 60_000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
+    staleTime: 30_000,
   });
 };
 

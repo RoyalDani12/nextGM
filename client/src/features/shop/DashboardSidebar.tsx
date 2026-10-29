@@ -12,6 +12,7 @@ import {
     PanelLeft,
     Store,
     MessageSquare,
+    RotateCcw,
 } from "lucide-react";
 import { useMyShops } from "./shop.hooks";
 
@@ -60,6 +61,11 @@ export function DashboardSidebar({
                   title: "Reviews",
                   href: `/dashboard/shop/${shopId}/reviews`,
                   icon: MessageSquare,
+              },
+              {
+                  title: "Returns",
+                  href: `/dashboard/shop/${shopId}/returns`,
+                  icon: RotateCcw,
               },
               {
                   title: "Discounts",

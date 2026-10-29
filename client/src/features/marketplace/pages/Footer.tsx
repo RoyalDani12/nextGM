@@ -63,9 +63,9 @@ export default function Footer() {
                         <p className="font-bold text-white text-sm tracking-wide">Get to Know Us</p>
                         <ul className="flex flex-col gap-2.5">
                             <li><Link to="/about" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">About Nexions</Link></li>
-                            <li><Link to="/careers" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Careers</Link></li>
-                            <li><Link to="/blog" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Nexions Science & Blog</Link></li>
-                            <li><Link to="/press" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Press Releases</Link></li>
+                            <li><Link to="/about#careers" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Careers</Link></li>
+                            <li><Link to="/about#blog" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Nexions Science & Blog</Link></li>
+                            <li><Link to="/about#press" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Press Releases</Link></li>
                         </ul>
                     </div>
 
@@ -73,10 +73,10 @@ export default function Footer() {
                     <div className="flex flex-col gap-3">
                         <p className="font-bold text-white text-sm tracking-wide">Make Money with Us</p>
                         <ul className="flex flex-col gap-2.5">
-                            <li><Link to="/create-shop" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Sell on Nexions</Link></li>
-                            <li><Link to="/templates" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Store Templates</Link></li>
-                            <li><Link to="/experts" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Advertise Your Products</Link></li>
-                            <li><Link to="/affiliates" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Become an Affiliate</Link></li>
+                            <li><Link to="/shops/new" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Sell on Nexions</Link></li>
+                            <li><Link to="/about#templates" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Store Templates</Link></li>
+                            <li><Link to="/about#experts" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Advertise Your Products</Link></li>
+                            <li><Link to="/about#affiliates" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Become an Affiliate</Link></li>
                         </ul>
                     </div>
 
@@ -84,8 +84,8 @@ export default function Footer() {
                     <div className="flex flex-col gap-3">
                         <p className="font-bold text-white text-sm tracking-wide">Engine & Payment</p>
                         <ul className="flex flex-col gap-2.5">
-                            <li><Link to="/integrations" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Nexions Business Card</Link></li>
-                            <li><Link to="/currency" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Global Currency Converter</Link></li>
+                            <li><Link to="/about#integrations" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Nexions Business Card</Link></li>
+                            <li><Link to="/about#currency" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Global Currency Converter</Link></li>
                         </ul>
                     </div>
 
@@ -93,8 +93,8 @@ export default function Footer() {
                     <div className="flex flex-col gap-3">
                         <p className="font-bold text-white text-sm tracking-wide">Let Us Help You</p>
                         <ul className="flex flex-col gap-2.5">
-                            <li><Link to="/account" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Your Account</Link></li>
-                            <li><Link to="/orders" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Manage Orders</Link></li>
+                            <li><Link to="/account/settings" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Your Account</Link></li>
+                            <li><Link to="/customer-order" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Manage Orders</Link></li>
                             <li><Link to="/help" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Help Center</Link></li>
                             <li><Link to="/contact" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Contact Support</Link></li>
                         </ul>

@@ -103,3 +103,13 @@ export const useAdminDeleteReview = () => {
 export const useAdminShipments = (filters: { status?: string; search?: string; page?: number; limit?: number }) =>
     useQuery({ queryKey: ["admin", "shipments", filters], queryFn: () => adminApi.listShipments(filters), placeholderData: (previous) => previous });
 
+export const useAdminReturns = (filters: { status?: string; search?: string; page?: number; limit?: number }) =>
+    useQuery({ queryKey: ["admin", "returns", filters], queryFn: () => adminApi.listReturns(filters), placeholderData: (previous) => previous });
+
+export const useRefundReturn = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => adminApi.refundReturn(id),
+        onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "returns"] }),
+    });
+};

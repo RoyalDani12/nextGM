@@ -43,6 +43,7 @@ enum ProductType {
   PHYSICAL
   DIGITAL
 }
+
 enum Gender {
   MEN
   WOMEN
@@ -68,6 +69,35 @@ enum OrderStatus {
   REFUND_PENDING
 }
 
+enum ReturnStatus {
+  REQUESTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  ITEM_SHIPPED
+  ITEM_RECEIVED
+  REFUND_PENDING
+  REFUNDED
+  REPLACEMENT_SENT
+  CLOSED
+  CANCELLED
+}
+
+enum ReturnReason {
+  DAMAGED
+  WRONG_ITEM
+  MISSING_ITEM
+  NOT_AS_DESCRIBED
+  QUALITY_ISSUE
+  CHANGED_MIND
+  OTHER
+}
+
+enum ReturnResolution {
+  REFUND
+  REPLACEMENT
+}
+
 enum ShippingMethod {
   STANDARD
   EXPRESS
@@ -91,6 +121,7 @@ enum WalletTransactionType {
   CREDIT
   DEBIT
 }
+
 enum PaymentProvider {
   STRIPE
   PAYPAL
@@ -101,11 +132,13 @@ enum NotificationType {
   ORDER_SHIPPED
   ORDER_DELIVERED
   PAYMENT_SUCCESS
-  PAYMENT_REFUNDED 
+  PAYMENT_REFUNDED
   PAYMENT_FAILED
   REVIEW_RECEIVED
   COUPON_EXPIRING
   MEMBERSHIP_EXPIRING
+  RETURN_REQUESTED
+  RETURN_UPDATED
 }
 
 enum MembershipPlanType {
@@ -132,37 +165,38 @@ enum AuditAction {
 // ─────────────────────────────────────────
 
 model User {
-  id              String        @id @default(cuid())
-  name            String
-  email           String        @unique
-  password        String
-  role            Role          @default(CUSTOMER)
-  status          AccountStatus @default(PENDING)
-  isEmailVerified Boolean       @default(false)
-  deletedAt       DateTime?
-  lastLoginAt     DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  passwordChangedAt  DateTime?
+  id                String        @id @default(cuid())
+  name              String
+  email             String        @unique
+  password          String
+  role              Role          @default(CUSTOMER)
+  status            AccountStatus @default(PENDING)
+  isEmailVerified   Boolean       @default(false)
+  deletedAt         DateTime?
+  lastLoginAt       DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  passwordChangedAt DateTime?
 
-  profile              UserProfile?
-  cart              Cart? 
-  refreshTokens        RefreshToken[]
-  emailVerifications   EmailVerification[]
-  passwordResets       PasswordReset[]
-  ownedShops           Shop[]               @relation("ShopOwner")
-  employeeOf           ShopEmployee[]
-  orders               Order[]
-  reviews              Review[]
-  notifications        Notification[]
-  notificationPref     NotificationPreference?
-  membership           UserMembership?
-  auditLogs            AuditLog[]
-  activityLogs         ActivityLog[]
-  couponUsages         CouponUsage[]
-  paymentMethods       PaymentMethod[]
-  checkouts            Checkout[]
-  wishlistItems        WishlistItem[]
+  profile            UserProfile?
+  cart               Cart?
+  refreshTokens      RefreshToken[]
+  emailVerifications EmailVerification[]
+  passwordResets     PasswordReset[]
+  ownedShops         Shop[]                  @relation("ShopOwner")
+  employeeOf         ShopEmployee[]
+  orders             Order[]
+  reviews            Review[]
+  notifications      Notification[]
+  notificationPref   NotificationPreference?
+  membership         UserMembership?
+  auditLogs          AuditLog[]
+  activityLogs       ActivityLog[]
+  couponUsages       CouponUsage[]
+  paymentMethods     PaymentMethod[]
+  checkouts          Checkout[]
+  wishlistItems      WishlistItem[]
+  returnRequests     ReturnRequest[]
 
   @@index([email])
   @@index([status])
@@ -183,15 +217,15 @@ model UserProfile {
 }
 
 model RefreshToken {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  token     String   @unique
-  ipAddress String?
-  userAgent String?
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  token      String   @unique
+  ipAddress  String?
+  userAgent  String?
   deviceName String?
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
 
   @@index([userId])
   @@index([token])
@@ -235,15 +269,15 @@ model Shop {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
-  profile       ShopProfile?
-  employees     ShopEmployee[]
-  products      Product[]
-  orders        Order[]
-  coupons       Coupon[]
-  membership    ShopMembership?
-  analytics     ShopAnalytics[]
-  reviews       Review[]
-  notifications Notification[]
+  profile            ShopProfile?
+  employees          ShopEmployee[]
+  products           Product[]
+  orders             Order[]
+  coupons            Coupon[]
+  membership         ShopMembership?
+  analytics          ShopAnalytics[]
+  reviews            Review[]
+  notifications      Notification[]
   legalInfo          ShopLegalInfo?
   wallet             ShopWallet?
   walletTransactions WalletTransaction[]
@@ -254,31 +288,32 @@ model Shop {
 }
 
 model ShopProfile {
-  id          String   @id @default(cuid())
-  shopId      String   @unique
-  shop        Shop     @relation(fields: [shopId], references: [id])
-  name        String
-  description String?
-  logo        String?
-  banner      String?
-  phone       String?
-  email       String?
-  address     String?
-  city        String?
-  country     String?
-  website     String?
+  id             String   @id @default(cuid())
+  shopId         String   @unique
+  shop           Shop     @relation(fields: [shopId], references: [id])
+  name           String
+  description    String?
+  logo           String?
+  banner         String?
+  phone          String?
+  email          String?
+  address        String?
+  city           String?
+  country        String?
+  website        String?
   shippingPolicy String?
   returnsPolicy  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
+
 model ShopLegalInfo {
   id                String   @id @default(cuid())
   shopId            String   @unique
   shop              Shop     @relation(fields: [shopId], references: [id])
   legalBusinessName String
   taxId             String
-  entityType        String   // free text for now — "individual", "llc", etc. Not enum-constrained, kept minimal per scope.
+  entityType        String // free text for now — "individual", "llc", etc. Not enum-constrained, kept minimal per scope.
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
@@ -392,7 +427,7 @@ model Category {
   sortOrder   Int        @default(0)
   createdAt   DateTime   @default(now())
 
-  products    Product[]
+  products Product[]
 
   @@index([parentId])
   @@index([slug])
@@ -400,48 +435,47 @@ model Category {
 }
 
 model Product {
-  id         String           @id @default(cuid())
-  shopId     String
-  shop       Shop             @relation(fields: [shopId], references: [id])
-  categoryId    String?
-platformCategoryId  String?
-platformCategory    Category? @relation(fields: [platformCategoryId], references: [id])
+  id                 String    @id @default(cuid())
+  shopId             String
+  shop               Shop      @relation(fields: [shopId], references: [id])
+  categoryId         String?
+  platformCategoryId String?
+  platformCategory   Category? @relation(fields: [platformCategoryId], references: [id])
 
-  gender              Gender?   // ← MEN, WOMEN, UNISEX, KIDS
-  tags                String[]    // ← ["running", "casual", "waterproof"]
-  cartItems         CartItem[]  
-  category   ProductCategory? @relation(fields: [categoryId], references: [id])
-
+  gender    Gender? // ← MEN, WOMEN, UNISEX, KIDS
+  tags      String[] // ← ["running", "casual", "waterproof"]
+  cartItems CartItem[]
+  category  ProductCategory? @relation(fields: [categoryId], references: [id])
 
   name        String
-  description String?   @db.Text
+  description String?       @db.Text
   slug        String
   sku         String?
-  type       ProductType      @default(PHYSICAL)
-  status     ProductStatus    @default(DRAFT)
-  basePrice  Decimal
-  stock      Int              @default(0)
-  deletedAt  DateTime?
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
+  type        ProductType   @default(PHYSICAL)
+  status      ProductStatus @default(DRAFT)
+  basePrice   Decimal
+  stock       Int           @default(0)
+  deletedAt   DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
-  variants     ProductVariant[]
-  images       ProductImage[]
-  digitalAsset DigitalAsset?
-  orderItems   OrderItem[]
-  reviews      Review[]
+  variants      ProductVariant[]
+  images        ProductImage[]
+  digitalAsset  DigitalAsset?
+  orderItems    OrderItem[]
+  reviews       Review[]
   wishlistItems WishlistItem[]
-  analytics    ProductAnalytics[]
-  coupons      CouponProduct[]
+  analytics     ProductAnalytics[]
+  coupons       CouponProduct[]
 
-  @@index([shopId,status])
-  @@index([status])
-  @@index([type])
-  @@index([categoryId,status])
-  @@index([platformCategoryId, status])
-  @@index([name])
   @@unique([shopId, slug])
   @@unique([shopId, sku])
+  @@index([shopId, status])
+  @@index([status])
+  @@index([type])
+  @@index([categoryId, status])
+  @@index([platformCategoryId, status])
+  @@index([name])
 }
 
 model ProductVariant {
@@ -451,15 +485,15 @@ model ProductVariant {
   name      String
   price     Decimal
   stock     Int      @default(0)
-  sku       String?  
+  sku       String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   orderItems OrderItem[]
-  cartItems         CartItem[] 
+  cartItems  CartItem[]
 
-  @@index([productId])
   @@unique([productId, sku])
+  @@index([productId])
 }
 
 model ProductImage {
@@ -472,30 +506,80 @@ model ProductImage {
 
   @@index([productId])
 }
+
+model ReturnRequest {
+  id           String           @id @default(cuid())
+  orderId      String
+  order        Order            @relation(fields: [orderId], references: [id])
+  customerId   String
+  customer     User             @relation(fields: [customerId], references: [id])
+  status       ReturnStatus     @default(REQUESTED)
+  reason       ReturnReason
+  resolution   ReturnResolution @default(REFUND)
+  customerNote String?          @db.Text
+  evidenceUrls String[]
+  sellerNote   String?          @db.Text
+  adminNote    String?          @db.Text
+  requestedAt  DateTime         @default(now())
+  resolvedAt   DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  items         ReturnItem[]
+  statusHistory ReturnStatusHistory[]
+
+  @@index([orderId])
+  @@index([customerId, createdAt])
+  @@index([status])
+}
+
+model ReturnItem {
+  id              String        @id @default(cuid())
+  returnRequestId String
+  returnRequest   ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+  orderItemId     String
+  orderItem       OrderItem     @relation(fields: [orderItemId], references: [id])
+  quantity        Int
+  createdAt       DateTime      @default(now())
+
+  @@unique([returnRequestId, orderItemId])
+  @@index([orderItemId])
+}
+
+model ReturnStatusHistory {
+  id              String        @id @default(cuid())
+  returnRequestId String
+  returnRequest   ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+  status          ReturnStatus
+  note            String?
+  createdAt       DateTime      @default(now())
+
+  @@index([returnRequestId, createdAt])
+}
+
 model Cart {
-  id        String     @id @default(cuid())
-  userId    String     @unique
-  user      User       @relation(fields: [userId], references: [id])
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   items CartItem[]
 }
 
 model CartItem {
-  id        String   @id @default(cuid())
+  id        String          @id @default(cuid())
   cartId    String
-  cart      Cart     @relation(fields: [cartId], references: [id])
+  cart      Cart            @relation(fields: [cartId], references: [id])
   productId String
-  product   Product  @relation(fields: [productId], references: [id])
+  product   Product         @relation(fields: [productId], references: [id])
   variantId String?
   variant   ProductVariant? @relation(fields: [variantId], references: [id])
-  quantity  Int      @default(1)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  quantity  Int             @default(1)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
 
   @@unique([cartId, productId, variantId])
-  @@unique([cartId, productId])
   @@index([cartId])
   @@index([productId])
 }
@@ -517,18 +601,18 @@ model DigitalAsset {
 // ─────────────────────────────────────────
 
 model Checkout {
-  id                String          @id @default(cuid())
+  id                String         @id @default(cuid())
   customerId        String
-  customer          User            @relation(fields: [customerId], references: [id])
+  customer          User           @relation(fields: [customerId], references: [id])
   totalAmount       Decimal
-  status            CheckoutStatus  @default(PENDING)
-  providerPaymentId String?         @unique
-  idempotencyKey    String          @unique
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  status            CheckoutStatus @default(PENDING)
+  providerPaymentId String?        @unique
+  idempotencyKey    String         @unique
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
-  orders            Order[]
-  payment           Payment?
+  orders               Order[]
+  payment              Payment?
   platformTransactions PlatformWalletTransaction[]
 
   @@index([customerId])
@@ -536,52 +620,54 @@ model Checkout {
 }
 
 model Order {
-  id             String      @id @default(cuid())
-  checkoutId     String
-  checkout       Checkout    @relation(fields: [checkoutId], references: [id])
-  shopId         String
-  shop           Shop        @relation(fields: [shopId], references: [id])
-  customerId     String
-  customer       User        @relation(fields: [customerId], references: [id])
-  status         OrderStatus @default(PENDING)
-  totalAmount    Decimal
-  couponId       String?
-  coupon         Coupon?     @relation(fields: [couponId], references: [id])
-  discountAmount Decimal     @default(0)
-  idempotencyKey String      @unique
-  notes          String?
+  id                   String      @id @default(cuid())
+  checkoutId           String
+  checkout             Checkout    @relation(fields: [checkoutId], references: [id])
+  shopId               String
+  shop                 Shop        @relation(fields: [shopId], references: [id])
+  customerId           String
+  customer             User        @relation(fields: [customerId], references: [id])
+  status               OrderStatus @default(PENDING)
+  totalAmount          Decimal
+  couponId             String?
+  coupon               Coupon?     @relation(fields: [couponId], references: [id])
+  discountAmount       Decimal     @default(0)
+  idempotencyKey       String      @unique
+  notes                String?
   reservationExpiresAt DateTime?
-  deletedAt      DateTime?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  deletedAt            DateTime?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
 
-  items           OrderItem[]
-  statusHistory   OrderStatusHistory[]
-  shippingAddress ShippingAddress?
-  shipment        OrderShipment?
+  items              OrderItem[]
+  statusHistory      OrderStatusHistory[]
+  shippingAddress    ShippingAddress?
+  shipment           OrderShipment?
+  returnRequests     ReturnRequest[]
+  walletTransactions WalletTransaction[]
 
   @@index([checkoutId])
   @@index([shopId])
   @@index([customerId])
   @@index([status])
   @@index([idempotencyKey])
-  @@index([customerId, status])   
+  @@index([customerId, status])
   @@index([customerId, createdAt])
   @@index([status, reservationExpiresAt])
-  walletTransactions WalletTransaction[]
 }
 
 model OrderItem {
-  id        String          @id @default(cuid())
-  orderId   String
-  order     Order           @relation(fields: [orderId], references: [id])
-  productId String
-  product   Product         @relation(fields: [productId], references: [id])
-  variantId String?
-  variant   ProductVariant? @relation(fields: [variantId], references: [id])
-  quantity  Int
-  unitPrice Decimal
-  createdAt DateTime        @default(now())
+  id          String          @id @default(cuid())
+  orderId     String
+  order       Order           @relation(fields: [orderId], references: [id])
+  productId   String
+  product     Product         @relation(fields: [productId], references: [id])
+  variantId   String?
+  variant     ProductVariant? @relation(fields: [variantId], references: [id])
+  quantity    Int
+  unitPrice   Decimal
+  createdAt   DateTime        @default(now())
+  returnItems ReturnItem[]
 
   @@index([orderId])
   @@index([productId])
@@ -667,15 +753,15 @@ model PaymentMethod {
   @@index([userId])
 }
 
-
 model WebhookEvent {
-  id             String   @id @default(cuid())
-  stripeEventId  String   @unique
-  type           String
-  processedAt    DateTime @default(now())
+  id            String   @id @default(cuid())
+  stripeEventId String   @unique
+  type          String
+  processedAt   DateTime @default(now())
 
   @@index([type])
 }
+
 // ─────────────────────────────────────────
 // COUPON
 // ─────────────────────────────────────────
@@ -695,8 +781,8 @@ model Coupon {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
-  usages CouponUsage[]
-  orders Order[]
+  usages   CouponUsage[]
+  orders   Order[]
   products CouponProduct[]
 
   @@unique([shopId, code])

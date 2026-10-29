@@ -13,8 +13,13 @@ export const checkoutRequest = async (
   return data;
 };
 
-export const getCustomerOrdersRequest = async () => {
-  const { data } = await api.get("/orders");
+export const getCustomerOrdersRequest = async (page = 1, limit = 10) => {
+  const { data } = await api.get("/orders", { params: { page, limit } });
+  return data;
+};
+
+export const cancelCustomerOrderRequest = async (orderId: string) => {
+  const { data } = await api.post(`/orders/${orderId}/cancel`);
   return data;
 };
 

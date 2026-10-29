@@ -10,7 +10,6 @@ import {
   PackageOpen,
   Share2,
   Star,
-  Sparkles,
   Store as StoreIcon,
   Tag,
   X,
@@ -20,7 +19,6 @@ import {
   Minus,
   Plus,
   ShoppingCart,
-  ShoppingBag,
   Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,12 +27,20 @@ import { useDeleteProductReview, useProductDetails, useProductReviews, useSavePr
 import { useAuthStore } from "@/store/auth.store";
 import { useAddToCart } from "@/features/cart/cart.hook";
 import { toast } from "@/components/ui/toast";
+import { addGuestCartItem } from "@/features/cart/guest-cart";
 
 interface ProductDetailViewProps {
   productId: string | null;
   isOpen: boolean;
   onClose: () => void;
   onBack?: () => void;
+}
+
+interface ProductVariant {
+  id: string;
+  name: string;
+  price: number;
+  stock: number;
 }
 
 export function ProductDetailView({
@@ -57,7 +63,7 @@ export function ProductDetailView({
   const { data: wishlist = [] } = useWishlist();
   const isLiked = productId ? wishlist.some((item) => item.productId === productId) : false;
   const [isCopied, setIsCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<"description" | "specs" | "store" | "reviews">("description");
+  const [activeTab, setActiveTab] = useState<"overview" | "store" | "reviews">("overview");
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -76,6 +82,11 @@ export function ProductDetailView({
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    setSelectedVariantId(null);
+    setQuantity(1);
+  }, [productId]);
+
   if (!productId) return null;
 
   const images = product?.images?.length
@@ -86,7 +97,8 @@ export function ProductDetailView({
   const sellerLogo = product?.shop?.profile?.logo;
   const sellerSlug = product?.shop?.slug || "official-store";
 
-  const selectedVariant = product?.variants?.find((v: any) => v.id === selectedVariantId);
+  const variants = (product?.variants ?? []) as ProductVariant[];
+  const selectedVariant = variants.find((variant) => variant.id === selectedVariantId);
   const ownReview = reviewData?.reviews?.find((review: { userId: string }) => review.userId === currentUser?.id);
   const currentPrice = selectedVariant ? selectedVariant.price : product?.basePrice;
   const currentStock = selectedVariant ? selectedVariant.stock : (product?.stock ?? 0);
@@ -101,11 +113,37 @@ export function ProductDetailView({
 
   const handleAddToCart = () => {
     if (!product) return;
+    if (variants.length > 0 && !selectedVariant) {
+      toast.add({
+        title: "Select an option",
+        description: "Choose a product variant before adding this item to your cart.",
+        type: "error",
+      });
+      return;
+    }
 
-    addToCart.mutate({
+    const payload = {
       productId: product.id,
       ...(selectedVariantId ? { variantId: selectedVariantId } : {}),
       quantity,
+    };
+
+    if (!isAuthenticated) {
+      addGuestCartItem(product, payload);
+      toast.add({
+        title: "Added to cart",
+        description: `${product.name} was added to your guest cart.`,
+        type: "success",
+      });
+      return;
+    }
+
+    addToCart.mutate(payload, {
+      onSuccess: () => toast.add({
+        title: "Added to cart",
+        description: `${product.name} was added to your cart.`,
+        type: "success",
+      }),
     });
   };
 
@@ -283,24 +321,21 @@ export function ProductDetailView({
                   </div>
                   <span className="text-slate-300">|</span>
                   <span className="hover:underline cursor-pointer">{reviewData?.reviewCount ?? 0} Reviews</span>
-                  <span className="text-slate-300">|</span>
-                  <span className="text-slate-900 font-semibold">40+ Sold</span>
                 </div>
               </div>
 
-              {/* Walmart / Alibaba Style Clean Pricing Banner */}
+              {/* Current product price and verified promotion */}
               <div className="bg-slate-50 border-y border-slate-100 py-3.5 px-4 -mx-5 lg:-mx-6 flex items-baseline justify-between gap-4">
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight">
                     ${Number(currentPrice || 0).toFixed(2)}
                   </span>
-                  <span className="text-sm text-slate-400 line-through font-medium">
-                    ${(Number(currentPrice || 0) * 1.4).toFixed(2)}
-                  </span>
                 </div>
-                <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2.5 py-1 rounded border border-rose-100">
-                  Save 40%
-                </span>
+                {promotionLabel && (
+                  <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-100">
+                    {promotionLabel}
+                  </span>
+                )}
               </div>
 
               {/* Variants Selector */}
@@ -310,18 +345,22 @@ export function ProductDetailView({
                     Options / Specifications
                   </span>
                   <div className="flex flex-wrap gap-2">
-                    {product.variants.map((variant: any) => (
+                    {variants.map((variant) => (
                       <button
                         key={variant.id}
                         type="button"
-                        onClick={() => setSelectedVariantId(variant.id === selectedVariantId ? null : variant.id)}
+                        onClick={() => setSelectedVariantId(variant.id)}
+                        disabled={variant.stock <= 0}
                         className={`px-3.5 py-2 text-xs rounded border transition-all shrink-0 ${
                           selectedVariantId === variant.id
                             ? "border-slate-900 bg-slate-900 text-white font-semibold"
-                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                            : variant.stock <= 0
+                              ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed"
+                              : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                         }`}
                       >
                         {variant.name} <span className="opacity-80">(${variant.price})</span>
+                        {variant.stock <= 0 && <span className="ml-1">(Out of stock)</span>}
                       </button>
                     ))}
                   </div>
@@ -356,43 +395,21 @@ export function ProductDetailView({
                   </span>
                 </div>
 
-                {/* Primary Action Buttons */}
-                <div className="flex items-center gap-3 pt-2">
-                  <Button
-                    disabled={currentStock <= 0}
-                    className="flex-1 h-11 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded shadow-none transition-all disabled:opacity-50 gap-2"
-                  >
-                    <ShoppingBag className="h-4 w-4 shrink-0" />
-                    {currentStock > 0 ? "Buy Now" : "Out of Stock"}
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    disabled={currentStock <= 0 || addToCart.isPending}
-                    onClick={handleAddToCart}
-                    className="flex-1 h-11 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white font-bold text-sm rounded shadow-none gap-2 transition-all"
-                  >
-                    {addToCart.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <ShoppingCart className="h-4 w-4 shrink-0" />
-                    )}
-                    {addToCart.isPending ? "Adding..." : "Add to Cart"}
-                  </Button>
-                </div>
+                <Button
+                  variant="outline"
+                  disabled={currentStock <= 0 || (variants.length > 0 && !selectedVariant) || addToCart.isPending}
+                  onClick={handleAddToCart}
+                  className="w-full h-11 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white font-bold text-sm rounded shadow-none gap-2 transition-all"
+                >
+                  {addToCart.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ShoppingCart className="h-4 w-4 shrink-0" />
+                  )}
+                  {addToCart.isPending ? "Adding..." : "Add to Cart"}
+                </Button>
               </div>
 
-            </div>
-
-            {/* AI Summary Section (Clean Inline Highlight) */}
-            <div className="p-5 lg:p-6 bg-slate-50/60 space-y-2">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-900">
-                <Sparkles className="h-4 w-4 text-indigo-600 shrink-0" />
-                <span>AI Item Summary</span>
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                {product.description || "High-performance item verified for material quality, structural durability, and standard seller specifications."}
-              </p>
             </div>
 
             {/* Navigation Tabs & Details Container */}
@@ -400,7 +417,7 @@ export function ProductDetailView({
 
               {/* Tabs */}
               <div className="flex border-b border-slate-200 text-sm font-semibold overflow-x-auto scrollbar-none">
-                {(["description", "specs", "store", "reviews"] as const).map((tab) => (
+                {(["overview", "store", "reviews"] as const).map((tab) => (
                   <button
                     key={tab}
                     type="button"
@@ -429,19 +446,16 @@ export function ProductDetailView({
               {/* Tab Content */}
               <div className="text-sm text-slate-700 leading-relaxed">
 
-                {/* Description */}
-                {activeTab === "description" && (
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Product Description</h3>
-                    <p className="whitespace-pre-line text-xs sm:text-sm text-slate-600 leading-relaxed">
-                      {product.description || "No detailed description provided by the merchant."}
-                    </p>
-                  </div>
-                )}
-
-                {/* Alibaba/Walmart Technical Specifications Table */}
-                {activeTab === "specs" && (
-                  <div className="border border-slate-200 rounded-md overflow-hidden divide-y divide-slate-200 text-xs sm:text-sm">
+                {/* Description and product information */}
+                {activeTab === "overview" && (
+                  <div className="space-y-5">
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Product Description</h3>
+                      <p className="whitespace-pre-line text-xs sm:text-sm text-slate-600 leading-relaxed">
+                        {product.description || "No detailed description provided by the merchant."}
+                      </p>
+                    </div>
+                    <div className="border border-slate-200 rounded-md overflow-hidden divide-y divide-slate-200 text-xs sm:text-sm">
                     <div className="grid grid-cols-3 p-3 bg-slate-50">
                       <span className="font-semibold text-slate-500">Product SKU</span>
                       <span className="col-span-2 font-mono text-slate-900">{product.id}</span>
@@ -457,6 +471,7 @@ export function ProductDetailView({
                     <div className="grid grid-cols-3 p-3 bg-white">
                       <span className="font-semibold text-slate-500">Seller Handle</span>
                       <span className="col-span-2 font-mono text-slate-900">@{sellerSlug}</span>
+                    </div>
                     </div>
                   </div>
                 )}

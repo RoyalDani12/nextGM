@@ -1,5 +1,27 @@
 import { prisma } from "../../config/db.js";
 
+const adminReturnInclude = {
+    items: {
+        include: {
+            orderItem: {
+                include: {
+                    product: { select: { name: true, images: { where: { isPrimary: true }, select: { url: true }, take: 1 } } },
+                    variant: { select: { name: true } },
+                },
+            },
+        },
+    },
+    statusHistory: { orderBy: { createdAt: "asc" as const } },
+    order: {
+        select: {
+            id: true,
+            totalAmount: true,
+            customer: { select: { name: true, email: true } },
+            shop: { select: { id: true, slug: true, profile: { select: { name: true } } } },
+        },
+    },
+} as const;
+
 // ─────────────────────────────────────────────
 // PLATFORM STATS
 // ─────────────────────────────────────────────
@@ -191,6 +213,7 @@ export const listShipmentsAdmin = async (filters: { status?: string; search?: st
             { shipment: { trackingNumber: { contains: search, mode: "insensitive" } } },
         ] } : {}),
     };
+
     const [shipments, total, pending, shipped, delivered] = await Promise.all([
         prisma.order.findMany({ where, skip, take: limit, orderBy: { createdAt: "desc" }, select: {
             id: true, status: true, createdAt: true, totalAmount: true,
@@ -205,6 +228,45 @@ export const listShipmentsAdmin = async (filters: { status?: string; search?: st
     ]);
     return { shipments, total, page, limit, totalPages: Math.ceil(total / limit), stats: { pending, shipped, delivered } };
 };
+
+export const listReturnsAdmin = async (filters: { status?: string; search?: string; page?: number; limit?: number }) => {
+    const { status, search, page = 1, limit = 20 } = filters;
+    const where: any = {
+        ...(status && status !== "ALL" ? { status } : {}),
+        ...(search ? {
+            OR: [
+                { id: { contains: search, mode: "insensitive" } },
+                { orderId: { contains: search, mode: "insensitive" } },
+                { order: { customer: { name: { contains: search, mode: "insensitive" } } } },
+                { order: { customer: { email: { contains: search, mode: "insensitive" } } } },
+            ],
+        } : {}),
+    };
+    const [returns, total, statusCounts] = await prisma.$transaction([
+        prisma.returnRequest.findMany({ where, include: adminReturnInclude, orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit }),
+        prisma.returnRequest.count({ where }),
+        prisma.returnRequest.groupBy({ by: ["status"], where, _count: { _all: true } }),
+    ]);
+    return {
+        returns,
+        pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+        statusCounts: Object.fromEntries(statusCounts.map((entry) => [entry.status, entry._count._all])),
+    };
+};
+
+export const getReturnAdmin = async (id: string) =>
+    prisma.returnRequest.findUnique({ where: { id }, include: adminReturnInclude });
+
+export const setReturnRefundPendingAdmin = async (id: string) =>
+    prisma.$transaction(async (tx) => {
+        const request = await tx.returnRequest.findUnique({ where: { id }, select: { status: true } });
+        if (!request) return null;
+        if (request.status !== "ITEM_RECEIVED") throw new Error("Return must be marked item received before refund.");
+        await tx.returnStatusHistory.create({
+            data: { returnRequestId: id, status: "REFUND_PENDING", note: "Refund approved by platform administrator." },
+        });
+        return tx.returnRequest.update({ where: { id }, data: { status: "REFUND_PENDING" }, include: adminReturnInclude });
+    });
 
 // ─────────────────────────────────────────────
 // REVIEWS
@@ -311,4 +373,3 @@ export const deleteReviewAdmin = async (id: string) => {
         where: { id },
     });
 };
-

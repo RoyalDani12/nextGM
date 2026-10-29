@@ -11,6 +11,7 @@ import {
   Menu,
   ChevronRight,
   Receipt,
+  RotateCcw,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -133,7 +134,7 @@ export const MarketplaceMobileMenu = ({
               </div>
 
               {/* Quick Actions Row: Notifications & Wishlist & Orders */}
-              <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200/50">
+              <div className="grid grid-cols-4 gap-2 pt-1 border-t border-slate-200/50">
                 {/* Notifications */}
                 <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-white border border-slate-200/80 shadow-2xs hover:bg-slate-50 transition-colors">
                   <NotificationDropdown
@@ -178,6 +179,20 @@ export const MarketplaceMobileMenu = ({
                     <Receipt className="size-4.5 text-blue-600" />
                   </div>
                   <span className="text-[10px] font-bold text-slate-600 mt-1">Orders</span>
+                </button>
+
+                <button
+                  onClick={() => goTo("/returns")}
+                  className={`flex flex-col items-center justify-center p-2 rounded-xl bg-white border shadow-2xs transition-colors cursor-pointer ${
+                    isActive("/returns")
+                      ? "border-orange-200 bg-orange-50/50 text-orange-600"
+                      : "border-slate-200/80 text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  <div className="size-7 flex items-center justify-center">
+                    <RotateCcw className="size-4.5 text-orange-500" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-600 mt-1">Returns</span>
                 </button>
               </div>
             </div>

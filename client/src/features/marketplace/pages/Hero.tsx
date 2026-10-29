@@ -22,10 +22,18 @@ export default function Hero() {
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [view, setView] = useState<"grid" | "list">("grid");
   const { data: categories = [] } = useMarketplaceCategories();
-  const { data: result, isLoading, isError } = useMarketplaceProducts({ ...filters, search });
-  const products = (result?.products || []) as MarketplaceProduct[];
-  const total = result?.pagination?.total || 0;
-  const breadcrumb = result?.categoryBreadcrumb || [];
+  const {
+    data,
+    isLoading,
+    isError,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useMarketplaceProducts({ ...filters, search });
+  const products = (data?.pages.flatMap((page) => page.products) || []) as MarketplaceProduct[];
+  const firstPage = data?.pages[0];
+  const total = firstPage?.pagination?.total || 0;
+  const breadcrumb = firstPage?.categoryBreadcrumb || [];
 
   useEffect(() => {
     const slug = params.get("categorySlug") || undefined;
@@ -126,6 +134,19 @@ export default function Hero() {
         <div className="mt-5 flex flex-wrap gap-2 lg:hidden"><button onClick={() => changeFilters({ ...filters, type: filters.type === "PHYSICAL" ? undefined : "PHYSICAL" })} className={`rounded-full px-3 py-1.5 text-xs font-bold ${filters.type === "PHYSICAL" ? "bg-slate-950 text-white" : "bg-white border"}`}>Physical</button><button onClick={() => changeFilters({ ...filters, type: filters.type === "DIGITAL" ? undefined : "DIGITAL" })} className={`rounded-full px-3 py-1.5 text-xs font-bold ${filters.type === "DIGITAL" ? "bg-slate-950 text-white" : "bg-white border"}`}>Digital</button><button onClick={() => changeFilters({ ...filters, minRating: filters.minRating === 4 ? undefined : 4 })} className={`rounded-full px-3 py-1.5 text-xs font-bold ${filters.minRating === 4 ? "bg-slate-950 text-white" : "bg-white border"}`}><Star className="mr-1 inline size-3 fill-amber-400 text-amber-400"/>4★ & up</button><SlidersHorizontal className="ml-auto mt-1 size-4 text-slate-400"/></div>
         {isLoading && <div className="flex min-h-64 items-center justify-center gap-2 text-sm text-slate-500"><Loader2 className="size-5 animate-spin"/>Loading marketplace…</div>}{isError && <div className="mt-6 rounded-xl bg-rose-50 p-4 text-sm text-rose-700">Products could not be loaded. Please retry.</div>}{!isLoading && !isError && products.length === 0 && <div className="mt-6 flex min-h-64 flex-col items-center justify-center text-slate-500"><PackageOpen className="size-10"/><p className="mt-3 font-semibold">No products match these filters.</p><button onClick={reset} className="mt-2 text-sm font-bold text-orange-600">Clear all filters</button></div>}
         {!isLoading && !isError && products.length > 0 && (view === "grid" ? <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 xl:grid-cols-4">{products.map((product) => <DealCard key={product.id} id={product.id} image={product.images?.[0]?.url} name={product.name} seller={product.shop?.profile?.name || product.shop?.slug} price={product.basePrice} promotion={product.promotion} type={product.type} onSelect={setSelectedProductId}/>)}</div> : <div className="mt-6 space-y-3">{products.map((product) => <button key={product.id} onClick={() => setSelectedProductId(product.id)} className="flex w-full gap-4 rounded-xl border bg-white p-3 text-left hover:border-orange-300"><img src={product.images?.[0]?.url} className="size-24 rounded-lg bg-slate-100 object-cover"/><span className="min-w-0 flex-1"><span className="block truncate font-bold">{product.name}</span><span className="mt-1 block text-sm text-slate-500">{product.shop?.profile?.name || product.shop?.slug}</span><span className="mt-2 flex items-center gap-1 text-xs text-amber-500"><Star className="size-3 fill-current"/>{product.averageRating?.toFixed(1) || "New"} ({product.reviewCount || 0})</span></span><span className="font-black">${product.basePrice}</span></button>)}</div>)}
+        {!isLoading && !isError && hasNextPage && (
+          <div className="mt-8 flex justify-center">
+            <Button
+              type="button"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="min-w-44 rounded-xl bg-slate-950 px-6 py-3 text-sm font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isFetchingNextPage && <Loader2 className="mr-2 size-4 animate-spin" />}
+              {isFetchingNextPage ? "Loading products..." : "Load more products"}
+            </Button>
+          </div>
+        )}
       </div></div>
     </main><MobileFilterSheet categories={categories} filters={filters} total={total} onChange={changeFilters} onReset={reset}/><ProductDetailView productId={selectedProductId} isOpen={Boolean(selectedProductId)} onClose={() => setSelectedProductId(null)}/>
   </div>;

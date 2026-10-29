@@ -139,6 +139,34 @@
 }
 
 @layer utilities {
+  .admin-dashboard h1 {
+    @apply text-3xl font-bold tracking-tight text-slate-900;
+  }
+  .admin-dashboard main > div > div:first-child {
+    @apply rounded-2xl;
+  }
+  .admin-dashboard table {
+    @apply min-w-full;
+  }
+  .admin-dashboard table thead {
+    @apply bg-slate-50/80;
+  }
+  .admin-dashboard table thead th {
+    @apply px-6 py-4 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400;
+  }
+  .admin-dashboard table tbody tr {
+    @apply border-slate-100 transition-colors hover:bg-orange-50/30;
+  }
+  .admin-dashboard table tbody td {
+    @apply px-6 py-4 text-sm text-slate-600;
+  }
+  .admin-dashboard input,
+  .admin-dashboard select {
+    @apply rounded-xl border-slate-200 bg-white transition focus:border-orange-400 focus:ring-4 focus:ring-orange-500/10;
+  }
+  .admin-dashboard main > div > div > div[class*="bg-white"] {
+    @apply rounded-2xl border-slate-200/80 shadow-[0_10px_35px_rgba(15,23,42,0.04)];
+  }
   /* Seller workspace has explicit dark surfaces—not a global color inversion. */
   .dark .seller-dashboard .bg-white { background-color: #12151c; }
   .dark .seller-dashboard .bg-slate-50 { background-color: #171a21; }

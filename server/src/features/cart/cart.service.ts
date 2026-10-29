@@ -1,15 +1,16 @@
-import { totalmem } from "node:os";
 import { AppError } from "../../middleware/appError.js";
 import { findPublicProductById } from "../product/product.repository.js";
 import {
     deleteCartItem,
     findCartItemById,
     findVariantById,
+    findCartItemQuantity,
     getCartWithItems,
     getOrCreateCart,
     updateCartItemQuantity,
     upsertCartItem,
     clearCart,
+    mergeCartItems,
 } from "./cart.repository.js";
 
 interface AddToCartInput {
@@ -27,6 +28,14 @@ export const addToCartService = async (userId: string, body: AddToCartInput) => 
         throw new AppError("Product not found.", 404);
     }
 
+    if (product.variants.length > 0 && !variantId) {
+        throw new AppError("A product variant must be selected before adding this product to the cart.", 400);
+    }
+
+    const cart = await getOrCreateCart(userId);
+    const existingQuantity = await findCartItemQuantity(cart.id, productId, variantId);
+    const requestedQuantity = existingQuantity + quantity;
+
     if (variantId) {
         const variant = await findVariantById(variantId, productId);
 
@@ -34,16 +43,14 @@ export const addToCartService = async (userId: string, body: AddToCartInput) => 
             throw new AppError("Variant not found.", 404);
         }
 
-        if (variant.stock < quantity) {
-            throw new AppError(`Insufficient stock. Only ${variant.stock} available.`, 400);
+        if (variant.stock < requestedQuantity) {
+            throw new AppError(`Insufficient stock. You already have ${existingQuantity} in your cart and only ${variant.stock} are available.`, 400);
         }
     } else {
-        if (product.stock < quantity) {
-            throw new AppError(`Insufficient stock. Only ${product.stock} available.`, 400);
+        if (product.stock < requestedQuantity) {
+            throw new AppError(`Insufficient stock. You already have ${existingQuantity} in your cart and only ${product.stock} are available.`, 400);
         }
     }
-
-    const cart = await getOrCreateCart(userId);
 
     const cartItem = await upsertCartItem(cart.id, productId, quantity, variantId);
 
@@ -77,8 +84,11 @@ export const getCartService = async (userId: string) => {
         const shopName = item.product.shop.profile?.name ?? "Unknown shop";
 
         // skip unavaliable items ( product archived or shop closed)
+        const availableStock = item.variant?.stock ?? item.product.stock;
         const isAvailable =
-            item.product.status === "ACTIVE" && item.product.shop.status === "ACTIVE";
+            item.product.status === "ACTIVE" &&
+            item.product.shop.status === "ACTIVE" &&
+            availableStock >= item.quantity;
 
         if (!shopMap[shopSlug]) {
             shopMap[shopSlug] = {
@@ -163,4 +173,43 @@ export const clearCartService = async (userId: string) => {
     return {
         message: `Cart Cleard. ${result.count} items(s) removed.`,
     };
+};
+
+export const mergeCartService = async (
+    userId: string,
+    items: AddToCartInput[],
+) => {
+    const cart = await getOrCreateCart(userId);
+
+    const requestedByKey = new Map<string, number>();
+    for (const item of items) {
+        const key = `${item.productId}:${item.variantId ?? "standard"}`;
+        requestedByKey.set(key, (requestedByKey.get(key) ?? 0) + item.quantity);
+    }
+
+    for (const item of items) {
+        const product = await findPublicProductById(item.productId);
+        if (!product) throw new AppError("One or more cart products are no longer available.", 400);
+        if (product.variants.length > 0 && !item.variantId) {
+            throw new AppError(`Select a variant for ${product.name} before adding it to your cart.`, 400);
+        }
+
+        if (item.variantId) {
+            const variant = await findVariantById(item.variantId, item.productId);
+            if (!variant) throw new AppError("One or more cart variants are no longer available.", 400);
+            const existing = await findCartItemQuantity(cart.id, item.productId, item.variantId);
+            const requested = requestedByKey.get(`${item.productId}:${item.variantId}`) ?? item.quantity;
+            if (variant.stock < existing + requested) {
+                throw new AppError(`Insufficient stock for ${product.name}.`, 400);
+            }
+        } else {
+            const existing = await findCartItemQuantity(cart.id, item.productId);
+            const requested = requestedByKey.get(`${item.productId}:standard`) ?? item.quantity;
+            if (product.stock < existing + requested) {
+                throw new AppError(`Insufficient stock for ${product.name}.`, 400);
+            }
+        }
+    }
+
+    return mergeCartItems(cart.id, items);
 };

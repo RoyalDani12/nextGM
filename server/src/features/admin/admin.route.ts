@@ -14,6 +14,9 @@ import {
     toggleReviewVisibilityController,
     deleteReviewAdminController,
     listShipmentsController,
+    listReturnsController,
+    getReturnController,
+    refundReturnController,
 } from "./admin.controller.js";
 
 const router = express.Router();
@@ -41,6 +44,8 @@ router.patch("/reviews/:id/visibility", toggleReviewVisibilityController);
 router.delete("/reviews/:id", deleteReviewAdminController);
 
 router.get("/shipments", listShipmentsController);
+router.get("/returns", listReturnsController);
+router.get("/returns/:id", getReturnController);
+router.post("/returns/:id/refund", refundReturnController);
 
 export default router;
-

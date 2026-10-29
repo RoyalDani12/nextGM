@@ -39,8 +39,9 @@ export interface UpdateProfilePayload {
 }
 
 export interface ChangePasswordPayload {
-    currentPassword: string;
+    oldPassword: string;
     newPassword: string;
+    confirmPassword: string;
 }
 
 export interface DeactivatePayload {
