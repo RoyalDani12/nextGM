@@ -49,6 +49,27 @@ router.get(
     }),
 );
 
+router.get(
+    "/products/:productId/reviews/my",
+    authenticate,
+    validate(productParams),
+    asyncHandler(async (req, res) => {
+        const userId = req.user!.id;
+        const productId = req.params.productId as string;
+        const review = await prisma.review.findUnique({
+            where: { productId_userId: { productId, userId } },
+            select: {
+                id: true,
+                rating: true,
+                comment: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+        });
+        res.json({ success: true, data: review });
+    }),
+);
+
 router.post(
     "/products/:productId/reviews",
     authenticate,
