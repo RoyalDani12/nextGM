@@ -26,6 +26,7 @@ import {
   XCircle,
   AlertTriangle,
   RotateCcw,
+  Star,
 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import {
@@ -38,6 +39,8 @@ import {
 } from "@/components/ui/dialog";
 import { ReturnRequestDialog } from "@/features/returns/ReturnRequestDialog";
 import { useCancelReturnRequest, useCustomerReturns } from "@/features/returns/return.hooks";
+import { WriteReviewDialog } from "./components/WriteReviewDialog";
+import { OrderInvoiceModal } from "./components/OrderInvoiceModal";
 
 const orderSteps = [
   { key: "PLACED", label: "Order Placed", icon: ShoppingBag, statuses: ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"] },
@@ -62,6 +65,8 @@ export default function CustomerOrderDetailPage() {
   const cancelOrder = useCancelCustomerOrder();
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [isReturnDialogOpen, setIsReturnDialogOpen] = useState(false);
+  const [reviewProduct, setReviewProduct] = useState<{ id: string; name: string; image?: string | null } | null>(null);
+  const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
   const { data: customerReturns = [] } = useCustomerReturns();
   const cancelReturn = useCancelReturnRequest();
 
@@ -223,7 +228,7 @@ export default function CustomerOrderDetailPage() {
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => window.print()}
+                onClick={() => setIsInvoiceOpen(true)}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-xs"
               >
                 <Printer className="size-3.5" /> Print Receipt
@@ -394,6 +399,19 @@ export default function CustomerOrderDetailPage() {
                         <p className="font-bold text-sm text-slate-900">
                           ${(Number(item.unitPrice) * item.quantity).toFixed(2)}
                         </p>
+                        {order.status === "DELIVERED" && product?.id && (
+                          <button
+                            type="button"
+                            onClick={() => setReviewProduct({
+                              id: product.id,
+                              name: product.name || "Product",
+                              image: imageUrl ?? null,
+                            })}
+                            className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-amber-600 hover:text-amber-700 transition-colors"
+                          >
+                            <Star className="size-3.5 fill-amber-400 text-amber-400" /> Rate this product
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -670,6 +688,21 @@ export default function CustomerOrderDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <WriteReviewDialog
+        productId={reviewProduct?.id || ""}
+        productName={reviewProduct?.name || ""}
+        productImage={reviewProduct?.image}
+        isOpen={!!reviewProduct}
+        onClose={() => setReviewProduct(null)}
+      />
+
+      <OrderInvoiceModal
+        order={order}
+        shopProfile={shopProfile}
+        isOpen={isInvoiceOpen}
+        onClose={() => setIsInvoiceOpen(false)}
+      />
     </div>
   );
 }
