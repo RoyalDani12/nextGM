@@ -138,26 +138,31 @@ export default function ContactSupportPage() {
               </div>
 
               {submittedTicket ? (
-                <div className="space-y-5 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-6 text-center">
-                  <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-100">
-                    <CheckCircle2 className="size-7 text-emerald-600" />
+                <div className="space-y-5 rounded-3xl border border-emerald-200 bg-emerald-50/70 p-7 text-center">
+                  <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+                    <CheckCircle2 className="size-7" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-slate-900">Ticket Submitted Successfully!</h3>
-                    <p className="mt-1 text-sm text-slate-600">
-                      Your ticket reference number is{" "}
-                      <span className="font-mono font-black text-orange-600">{submittedTicket.ticketNumber}</span>.
-                      Our team has received your request and will follow up promptly.
+                    <h3 className="text-xl font-black text-slate-900">Request Sent & Confirmation Emailed!</h3>
+                    <p className="mt-2 text-sm text-slate-600 max-w-md mx-auto">
+                      Your ticket reference is{" "}
+                      <span className="font-mono font-black text-orange-600">#{submittedTicket.ticketNumber}</span>.
+                      We have sent an instant receipt to your email inbox. Our specialists will review your issue and reply directly to your email.
                     </p>
+                    <div className="mt-4 inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-xs font-semibold text-emerald-800 shadow-xs">
+                      <span>📬 You can safely close this page — all replies will arrive in your email inbox!</span>
+                    </div>
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setSubmittedTicket(null)}
-                    className="rounded-xl border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-                  >
-                    Submit Another Ticket
-                  </Button>
+                  <div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setSubmittedTicket(null)}
+                      className="rounded-xl border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                    >
+                      Submit Another Ticket
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
@@ -179,6 +184,7 @@ export default function ContactSupportPage() {
                       <div>
                         <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">
                           Email Address <span className="text-rose-500">*</span>
+                          <span className="text-[10px] lowercase text-slate-400 font-normal ml-1">(where our reply will be sent)</span>
                         </label>
                         <Input
                           type="email"
@@ -194,7 +200,7 @@ export default function ContactSupportPage() {
                     <div className="flex items-center gap-2.5 rounded-xl border border-emerald-100 bg-emerald-50 px-3.5 py-2.5">
                       <ShieldCheck className="size-4 text-emerald-600 shrink-0" />
                       <p className="text-xs text-emerald-700 font-medium">
-                        Submitting as <span className="font-bold">{user.name || user.email}</span>. This ticket will automatically be linked to your account.
+                        Submitting as <span className="font-bold">{user.name || user.email}</span>. Responses will be delivered directly to <span className="font-bold underline">{user.email}</span>.
                       </p>
                     </div>
                   )}
@@ -348,6 +354,17 @@ export default function ContactSupportPage() {
 
           {/* Sidebar (Right) */}
           <div className="mt-10 lg:mt-0 lg:w-80 space-y-6">
+            {/* Email-First Communication Banner */}
+            <div className="rounded-3xl border border-orange-200 bg-orange-50/70 p-6 shadow-xs">
+              <div className="flex items-center gap-2 mb-2 text-orange-950">
+                <Mail className="size-4 text-orange-600" />
+                <h3 className="text-xs font-black uppercase tracking-wider">Direct Email Communication</h3>
+              </div>
+              <p className="text-xs text-orange-900/90 leading-relaxed">
+                Just like Amazon and eBay, you don't have to wait on this page. All receipts, updates, and replies from our specialists will be sent directly to your email inbox.
+              </p>
+            </div>
+
             {/* Direct Channels */}
             <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm">
               <h3 className="mb-4 text-sm font-black text-slate-900">Alternative Support Channels</h3>

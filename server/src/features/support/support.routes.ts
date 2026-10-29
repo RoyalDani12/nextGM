@@ -6,6 +6,11 @@ import { asyncHandler } from "../../utils/asyncHandler.js";
 import { AppError } from "../../middleware/appError.js";
 import { verifyAccessToken } from "../auth/token.service.js";
 import { notifyUser } from "../notification/notification.service.js";
+import {
+  sendTicketCreatedEmail,
+  sendTicketStaffReplyEmail,
+  sendTicketResolvedEmail,
+} from "./support.email.js";
 
 const router = express.Router();
 
@@ -66,6 +71,7 @@ router.post(
     const { subject, category, message, guestName, guestEmail, priority } = parsed.data;
 
     let senderName = guestName;
+    let senderEmail = guestEmail;
     if (userId) {
       const user = await prisma.user.findUnique({
         where: { id: userId },
@@ -73,6 +79,7 @@ router.post(
       });
       if (user) {
         senderName = user.name || user.email;
+        senderEmail = user.email;
       } else {
         userId = undefined;
       }
@@ -106,6 +113,18 @@ router.post(
         messages: true,
       },
     });
+
+    // Send confirmation email directly to the customer's inbox
+    if (senderEmail) {
+      sendTicketCreatedEmail({
+        to: senderEmail,
+        name: senderName || "Customer",
+        ticketNumber: ticket.ticketNumber,
+        subject: ticket.subject,
+        category: ticket.category,
+        message,
+      }).catch((err) => console.error("Ticket confirmation email delivery failed:", err));
+    }
 
     res.status(201).json({
       success: true,
@@ -320,12 +339,30 @@ router.patch(
       data,
       select: {
         id: true,
+        ticketNumber: true,
+        subject: true,
         status: true,
         priority: true,
         resolvedAt: true,
         assignedToId: true,
+        guestEmail: true,
+        guestName: true,
+        user: { select: { email: true, name: true } },
       },
     });
+
+    if (status === "RESOLVED") {
+      const recipientEmail = ticket.user?.email || ticket.guestEmail;
+      const recipientName = ticket.user?.name || ticket.guestName || "Customer";
+      if (recipientEmail) {
+        sendTicketResolvedEmail({
+          to: recipientEmail,
+          name: recipientName,
+          ticketNumber: ticket.ticketNumber,
+          subject: ticket.subject,
+        }).catch((err) => console.error("Ticket resolved email error:", err));
+      }
+    }
 
     res.json({ success: true, data: ticket });
   })
@@ -345,7 +382,16 @@ router.post(
 
     const ticket = await prisma.supportTicket.findUnique({
       where: { id: req.params.ticketId as string },
-      select: { id: true, status: true, userId: true, subject: true },
+      select: {
+        id: true,
+        status: true,
+        userId: true,
+        subject: true,
+        ticketNumber: true,
+        guestEmail: true,
+        guestName: true,
+        user: { select: { email: true, name: true } },
+      },
     });
 
     if (!ticket) throw new AppError("Ticket not found.", 404);
@@ -371,13 +417,27 @@ router.post(
       },
     });
 
+    // Send the reply directly to the customer's email inbox
+    const recipientEmail = ticket.user?.email || ticket.guestEmail;
+    const recipientName = ticket.user?.name || ticket.guestName || "Customer";
+    if (recipientEmail) {
+      sendTicketStaffReplyEmail({
+        to: recipientEmail,
+        name: recipientName,
+        ticketNumber: ticket.ticketNumber,
+        subject: ticket.subject,
+        staffReply: message.trim(),
+        staffName: adminName,
+      }).catch((err) => console.error("Staff reply email dispatch error:", err));
+    }
+
     if (ticket.userId) {
       try {
         await notifyUser({
           userId: ticket.userId,
           type: "RETURN_UPDATED",
           title: "Support team replied to your ticket 💬",
-          body: `We've responded to your ticket: "${ticket.subject}". Check your support tickets for details.`,
+          body: `We've responded to your ticket: "${ticket.subject}". Check your email or support tickets for details.`,
         });
       } catch (err) {
         console.error("Failed to notify user of support reply:", err);
