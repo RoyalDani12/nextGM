@@ -243,3 +243,576 @@
 @keyframes carouselFadeUp { from { opacity: 0; transform: translate3d(-18px, 8px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
 @keyframes carouselCardsIn { from { opacity: 0; transform: translate3d(28px, 0, 0) scale(.97); } to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
 @media (prefers-reduced-motion: reduce) { .carousel-enter, .carousel-products { animation: none; } }
+
+
+/* ═══════════════════════════════════════════════════════
+   NEXIONS GLOBAL DESIGN SYSTEM
+   Premium ecommerce + admin control center
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Typography Scale ─────────────────────────────────── */
+@layer base {
+  :root {
+    --ds-text-xs: 0.6875rem;   /* 11px */
+    --ds-text-sm: 0.8125rem;   /* 13px */
+    --ds-text-base: 0.9375rem; /* 15px */
+    --ds-text-lg: 1.0625rem;   /* 17px */
+    --ds-text-xl: 1.25rem;
+    --ds-text-2xl: 1.5rem;
+    --ds-text-3xl: 1.875rem;
+    --ds-text-4xl: 2.25rem;
+    --ds-lh-tight: 1.2;
+    --ds-lh-snug: 1.375;
+    --ds-lh-normal: 1.5;
+    --ds-lh-relaxed: 1.625;
+    --ds-ls-tight: -0.025em;
+    --ds-ls-normal: -0.015em;
+    --ds-ls-wide: 0.05em;
+    --ds-ls-wider: 0.1em;
+  }
+
+  /* Smooth scrolling platform-wide */
+  html { scroll-behavior: smooth; }
+
+  /* Prevent layout shift on scrollbar appear */
+  html { scrollbar-gutter: stable; }
+
+  /* Global antialiasing */
+  body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+
+  /* Remove default tap highlight on mobile */
+  * { -webkit-tap-highlight-color: transparent; }
+}
+
+/* ── Elevation System ─────────────────────────────────── */
+@layer utilities {
+  .ds-shadow-xs  { box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.04); }
+  .ds-shadow-sm  { box-shadow: 0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.04); }
+  .ds-shadow-md  { box-shadow: 0 4px 12px 0 rgb(15 23 42 / 0.07), 0 2px 6px -1px rgb(15 23 42 / 0.05); }
+  .ds-shadow-lg  { box-shadow: 0 10px 28px -4px rgb(15 23 42 / 0.10), 0 4px 10px -3px rgb(15 23 42 / 0.06); }
+  .ds-shadow-xl  { box-shadow: 0 20px 48px -8px rgb(15 23 42 / 0.14), 0 8px 18px -6px rgb(15 23 42 / 0.08); }
+  .ds-shadow-2xl { box-shadow: 0 32px 64px -12px rgb(15 23 42 / 0.20), 0 12px 28px -8px rgb(15 23 42 / 0.12); }
+  .ds-shadow-inset { box-shadow: inset 0 1px 3px 0 rgb(15 23 42 / 0.07); }
+  /* Colored glows */
+  .ds-shadow-orange { box-shadow: 0 8px 24px -4px rgb(249 115 22 / 0.28), 0 2px 6px -2px rgb(249 115 22 / 0.18); }
+  .ds-shadow-orange-sm { box-shadow: 0 2px 8px 0 rgb(249 115 22 / 0.22); }
+  .ds-shadow-green { box-shadow: 0 4px 14px -3px rgb(34 197 94 / 0.25); }
+  .ds-shadow-red  { box-shadow: 0 4px 14px -3px rgb(239 68 68 / 0.22); }
+}
+
+/* ── Card System ──────────────────────────────────────── */
+@layer utilities {
+  /* Base card — white surface, subtle border + shadow */
+  .ds-card {
+    @apply bg-white border border-slate-200/80 rounded-2xl;
+    box-shadow: 0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.04);
+    transition: box-shadow 200ms ease-out, transform 200ms ease-out;
+  }
+  .ds-card:hover {
+    box-shadow: 0 6px 18px -3px rgb(15 23 42 / 0.10), 0 2px 6px -2px rgb(15 23 42 / 0.06);
+  }
+
+  /* Elevated card — for KPI / stat panels */
+  .ds-card-elevated {
+    @apply bg-white border border-slate-200/60 rounded-2xl;
+    box-shadow: 0 4px 12px 0 rgb(15 23 42 / 0.07), 0 2px 6px -1px rgb(15 23 42 / 0.05);
+  }
+
+  /* Glass card — frosted surface */
+  .ds-card-glass {
+    @apply border border-white/60 rounded-2xl;
+    background: rgba(255,255,255,0.82);
+    backdrop-filter: blur(14px) saturate(180%);
+    box-shadow: 0 4px 20px 0 rgb(15 23 42 / 0.08), inset 0 1px 0 rgb(255 255 255 / 0.8);
+  }
+
+  /* Interactive card — has click action */
+  .ds-card-interactive {
+    @apply bg-white border border-slate-200/80 rounded-2xl cursor-pointer select-none;
+    box-shadow: 0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.04);
+    transition: box-shadow 200ms ease-out, transform 200ms ease-out;
+  }
+  .ds-card-interactive:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 22px -4px rgb(15 23 42 / 0.12), 0 3px 8px -3px rgb(15 23 42 / 0.07);
+  }
+  .ds-card-interactive:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px -1px rgb(15 23 42 / 0.08);
+    transition-duration: 80ms;
+  }
+}
+
+/* ── Button System ────────────────────────────────────── */
+@layer utilities {
+  /* Primary orange CTA */
+  .ds-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white select-none cursor-pointer;
+    background: linear-gradient(135deg, #fb923c 0%, #f97316 50%, #ea580c 100%);
+    box-shadow: 0 2px 8px 0 rgb(249 115 22 / 0.28), 0 1px 2px 0 rgb(249 115 22 / 0.20);
+    transition: all 200ms ease-out;
+  }
+  .ds-btn-primary:hover {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 50%, #dc2626 100%);
+    box-shadow: 0 4px 14px 0 rgb(249 115 22 / 0.38), 0 2px 4px 0 rgb(249 115 22 / 0.24);
+    transform: translateY(-1px);
+  }
+  .ds-btn-primary:active { transform: translateY(0); transition-duration: 80ms; }
+  .ds-btn-primary:focus-visible { outline: 2px solid #f97316; outline-offset: 2px; }
+  .ds-btn-primary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+  /* Secondary ghost button */
+  .ds-btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-200 select-none cursor-pointer;
+    box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.06);
+    transition: all 200ms ease-out;
+  }
+  .ds-btn-secondary:hover {
+    @apply bg-slate-50 border-slate-300 text-slate-900;
+    box-shadow: 0 3px 8px -1px rgb(15 23 42 / 0.10);
+    transform: translateY(-1px);
+  }
+  .ds-btn-secondary:active { transform: translateY(0); transition-duration: 80ms; }
+  .ds-btn-secondary:focus-visible { outline: 2px solid #f97316; outline-offset: 2px; }
+
+  /* Destructive / danger button */
+  .ds-btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white select-none cursor-pointer;
+    background: linear-gradient(135deg, #f87171 0%, #ef4444 50%, #dc2626 100%);
+    box-shadow: 0 2px 8px 0 rgb(239 68 68 / 0.25);
+    transition: all 200ms ease-out;
+  }
+  .ds-btn-danger:hover {
+    box-shadow: 0 4px 14px 0 rgb(239 68 68 / 0.35);
+    transform: translateY(-1px);
+  }
+  .ds-btn-danger:active { transform: translateY(0); }
+  .ds-btn-danger:focus-visible { outline: 2px solid #ef4444; outline-offset: 2px; }
+
+  /* Icon button — circular ghost */
+  .ds-btn-icon {
+    @apply inline-flex items-center justify-center rounded-xl p-2 text-slate-500 cursor-pointer select-none;
+    transition: all 200ms ease-out;
+  }
+  .ds-btn-icon:hover { @apply bg-slate-100 text-slate-900; }
+  .ds-btn-icon:active { @apply bg-slate-200; transition-duration: 80ms; }
+  .ds-btn-icon:focus-visible { outline: 2px solid #f97316; outline-offset: 2px; }
+}
+
+/* ── Input System ─────────────────────────────────────── */
+@layer utilities {
+  .ds-input {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400;
+    box-shadow: inset 0 1px 3px 0 rgb(15 23 42 / 0.05);
+    transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+    outline: none;
+  }
+  .ds-input:hover { @apply border-slate-300; }
+  .ds-input:focus {
+    @apply border-orange-400;
+    box-shadow: 0 0 0 3px rgb(249 115 22 / 0.12), inset 0 1px 2px 0 rgb(15 23 42 / 0.03);
+  }
+  .ds-input:disabled { @apply bg-slate-50 text-slate-400 cursor-not-allowed; }
+
+  .ds-select {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 appearance-none cursor-pointer pr-10;
+    box-shadow: inset 0 1px 3px 0 rgb(15 23 42 / 0.05);
+    transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+    outline: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2394a3b8'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+  }
+}
+
+/* ── Badge / Chip System ──────────────────────────────── */
+@layer utilities {
+  .ds-badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold;
+  }
+  .ds-badge-orange  { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-orange-50 text-orange-700 ring-1 ring-orange-200/60; }
+  .ds-badge-green   { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60; }
+  .ds-badge-red     { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-red-50 text-red-700 ring-1 ring-red-200/60; }
+  .ds-badge-yellow  { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-amber-50 text-amber-700 ring-1 ring-amber-200/60; }
+  .ds-badge-blue    { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-blue-50 text-blue-700 ring-1 ring-blue-200/60; }
+  .ds-badge-purple  { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-violet-50 text-violet-700 ring-1 ring-violet-200/60; }
+  .ds-badge-slate   { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-slate-100 text-slate-600 ring-1 ring-slate-200/60; }
+  /* Dot indicator for badges */
+  .ds-badge-dot::before {
+    content: '';
+    @apply inline-block size-1.5 rounded-full bg-current;
+    opacity: 0.7;
+  }
+}
+
+/* ── Table System ─────────────────────────────────────── */
+@layer utilities {
+  .ds-table { @apply w-full border-collapse; }
+  .ds-table thead { @apply bg-slate-50/80 border-b border-slate-100; }
+  .ds-table thead th {
+    @apply px-5 py-3.5 text-left text-[10.5px] font-black uppercase tracking-[0.12em] text-slate-400;
+    white-space: nowrap;
+  }
+  .ds-table tbody tr {
+    @apply border-b border-slate-50 transition-colors duration-150;
+  }
+  .ds-table tbody tr:last-child { @apply border-b-0; }
+  .ds-table tbody tr:hover { @apply bg-orange-50/20; }
+  .ds-table tbody td { @apply px-5 py-3.5 text-sm text-slate-700; }
+  .ds-table-sticky-header { position: sticky; top: 0; z-index: 10; }
+}
+
+/* ── Form Group System ────────────────────────────────── */
+@layer utilities {
+  .ds-form-group { @apply flex flex-col gap-1.5; }
+  .ds-label { @apply text-[12px] font-semibold text-slate-700 tracking-wide; }
+  .ds-hint  { @apply text-[11px] text-slate-400 leading-relaxed; }
+  .ds-error { @apply text-[11px] text-red-600 font-medium; }
+}
+
+/* ── Section / Page Header System ────────────────────── */
+@layer utilities {
+  .ds-page-header {
+    @apply mb-8 flex flex-col gap-1;
+  }
+  .ds-page-title {
+    @apply text-2xl font-black tracking-tight text-slate-900;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+  }
+  .ds-page-subtitle {
+    @apply text-sm font-medium text-slate-500;
+    line-height: 1.5;
+  }
+  .ds-section-label {
+    @apply text-[10.5px] font-black uppercase tracking-[0.14em] text-slate-400 mb-3;
+  }
+}
+
+/* ── Divider ──────────────────────────────────────────── */
+@layer utilities {
+  .ds-divider { @apply border-0 border-t border-slate-100 my-6; }
+  .ds-divider-subtle { @apply border-0 border-t border-slate-50 my-4; }
+}
+
+/* ── Status Indicators ────────────────────────────────── */
+@layer utilities {
+  .ds-status-dot {
+    @apply inline-block size-2 rounded-full flex-shrink-0;
+  }
+  .ds-status-dot-green  { @apply inline-block size-2 rounded-full flex-shrink-0 bg-emerald-500; box-shadow: 0 0 0 3px rgb(16 185 129 / 0.15); }
+  .ds-status-dot-orange { @apply inline-block size-2 rounded-full flex-shrink-0 bg-orange-500; box-shadow: 0 0 0 3px rgb(249 115 22 / 0.15); }
+  .ds-status-dot-red    { @apply inline-block size-2 rounded-full flex-shrink-0 bg-red-500; box-shadow: 0 0 0 3px rgb(239 68 68 / 0.15); }
+  .ds-status-dot-yellow { @apply inline-block size-2 rounded-full flex-shrink-0 bg-amber-500; box-shadow: 0 0 0 3px rgb(245 158 11 / 0.15); }
+  .ds-status-dot-slate  { @apply inline-block size-2 rounded-full flex-shrink-0 bg-slate-400; }
+  /* Pulsing dot for "live" status */
+  .ds-status-dot-pulse  { animation: dsPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+  @keyframes dsPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.92); }
+  }
+}
+
+/* ── Skeleton Loading ─────────────────────────────────── */
+@layer utilities {
+  .ds-skeleton {
+    @apply rounded-lg bg-slate-100;
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: dsShimmer 1.6s ease-in-out infinite;
+  }
+  @keyframes dsShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ds-skeleton { animation: none; background: #f1f5f9; }
+  }
+}
+
+/* ── Modal / Dialog Backdrop ──────────────────────────── */
+@layer utilities {
+  .ds-backdrop {
+    @apply fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto;
+    animation: dsBackdropIn 180ms ease-out both;
+  }
+  @keyframes dsBackdropIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .ds-modal {
+    @apply relative bg-white rounded-3xl overflow-hidden my-auto;
+    box-shadow: 0 25px 60px -15px rgb(15 23 42 / 0.25), 0 0 0 1px rgb(15 23 42 / 0.05);
+    animation: dsModalIn 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes dsModalIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ds-backdrop { animation: none; }
+    .ds-modal { animation: none; }
+  }
+}
+
+/* ── Tooltip ──────────────────────────────────────────── */
+@layer utilities {
+  .ds-tooltip {
+    @apply absolute z-50 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-white pointer-events-none;
+    background: #0f172a;
+    box-shadow: 0 4px 12px rgb(15 23 42 / 0.25);
+    animation: dsTooltipIn 150ms ease-out both;
+  }
+  @keyframes dsTooltipIn {
+    from { opacity: 0; transform: translateY(3px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* ── Page Enter Animation ─────────────────────────────── */
+@layer utilities {
+  .ds-page-enter {
+    animation: dsPageEnter 280ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes dsPageEnter {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ds-page-enter { animation: none; }
+  }
+
+  /* Staggered children fade-in */
+  .ds-stagger-enter > * {
+    animation: dsStaggerIn 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .ds-stagger-enter > *:nth-child(1)  { animation-delay: 0ms; }
+  .ds-stagger-enter > *:nth-child(2)  { animation-delay: 50ms; }
+  .ds-stagger-enter > *:nth-child(3)  { animation-delay: 100ms; }
+  .ds-stagger-enter > *:nth-child(4)  { animation-delay: 150ms; }
+  .ds-stagger-enter > *:nth-child(5)  { animation-delay: 200ms; }
+  .ds-stagger-enter > *:nth-child(6)  { animation-delay: 250ms; }
+  @keyframes dsStaggerIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ds-stagger-enter > * { animation: none; }
+  }
+}
+
+/* ── Scroll Area ──────────────────────────────────────── */
+@layer utilities {
+  .ds-scroll { overflow-y: auto; scrollbar-width: thin; scrollbar-color: #e2e8f0 transparent; }
+  .ds-scroll::-webkit-scrollbar { width: 4px; }
+  .ds-scroll::-webkit-scrollbar-track { background: transparent; }
+  .ds-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 999px; }
+  .ds-scroll::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+}
+
+/* ── Sidebar Navigation Enhancement ──────────────────── */
+@layer utilities {
+  .ds-nav-item {
+    @apply relative flex items-center rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-400 cursor-pointer select-none;
+    transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .ds-nav-item:hover { 
+    @apply bg-slate-800/60 text-slate-100;
+    transform: translateX(2px);
+  }
+  .ds-nav-item.active {
+    @apply text-white font-semibold;
+    background: linear-gradient(90deg, rgba(249, 115, 22, 0.18) 0%, rgba(249, 115, 22, 0.06) 60%, transparent 100%);
+    border: 1px solid rgba(249, 115, 22, 0.30);
+    box-shadow: 0 2px 12px 0 rgba(249, 115, 22, 0.16);
+  }
+  .ds-nav-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 20px;
+    border-radius: 0 9999px 9999px 0;
+    background: linear-gradient(180deg, #fb923c 0%, #f97316 100%);
+    box-shadow: 0 0 10px rgba(249, 115, 22, 0.85);
+  }
+  .ds-nav-section-label {
+    @apply px-3 mb-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500;
+  }
+}
+
+/* ── KPI / Stat Card ──────────────────────────────────── */
+@layer utilities {
+  .ds-stat-card {
+    @apply bg-white border border-slate-200/60 rounded-2xl p-5 flex flex-col gap-3 cursor-default;
+    box-shadow: 0 4px 12px 0 rgb(15 23 42 / 0.07), 0 2px 6px -1px rgb(15 23 42 / 0.05);
+    transition: box-shadow 200ms ease-out, transform 200ms ease-out;
+  }
+  .ds-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px -4px rgb(15 23 42 / 0.12), 0 3px 8px -3px rgb(15 23 42 / 0.07);
+  }
+
+  .ds-stat-value {
+    @apply text-3xl font-black text-slate-900 tracking-tight;
+    letter-spacing: -0.03em;
+  }
+  .ds-stat-label { @apply text-[12px] font-semibold text-slate-500; }
+  .ds-stat-sub   { @apply text-[11px] text-slate-400 font-medium; }
+  .ds-stat-icon-wrapper {
+    @apply flex size-10 items-center justify-center rounded-xl flex-shrink-0;
+  }
+}
+
+/* ── Link Styles ──────────────────────────────────────── */
+@layer utilities {
+  .ds-link {
+    @apply text-orange-600 font-medium underline-offset-2 cursor-pointer;
+    transition: color 150ms ease-out;
+  }
+  .ds-link:hover { @apply text-orange-700 underline; }
+}
+
+/* ── Focus Ring Global Override ───────────────────────── */
+@layer base {
+  :focus-visible {
+    outline: 2px solid rgb(249 115 22 / 0.7);
+    outline-offset: 2px;
+    border-radius: 0.375rem;
+  }
+}
+
+/* ── Admin Dashboard Enhancements (scoped) ────────────── */
+@layer utilities {
+  .admin-dashboard .ds-stat-card:hover {
+    box-shadow: 0 4px 12px 0 rgb(15 23 42 / 0.07), 0 2px 6px -1px rgb(15 23 42 / 0.05);
+  }
+
+  /* Sticky sidebar with better transition */
+  .admin-sidebar-nav .ds-nav-item { @apply gap-3; }
+
+  /* Improved header pill */
+  .admin-header-status {
+    @apply flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-[11px] font-bold text-emerald-700;
+    border: 1px solid rgb(16 185 129 / 0.15);
+  }
+}
+
+/* ── Popover / Dropdown Enhancement ──────────────────── */
+@layer utilities {
+  .ds-popover {
+    @apply bg-white border border-slate-200/80 rounded-2xl overflow-hidden;
+    box-shadow: 0 12px 40px -8px rgb(15 23 42 / 0.18), 0 4px 12px -4px rgb(15 23 42 / 0.10), 0 0 0 1px rgb(15 23 42 / 0.03);
+    animation: dsPopoverIn 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes dsPopoverIn {
+    from { opacity: 0; transform: translateY(6px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ds-popover { animation: none; }
+  }
+
+  .ds-dropdown-item {
+    @apply flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-medium text-slate-700 cursor-pointer rounded-xl;
+    transition: background-color 150ms ease-out, color 150ms ease-out;
+  }
+  .ds-dropdown-item:hover { @apply bg-slate-50 text-slate-900; }
+  .ds-dropdown-item.active { @apply bg-orange-50 text-orange-700; }
+  .ds-dropdown-item.danger { @apply text-red-600; }
+  .ds-dropdown-item.danger:hover { @apply bg-red-50 text-red-700; }
+}
+
+/* ── Progress / Steps ─────────────────────────────────── */
+@layer utilities {
+  .ds-progress-track {
+    @apply w-full h-1.5 rounded-full bg-slate-100 overflow-hidden;
+  }
+  .ds-progress-fill {
+    @apply h-full rounded-full;
+    background: linear-gradient(90deg, #fb923c, #f97316);
+    transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+/* ── Toast / Alert Banners ────────────────────────────── */
+@layer utilities {
+  .ds-alert {
+    @apply flex items-start gap-3 rounded-xl border p-4 text-sm;
+  }
+  .ds-alert-info    { @apply flex items-start gap-3 rounded-xl border p-4 text-sm bg-blue-50 border-blue-200/60 text-blue-800; }
+  .ds-alert-success { @apply flex items-start gap-3 rounded-xl border p-4 text-sm bg-emerald-50 border-emerald-200/60 text-emerald-800; }
+  .ds-alert-warning { @apply flex items-start gap-3 rounded-xl border p-4 text-sm bg-amber-50 border-amber-200/60 text-amber-800; }
+  .ds-alert-danger  { @apply flex items-start gap-3 rounded-xl border p-4 text-sm bg-red-50 border-red-200/60 text-red-800; }
+}
+
+/* ── Responsive Utilities ─────────────────────────────── */
+@layer utilities {
+  /* Safe area for mobile notch */
+  .ds-safe-top    { padding-top: env(safe-area-inset-top); }
+  .ds-safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+  /* Touch friendly minimum tap targets */
+  .ds-touch-target { min-height: 44px; min-width: 44px; }
+}
+
+/* ── Auth Page Styles ─────────────────────────────────── */
+@layer utilities {
+  .ds-auth-shell {
+    @apply min-h-screen flex items-center justify-center relative overflow-hidden;
+    background: linear-gradient(145deg, #fff7f0 0%, #ffffff 40%, #f8faff 100%);
+  }
+  .ds-auth-card {
+    @apply w-full max-w-md bg-white rounded-3xl p-8 sm:p-10;
+    box-shadow: 0 20px 60px -12px rgb(15 23 42 / 0.16), 0 8px 20px -6px rgb(15 23 42 / 0.08), 0 0 0 1px rgb(15 23 42 / 0.04);
+  }
+  .ds-auth-orb-1 {
+    @apply absolute -top-40 -right-40 w-96 h-96 rounded-full opacity-60 pointer-events-none;
+    background: radial-gradient(circle, rgb(249 115 22 / 0.15) 0%, transparent 70%);
+    filter: blur(40px);
+  }
+  .ds-auth-orb-2 {
+    @apply absolute -bottom-40 -left-40 w-96 h-96 rounded-full opacity-40 pointer-events-none;
+    background: radial-gradient(circle, rgb(59 130 246 / 0.12) 0%, transparent 70%);
+    filter: blur(40px);
+  }
+}
+
+/* ── Marketplace / Shop Card Styles ───────────────────── */
+@layer utilities {
+  .ds-shop-card {
+    @apply bg-white border border-slate-200/80 rounded-2xl cursor-pointer select-none overflow-hidden;
+    box-shadow: 0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.04);
+    transition: all 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .ds-shop-card:hover { transform: translateY(-3px); }
+
+  .ds-product-card {
+    @apply bg-white border border-slate-100 rounded-2xl overflow-hidden;
+    transition: all 240ms cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 8px 0 rgb(15 23 42 / 0.05);
+  }
+  .ds-product-card:hover {
+    @apply border-slate-200;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 28px -6px rgb(15 23 42 / 0.12);
+  }
+}
+
+/* ── Smooth Global Transitions ────────────────────────── */
+@layer base {
+  /* Every interactive element transitions by default */
+  a, button, [role="button"] {
+    transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+    transition-duration: 180ms;
+    transition-timing-function: ease-out;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    a, button, [role="button"] {
+      transition: none;
+    }
+  }
+}

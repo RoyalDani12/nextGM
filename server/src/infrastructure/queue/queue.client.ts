@@ -4,24 +4,18 @@ import { redis } from "../cache/redis.client.js";
 export const emailQueue = new Queue("emails", {
     connection: redis,
     defaultJobOptions: {
-        // if the job fails retry up to 3 times
         attempts: 3,
         backoff: {
             type: "exponential",
             delay: 5000,
         },
-
-        // remove jobs after success
         removeOnComplete: true,
-
-        // keep failed jobs for 24 hash
         removeOnFail: {
             age: 24 * 60 * 60,
         },
     },
 });
-
-console.log("email Queue initialized");
+emailQueue.on("error", () => {});
 
 export const imageCleanupQueue = new Queue("image-cleanup", {
     connection: redis,
@@ -37,54 +31,50 @@ export const imageCleanupQueue = new Queue("image-cleanup", {
         },
     },
 });
+imageCleanupQueue.on("error", () => {});
 
-
-
-export const accountPurgeQueue= new Queue('accountPurgeQueue',
-    {
-        connection:redis,
-        defaultJobOptions:{
-            attempts:3,
-            backoff:{
-                type:"exponential",
-                delay:500,
-            },
-            removeOnComplete:true,
-            removeOnFail:false
-        }
-    }
-)
-
-export const orderExpirationQueue  = new Queue( "order-expiration",{
-    connection:redis,
-    defaultJobOptions:{
-        attempts:3,
-        backoff:{
-            type:"exponential",
-            delay:500,
+export const accountPurgeQueue = new Queue("accountPurgeQueue", {
+    connection: redis,
+    defaultJobOptions: {
+        attempts: 3,
+        backoff: {
+            type: "exponential",
+            delay: 500,
         },
-        removeOnComplete:true,
-        removeOnFail:{
-            age:24 * 60 * 60 *1000
-        }
-    }
+        removeOnComplete: true,
+        removeOnFail: false,
+    },
+});
+accountPurgeQueue.on("error", () => {});
 
-})
-console.log("order expiration queue initialized");
-
-export const notificationQueue = new Queue("notifications",{
-    connection:redis,
-    defaultJobOptions:{
-        attempts:3,
-        backoff:{
-            type:"exponential",
-            delay:5000,
+export const orderExpirationQueue = new Queue("order-expiration", {
+    connection: redis,
+    defaultJobOptions: {
+        attempts: 3,
+        backoff: {
+            type: "exponential",
+            delay: 500,
         },
-        removeOnComplete:true,
-        removeOnFail:{
-            age:24 * 60 * 60
-        }
-    }
-})
+        removeOnComplete: true,
+        removeOnFail: {
+            age: 24 * 60 * 60 * 1000,
+        },
+    },
+});
+orderExpirationQueue.on("error", () => {});
 
-console.log("Notification Queue Initialized.")
+export const notificationQueue = new Queue("notifications", {
+    connection: redis,
+    defaultJobOptions: {
+        attempts: 3,
+        backoff: {
+            type: "exponential",
+            delay: 5000,
+        },
+        removeOnComplete: true,
+        removeOnFail: {
+            age: 24 * 60 * 60,
+        },
+    },
+});
+notificationQueue.on("error", () => {});

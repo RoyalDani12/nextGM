@@ -110,7 +110,7 @@ export const listUsersAdmin = async (filters: {
                 role: true,
                 status: true,
                 createdAt: true,
-                profile: { select: { avatar: true } },
+                profile: { select: { avatar: true, phone: true } },
                 ownedShops: { select: { id: true, slug: true, status: true }, take: 1 },
             },
         }),
@@ -136,33 +136,212 @@ export const updateUserRoleAdmin = async (id: string, role: string) => {
     return prisma.user.update({ where: { id }, data: { role: role as any } });
 };
 
-export const updateUserStatusAdmin = async (id: string, status: string) => {
-    return prisma.user.update({ where: { id }, data: { status: status as any } });
+export const updateUserStatusAdmin = async (id: string, status: string, adminUserId?: string) => {
+    const existing = await prisma.user.findUnique({ where: { id }, select: { id: true, status: true, email: true } });
+    if (!existing) return null;
+
+    const updated = await prisma.user.update({ where: { id }, data: { status: status as any } });
+
+    if (status === "SUSPENDED" || status === "DEACTIVATED") {
+        await prisma.refreshToken.deleteMany({ where: { userId: id } });
+    }
+
+    if (adminUserId) {
+        await prisma.auditLog.create({
+            data: {
+                userId: adminUserId,
+                action: "UPDATE",
+                entity: "USER_STATUS",
+                entityId: id,
+                oldValue: { status: existing.status },
+                newValue: { status },
+            },
+        });
+    }
+
+    return updated;
+};
+
+export const updateUserProfileAdmin = async (
+    id: string,
+    data: { name?: string; email?: string; role?: string; phone?: string },
+    adminUserId?: string
+) => {
+    const existing = await prisma.user.findUnique({
+        where: { id },
+        include: { profile: true },
+    });
+    if (!existing) return null;
+
+    const userUpdateData: any = {};
+    if (data.name) userUpdateData.name = data.name;
+    if (data.email) userUpdateData.email = data.email.toLowerCase();
+    if (data.role) userUpdateData.role = data.role as any;
+
+    const updated = await prisma.user.update({
+        where: { id },
+        data: userUpdateData,
+        include: { profile: true },
+    });
+
+    if (data.phone !== undefined) {
+        await prisma.userProfile.upsert({
+            where: { userId: id },
+            create: { userId: id, phone: data.phone },
+            update: { phone: data.phone },
+        });
+    }
+
+    if (adminUserId) {
+        await prisma.auditLog.create({
+            data: {
+                userId: adminUserId,
+                action: "UPDATE",
+                entity: "USER_PROFILE",
+                entityId: id,
+                oldValue: { name: existing.name, email: existing.email, role: existing.role, phone: existing.profile?.phone },
+                newValue: data,
+            },
+        });
+    }
+
+    return prisma.user.findUnique({ where: { id }, include: { profile: true } });
+};
+
+export const resetUserPasswordAdmin = async (id: string, passwordHash: string, adminUserId?: string) => {
+    const updated = await prisma.user.update({
+        where: { id },
+        data: {
+            password: passwordHash,
+            passwordChangedAt: new Date(),
+        },
+        select: { id: true, email: true, name: true },
+    });
+
+    // Invalidate all active refresh tokens for security
+    await prisma.refreshToken.deleteMany({ where: { userId: id } });
+
+    if (adminUserId) {
+        await prisma.auditLog.create({
+            data: {
+                userId: adminUserId,
+                action: "UPDATE",
+                entity: "USER_PASSWORD_RESET",
+                entityId: id,
+                newValue: { resetByAdmin: true, timestamp: new Date() },
+            },
+        });
+    }
+
+    return updated;
+};
+
+export const bulkUpdateUsersStatusAdmin = async (userIds: string[], status: string, adminUserId?: string) => {
+    const res = await prisma.user.updateMany({
+        where: { id: { in: userIds } },
+        data: { status: status as any },
+    });
+
+    if (status === "SUSPENDED" || status === "DEACTIVATED") {
+        await prisma.refreshToken.deleteMany({ where: { userId: { in: userIds } } });
+    }
+
+    if (adminUserId) {
+        await prisma.auditLog.create({
+            data: {
+                userId: adminUserId,
+                action: "UPDATE",
+                entity: "USER_BULK_STATUS",
+                entityId: userIds.join(",").slice(0, 50),
+                newValue: { count: res.count, status, userIds },
+            },
+        });
+    }
+
+    return res;
+};
+
+export const getUsersByIdsAdmin = async (userIds: string[]) => {
+    return prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, name: true, email: true, status: true },
+    });
 };
 
 // ─────────────────────────────────────────────
-// SHOPS
+// SHOPS & VERIFICATION WORKFLOW
 // ─────────────────────────────────────────────
 export const listShopsAdmin = async (filters: {
     status?: string;
+    verificationStatus?: string;
+    riskLevel?: string;
+    tab?: "all" | "pending_queue" | "flagged";
     search?: string;
     page?: number;
     limit?: number;
 }) => {
-    const { status, search, page = 1, limit = 20 } = filters;
+    const { status, verificationStatus, riskLevel, tab = "all", search, page = 1, limit = 20 } = filters;
     const skip = (page - 1) * limit;
 
-    const where: any = {
-        ...(status && { status: status as any }),
-        ...(search && {
-            OR: [
-                { slug: { contains: search, mode: "insensitive" } },
-                { profile: { name: { contains: search, mode: "insensitive" } } },
-            ],
-        }),
-    };
+    const where: any = {};
 
-    const [shops, total] = await Promise.all([
+    if (status) {
+        where.status = status as any;
+    }
+
+    if (verificationStatus) {
+        where.legalInfo = {
+            ...(where.legalInfo || {}),
+            businessVerificationStatus: verificationStatus as any,
+        };
+    }
+
+    if (riskLevel) {
+        where.riskFlags = {
+            some: {
+                resolved: false,
+                severity: riskLevel as any,
+            },
+        };
+    }
+
+    if (tab === "pending_queue") {
+        where.OR = [
+            { status: "PENDING" },
+            { legalInfo: { businessVerificationStatus: { in: ["PENDING", "IN_REVIEW", "UNVERIFIED"] } } },
+        ];
+    } else if (tab === "flagged") {
+        where.riskFlags = {
+            some: {
+                resolved: false,
+            },
+        };
+    }
+
+    if (search && search.trim()) {
+        const query = search.trim();
+        const searchConditions = [
+            { slug: { contains: query, mode: "insensitive" } },
+            { profile: { name: { contains: query, mode: "insensitive" } } },
+            { profile: { email: { contains: query, mode: "insensitive" } } },
+            { owner: { name: { contains: query, mode: "insensitive" } } },
+            { owner: { email: { contains: query, mode: "insensitive" } } },
+            { legalInfo: { legalBusinessName: { contains: query, mode: "insensitive" } } },
+            { legalInfo: { taxId: { contains: query, mode: "insensitive" } } },
+        ];
+
+        if (where.OR) {
+            where.AND = [
+                { OR: where.OR },
+                { OR: searchConditions },
+            ];
+            delete where.OR;
+        } else {
+            where.OR = searchConditions;
+        }
+    }
+
+    const [shops, total, pendingCount, inReviewCount, activeCount, suspendedCount, highRiskCount] = await Promise.all([
         prisma.shop.findMany({
             where,
             skip,
@@ -172,33 +351,585 @@ export const listShopsAdmin = async (filters: {
                 id: true,
                 slug: true,
                 status: true,
+                healthScore: true,
+                rejectionReason: true,
+                suspensionReason: true,
+                closureReason: true,
                 createdAt: true,
+                updatedAt: true,
                 owner: { select: { id: true, name: true, email: true } },
-                profile: { select: { logo: true, name: true } },
-                wallet: { select: { balance: true } },
+                profile: { select: { logo: true, name: true, phone: true, email: true, city: true, country: true } },
+                wallet: { select: { balance: true, payoutsEnabled: true } },
+                legalInfo: {
+                    select: {
+                        id: true,
+                        legalBusinessName: true,
+                        taxId: true,
+                        entityType: true,
+                        businessVerificationStatus: true,
+                        taxIdStatus: true,
+                        addressVerificationStatus: true,
+                        ownerKycStatus: true,
+                        _count: { select: { documents: true } },
+                    },
+                },
+                riskFlags: {
+                    where: { resolved: false },
+                    select: { id: true, flag: true, severity: true },
+                },
                 _count: { select: { products: true, orders: true } },
             },
         }),
         prisma.shop.count({ where }),
+        prisma.shop.count({
+            where: {
+                OR: [
+                    { status: "PENDING" },
+                    { legalInfo: { businessVerificationStatus: { in: ["PENDING", "IN_REVIEW"] } } },
+                ],
+            },
+        }),
+        prisma.shop.count({
+            where: {
+                legalInfo: { businessVerificationStatus: "IN_REVIEW" },
+            },
+        }),
+        prisma.shop.count({ where: { status: "ACTIVE" } }),
+        prisma.shop.count({ where: { status: "SUSPENDED" } }),
+        prisma.shop.count({
+            where: {
+                riskFlags: {
+                    some: {
+                        resolved: false,
+                        severity: { in: ["HIGH", "CRITICAL"] },
+                    },
+                },
+            },
+        }),
     ]);
 
-    return { shops, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return {
+        shops,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        stats: {
+            pendingCount,
+            inReviewCount,
+            activeCount,
+            suspendedCount,
+            highRiskCount,
+        },
+    };
 };
 
 export const getShopByIdAdmin = async (id: string) => {
     return prisma.shop.findUnique({
         where: { id },
         include: {
-            owner: { select: { id: true, name: true, email: true } },
+            owner: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true,
+                    status: true,
+                    createdAt: true,
+                    profile: true,
+                },
+            },
             profile: true,
+            legalInfo: {
+                include: {
+                    documents: {
+                        orderBy: { createdAt: "desc" },
+                    },
+                },
+            },
             wallet: true,
-            _count: { select: { products: true, orders: true } },
+            adminNotesList: {
+                orderBy: { createdAt: "desc" },
+            },
+            riskFlags: {
+                orderBy: { createdAt: "desc" },
+            },
+            _count: {
+                select: {
+                    products: true,
+                    orders: true,
+                    employees: true,
+                    reviews: true,
+                },
+            },
         },
     });
 };
 
 export const updateShopStatusAdmin = async (id: string, status: string) => {
     return prisma.shop.update({ where: { id }, data: { status: status as any } });
+};
+
+export const approveShopAdmin = async (id: string, adminId: string, adminName: string, notes?: string) => {
+    return prisma.$transaction(async (tx) => {
+        const shop = await tx.shop.findUnique({
+            where: { id },
+            include: { legalInfo: true },
+        });
+
+        if (!shop) throw new Error("Shop not found");
+
+        const updatedShop = await tx.shop.update({
+            where: { id },
+            data: {
+                status: "ACTIVE",
+                rejectionReason: null,
+                rejectionNotes: null,
+                rejectedAt: null,
+                suspensionReason: null,
+                suspensionNotes: null,
+                suspendedAt: null,
+                closureReason: null,
+                closureNotes: null,
+                closedAt: null,
+                adminNotes: notes ? (shop.adminNotes ? `${notes}\n---\n${shop.adminNotes}` : notes) : shop.adminNotes,
+            },
+        });
+
+        if (shop.legalInfo) {
+            await tx.shopLegalInfo.update({
+                where: { shopId: id },
+                data: {
+                    businessVerificationStatus: "VERIFIED",
+                },
+            });
+        }
+
+        await tx.shopAdminNote.create({
+            data: {
+                shopId: id,
+                adminId,
+                adminName,
+                content: notes ? `Approved shop application. Note: ${notes}` : "Shop application approved and activated by Super Admin.",
+            },
+        });
+
+        await tx.auditLog.create({
+            data: {
+                userId: adminId,
+                action: "UPDATE",
+                entity: "Shop",
+                entityId: id,
+                oldValue: { status: shop.status },
+                newValue: { status: "ACTIVE", action: "APPROVE", notes },
+            },
+        });
+
+        return updatedShop;
+    });
+};
+
+export const rejectShopAdmin = async (
+    id: string,
+    adminId: string,
+    adminName: string,
+    reason: string,
+    notes?: string
+) => {
+    return prisma.$transaction(async (tx) => {
+        const shop = await tx.shop.findUnique({
+            where: { id },
+            include: { legalInfo: true },
+        });
+
+        if (!shop) throw new Error("Shop not found");
+
+        const updatedShop = await tx.shop.update({
+            where: { id },
+            data: {
+                status: "REJECTED",
+                rejectionReason: reason,
+                rejectionNotes: notes,
+                rejectedAt: new Date(),
+            },
+        });
+
+        if (shop.legalInfo) {
+            await tx.shopLegalInfo.update({
+                where: { shopId: id },
+                data: {
+                    businessVerificationStatus: "REJECTED",
+                },
+            });
+        }
+
+        await tx.shopAdminNote.create({
+            data: {
+                shopId: id,
+                adminId,
+                adminName,
+                content: `Rejected shop application. Reason: ${reason}.${notes ? ` Notes: ${notes}` : ""}`,
+            },
+        });
+
+        await tx.auditLog.create({
+            data: {
+                userId: adminId,
+                action: "UPDATE",
+                entity: "Shop",
+                entityId: id,
+                oldValue: { status: shop.status },
+                newValue: { status: "REJECTED", reason, notes },
+            },
+        });
+
+        return updatedShop;
+    });
+};
+
+export const suspendShopAdmin = async (
+    id: string,
+    adminId: string,
+    adminName: string,
+    reason: string,
+    notes?: string
+) => {
+    return prisma.$transaction(async (tx) => {
+        const shop = await tx.shop.findUnique({ where: { id } });
+        if (!shop) throw new Error("Shop not found");
+
+        const updatedShop = await tx.shop.update({
+            where: { id },
+            data: {
+                status: "SUSPENDED",
+                suspensionReason: reason,
+                suspensionNotes: notes,
+                suspendedAt: new Date(),
+            },
+        });
+
+        await tx.shopAdminNote.create({
+            data: {
+                shopId: id,
+                adminId,
+                adminName,
+                content: `Suspended shop. Reason: ${reason}.${notes ? ` Notes: ${notes}` : ""}`,
+            },
+        });
+
+        await tx.auditLog.create({
+            data: {
+                userId: adminId,
+                action: "UPDATE",
+                entity: "Shop",
+                entityId: id,
+                oldValue: { status: shop.status },
+                newValue: { status: "SUSPENDED", reason, notes },
+            },
+        });
+
+        return updatedShop;
+    });
+};
+
+export const closeShopAdmin = async (
+    id: string,
+    adminId: string,
+    adminName: string,
+    reason: string,
+    notes?: string
+) => {
+    return prisma.$transaction(async (tx) => {
+        const shop = await tx.shop.findUnique({ where: { id } });
+        if (!shop) throw new Error("Shop not found");
+
+        const updatedShop = await tx.shop.update({
+            where: { id },
+            data: {
+                status: "CLOSED",
+                closureReason: reason,
+                closureNotes: notes,
+                closedAt: new Date(),
+            },
+        });
+
+        await tx.shopAdminNote.create({
+            data: {
+                shopId: id,
+                adminId,
+                adminName,
+                content: `Closed shop permanently. Reason: ${reason}.${notes ? ` Notes: ${notes}` : ""}`,
+            },
+        });
+
+        await tx.auditLog.create({
+            data: {
+                userId: adminId,
+                action: "UPDATE",
+                entity: "Shop",
+                entityId: id,
+                oldValue: { status: shop.status },
+                newValue: { status: "CLOSED", reason, notes },
+            },
+        });
+
+        return updatedShop;
+    });
+};
+
+export const reopenShopAdmin = async (
+    id: string,
+    adminId: string,
+    adminName: string,
+    reason: string,
+    targetStatus: "ACTIVE" | "PENDING" = "ACTIVE"
+) => {
+    return prisma.$transaction(async (tx) => {
+        const shop = await tx.shop.findUnique({ where: { id } });
+        if (!shop) throw new Error("Shop not found");
+
+        const updatedShop = await tx.shop.update({
+            where: { id },
+            data: {
+                status: targetStatus,
+                reopenedAt: new Date(),
+                reopenReason: reason,
+                suspensionReason: null,
+                suspensionNotes: null,
+                suspendedAt: null,
+                closureReason: null,
+                closureNotes: null,
+                closedAt: null,
+            },
+        });
+
+        await tx.shopAdminNote.create({
+            data: {
+                shopId: id,
+                adminId,
+                adminName,
+                content: `Reopened shop to status ${targetStatus}. Reason: ${reason}`,
+            },
+        });
+
+        await tx.auditLog.create({
+            data: {
+                userId: adminId,
+                action: "UPDATE",
+                entity: "Shop",
+                entityId: id,
+                oldValue: { status: shop.status },
+                newValue: { status: targetStatus, action: "REOPEN", reason },
+            },
+        });
+
+        return updatedShop;
+    });
+};
+
+export const updateShopVerificationAdmin = async (
+    shopId: string,
+    adminId: string,
+    adminName: string,
+    data: {
+        businessVerificationStatus?: any;
+        taxIdStatus?: any;
+        taxIdNotes?: string;
+        registeredAddress?: string;
+        addressVerificationStatus?: any;
+        addressVerificationNotes?: string;
+        ownerKycStatus?: any;
+        ownerIdType?: string;
+        ownerIdNumber?: string;
+        ownerIdCardFront?: string;
+        ownerIdCardBack?: string;
+        ownerKycNotes?: string;
+    }
+) => {
+    return prisma.$transaction(async (tx) => {
+        let legalInfo = await tx.shopLegalInfo.findUnique({ where: { shopId } });
+        if (!legalInfo) {
+            legalInfo = await tx.shopLegalInfo.create({
+                data: {
+                    shopId,
+                    legalBusinessName: "Pending Verification",
+                    taxId: "PENDING",
+                    entityType: "unspecified",
+                },
+            });
+        }
+
+        const updateData: any = {};
+        if (data.businessVerificationStatus) updateData.businessVerificationStatus = data.businessVerificationStatus;
+        if (data.taxIdStatus) {
+            updateData.taxIdStatus = data.taxIdStatus;
+            if (data.taxIdStatus === "VERIFIED") updateData.taxIdVerifiedAt = new Date();
+        }
+        if (data.taxIdNotes !== undefined) updateData.taxIdNotes = data.taxIdNotes;
+
+        if (data.registeredAddress !== undefined) updateData.registeredAddress = data.registeredAddress;
+        if (data.addressVerificationStatus) {
+            updateData.addressVerificationStatus = data.addressVerificationStatus;
+            if (data.addressVerificationStatus === "VERIFIED") updateData.addressVerifiedAt = new Date();
+        }
+        if (data.addressVerificationNotes !== undefined) updateData.addressVerificationNotes = data.addressVerificationNotes;
+
+        if (data.ownerKycStatus) {
+            updateData.ownerKycStatus = data.ownerKycStatus;
+            if (data.ownerKycStatus === "VERIFIED") updateData.ownerKycVerifiedAt = new Date();
+        }
+        if (data.ownerIdType !== undefined) updateData.ownerIdType = data.ownerIdType;
+        if (data.ownerIdNumber !== undefined) updateData.ownerIdNumber = data.ownerIdNumber;
+        if (data.ownerIdCardFront !== undefined) updateData.ownerIdCardFront = data.ownerIdCardFront;
+        if (data.ownerIdCardBack !== undefined) updateData.ownerIdCardBack = data.ownerIdCardBack;
+        if (data.ownerKycNotes !== undefined) updateData.ownerKycNotes = data.ownerKycNotes;
+
+        const updated = await tx.shopLegalInfo.update({
+            where: { shopId },
+            data: updateData,
+        });
+
+        await tx.shopAdminNote.create({
+            data: {
+                shopId,
+                adminId,
+                adminName,
+                content: `Updated verification details: ${Object.keys(data).filter(k => (data as any)[k] !== undefined).join(", ")}`,
+            },
+        });
+
+        await tx.auditLog.create({
+            data: {
+                userId: adminId,
+                action: "UPDATE",
+                entity: "ShopLegalInfo",
+                entityId: legalInfo.id,
+                newValue: updateData,
+            },
+        });
+
+        return updated;
+    });
+};
+
+export const addShopLegalDocumentAdmin = async (
+    shopId: string,
+    data: {
+        type: any;
+        name: string;
+        fileUrl: string;
+        fileSize?: number;
+        mimeType?: string;
+    }
+) => {
+    return prisma.$transaction(async (tx) => {
+        let legalInfo = await tx.shopLegalInfo.findUnique({ where: { shopId } });
+        if (!legalInfo) {
+            legalInfo = await tx.shopLegalInfo.create({
+                data: {
+                    shopId,
+                    legalBusinessName: "Pending Verification",
+                    taxId: "PENDING",
+                    entityType: "unspecified",
+                },
+            });
+        }
+
+        return tx.shopLegalDocument.create({
+            data: {
+                shopLegalInfoId: legalInfo.id,
+                type: data.type || "OTHER",
+                name: data.name,
+                fileUrl: data.fileUrl,
+                fileSize: data.fileSize,
+                mimeType: data.mimeType,
+                status: "PENDING",
+            },
+        });
+    });
+};
+
+export const updateShopLegalDocumentStatusAdmin = async (
+    documentId: string,
+    status: any,
+    rejectionReason?: string,
+    notes?: string
+) => {
+    return prisma.shopLegalDocument.update({
+        where: { id: documentId },
+        data: {
+            status,
+            rejectionReason: status === "REJECTED" ? rejectionReason : null,
+            notes,
+            verifiedAt: status === "VERIFIED" ? new Date() : null,
+        },
+    });
+};
+
+export const deleteShopLegalDocumentAdmin = async (documentId: string) => {
+    return prisma.shopLegalDocument.delete({
+        where: { id: documentId },
+    });
+};
+
+export const addShopAdminNoteAdmin = async (
+    shopId: string,
+    adminId: string,
+    adminName: string,
+    content: string
+) => {
+    const note = await prisma.shopAdminNote.create({
+        data: {
+            shopId,
+            adminId,
+            adminName,
+            content,
+        },
+    });
+
+    await prisma.shop.update({
+        where: { id: shopId },
+        data: { adminNotes: content },
+    });
+
+    return note;
+};
+
+export const addShopRiskFlagAdmin = async (
+    shopId: string,
+    data: {
+        flag: string;
+        severity?: any;
+        description?: string;
+    }
+) => {
+    return prisma.shopRiskFlag.create({
+        data: {
+            shopId,
+            flag: data.flag,
+            severity: data.severity || "MEDIUM",
+            description: data.description,
+        },
+    });
+};
+
+export const resolveShopRiskFlagAdmin = async (
+    flagId: string,
+    adminName: string,
+    notes?: string
+) => {
+    const existing = await prisma.shopRiskFlag.findUnique({ where: { id: flagId } });
+    if (!existing) throw new Error("Risk flag not found");
+
+    return prisma.shopRiskFlag.update({
+        where: { id: flagId },
+        data: {
+            resolved: true,
+            resolvedAt: new Date(),
+            resolvedBy: adminName,
+            description: notes ? `${existing.description || ""} [Resolved: ${notes}]` : existing.description,
+        },
+    });
 };
 
 export const listShipmentsAdmin = async (filters: { status?: string; search?: string; page?: number; limit?: number }) => {
@@ -332,6 +1063,7 @@ export const listReviewsAdmin = async (filters: {
         }),
         prisma.review.count({ where }),
         prisma.review.findMany({
+            where: shopId ? { shopId } : undefined,
             select: { rating: true, isVisible: true },
         }),
     ]);
@@ -372,4 +1104,462 @@ export const deleteReviewAdmin = async (id: string) => {
     return prisma.review.delete({
         where: { id },
     });
+};
+
+// ─────────────────────────────────────────────
+// ORDERS (ADMIN)
+// ─────────────────────────────────────────────
+export const listOrdersAdmin = async (filters: {
+    status?: string;
+    shopId?: string;
+    search?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    page?: number;
+    limit?: number;
+}) => {
+    const { status, shopId, search, dateFrom, dateTo, page = 1, limit = 20 } = filters;
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+        ...(status && { status: status as any }),
+        ...(shopId && { shopId }),
+        ...((dateFrom || dateTo) ? {
+            createdAt: {
+                ...(dateFrom && { gte: new Date(dateFrom) }),
+                ...(dateTo && { lte: new Date(dateTo) }),
+            },
+        } : {}),
+        ...(search && {
+            OR: [
+                { customer: { name: { contains: search, mode: "insensitive" } } },
+                { customer: { email: { contains: search, mode: "insensitive" } } },
+                { id: { contains: search, mode: "insensitive" } },
+            ],
+        }),
+    };
+
+    const [orders, total] = await Promise.all([
+        prisma.order.findMany({
+            where,
+            skip,
+            take: limit,
+            orderBy: { createdAt: "desc" },
+            select: {
+                id: true,
+                status: true,
+                totalAmount: true,
+                discountAmount: true,
+                createdAt: true,
+                customer: { select: { id: true, name: true, email: true } },
+                shop: { select: { id: true, slug: true, profile: { select: { name: true } } } },
+                _count: { select: { items: true } },
+            },
+        }),
+        prisma.order.count({ where }),
+    ]);
+
+    return { orders, total, page, limit, totalPages: Math.ceil(total / limit) };
+};
+
+export const getOrderByIdAdmin = async (id: string) => {
+    return prisma.order.findUnique({
+        where: { id },
+        include: {
+            customer: { select: { id: true, name: true, email: true } },
+            shop: { select: { id: true, slug: true, profile: { select: { name: true, logo: true } } } },
+            items: {
+                include: {
+                    product: { select: { id: true, name: true, images: { where: { isPrimary: true }, select: { url: true }, take: 1 } } },
+                    variant: { select: { id: true, name: true } },
+                },
+            },
+            shipment: true,
+            coupon: { select: { id: true, code: true, type: true, value: true } },
+        },
+    });
+};
+
+// ─────────────────────────────────────────────
+// ANALYTICS (ADMIN)
+// ─────────────────────────────────────────────
+export const getPlatformAnalytics = async () => {
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+
+    const [gmvResult, ordersByStatus, topShops, userGrowth, ordersByMonth] = await Promise.all([
+        prisma.order.aggregate({ _sum: { totalAmount: true } }),
+        prisma.order.groupBy({ by: ["status"], _count: { _all: true } }),
+        prisma.order.groupBy({
+            by: ["shopId"],
+            _sum: { totalAmount: true },
+            _count: { _all: true },
+            orderBy: { _sum: { totalAmount: "desc" } },
+            take: 10,
+        }),
+        prisma.$queryRaw<{ month: string; count: bigint }[]>`
+            SELECT TO_CHAR("createdAt", 'YYYY-MM') as month, COUNT(*) as count
+            FROM "User"
+            WHERE "createdAt" >= ${twelveMonthsAgo}
+            GROUP BY month
+            ORDER BY month ASC
+        `,
+        prisma.$queryRaw<{ month: string; count: bigint; revenue: number }[]>`
+            SELECT TO_CHAR("createdAt", 'YYYY-MM') as month, COUNT(*) as count, COALESCE(SUM("totalAmount"), 0) as revenue
+            FROM "Order"
+            WHERE "createdAt" >= ${twelveMonthsAgo}
+            GROUP BY month
+            ORDER BY month ASC
+        `,
+    ]);
+
+    const shopIds = topShops.map((s) => s.shopId);
+    const shopProfiles = await prisma.shop.findMany({
+        where: { id: { in: shopIds } },
+        select: { id: true, slug: true, profile: { select: { name: true } } },
+    });
+    const shopMap = Object.fromEntries(shopProfiles.map((s) => [s.id, s]));
+
+    return {
+        gmv: Number(gmvResult._sum.totalAmount ?? 0),
+        ordersByStatus: ordersByStatus.map((s) => ({ status: s.status, count: s._count._all })),
+        topShops: topShops.map((s) => ({
+            shopId: s.shopId,
+            shopName: shopMap[s.shopId]?.profile?.name ?? shopMap[s.shopId]?.slug ?? s.shopId,
+            revenue: Number(s._sum.totalAmount ?? 0),
+            orderCount: s._count._all,
+        })),
+        userGrowth: userGrowth.map((r) => ({ month: r.month, count: Number(r.count) })),
+        ordersByMonth: ordersByMonth.map((r) => ({ month: r.month, count: Number(r.count), revenue: Number(r.revenue) })),
+    };
+};
+
+// ─────────────────────────────────────────────
+// PAYOUTS (ADMIN)
+// ─────────────────────────────────────────────
+export const listPayoutsAdmin = async (filters: { page?: number; limit?: number }) => {
+    const { page = 1, limit = 20 } = filters;
+    const skip = (page - 1) * limit;
+
+    const [shops, total] = await Promise.all([
+        prisma.shop.findMany({
+            skip,
+            take: limit,
+            orderBy: { createdAt: "desc" },
+            where: { status: { not: "CLOSED" } },
+            select: {
+                id: true,
+                slug: true,
+                status: true,
+                owner: { select: { id: true, name: true, email: true } },
+                profile: { select: { name: true, logo: true } },
+                wallet: { select: { id: true, balance: true, updatedAt: true } },
+                walletTransactions: {
+                    where: { type: "DEBIT" },
+                    orderBy: { createdAt: "desc" },
+                    take: 1,
+                    select: { createdAt: true, amount: true },
+                },
+            },
+        }),
+        prisma.shop.count({ where: { status: { not: "CLOSED" } } }),
+    ]);
+
+    return { shops, total, page, limit, totalPages: Math.ceil(total / limit) };
+};
+
+export const getPayoutsSummary = async () => {
+    const [walletAgg, shopsWithBalance, totalDebits] = await Promise.all([
+        prisma.shopWallet.aggregate({ _sum: { balance: true } }),
+        prisma.shopWallet.count({ where: { balance: { gt: 0 } } }),
+        prisma.walletTransaction.aggregate({ where: { type: "DEBIT" }, _sum: { amount: true } }),
+    ]);
+
+    return {
+        totalPlatformBalance: Number(walletAgg._sum.balance ?? 0),
+        shopsWithBalance,
+        totalWithdrawn: Number(totalDebits._sum.amount ?? 0),
+    };
+};
+
+// ─────────────────────────────────────────────
+// BILLING OVERVIEW (ADMIN)
+// ─────────────────────────────────────────────
+export const getBillingOverview = async () => {
+    const shops = await prisma.shop.findMany({
+        orderBy: { createdAt: "desc" },
+        select: {
+            id: true,
+            slug: true,
+            status: true,
+            createdAt: true,
+            owner: { select: { id: true, name: true, email: true } },
+            profile: { select: { name: true, logo: true } },
+            wallet: { select: { balance: true } },
+            membership: { select: { status: true, expiresAt: true, plan: { select: { name: true, price: true, billingCycle: true } } } },
+            _count: { select: { products: true, orders: true } },
+        },
+    });
+
+    const totalActive = shops.filter((s) => s.status === "ACTIVE").length;
+    const totalSuspended = shops.filter((s) => s.status === "SUSPENDED").length;
+
+    return { shops, totalActive, totalSuspended };
+};
+
+// ─────────────────────────────────────────────
+// AUDIT LOGS (ADMIN)
+// ─────────────────────────────────────────────
+export const listAuditLogsAdmin = async (filters: {
+    userId?: string;
+    entity?: string;
+    action?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+}) => {
+    const { userId, entity, action, dateFrom, dateTo, search, page = 1, limit = 20 } = filters;
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+        ...(userId && { userId }),
+        ...(entity && { entity: { contains: entity, mode: "insensitive" } }),
+        ...(action && { action: action as any }),
+        ...((dateFrom || dateTo) ? {
+            createdAt: {
+                ...(dateFrom && { gte: new Date(dateFrom) }),
+                ...(dateTo && { lte: new Date(dateTo) }),
+            },
+        } : {}),
+        ...(search && {
+            OR: [
+                { user: { name: { contains: search, mode: "insensitive" } } },
+                { user: { email: { contains: search, mode: "insensitive" } } },
+                { entity: { contains: search, mode: "insensitive" } },
+                { entityId: { contains: search, mode: "insensitive" } },
+            ],
+        }),
+    };
+
+    const [logs, total] = await Promise.all([
+        prisma.auditLog.findMany({
+            where,
+            skip,
+            take: limit,
+            orderBy: { createdAt: "desc" },
+            include: { user: { select: { id: true, name: true, email: true } } },
+        }),
+        prisma.auditLog.count({ where }),
+    ]);
+
+    return { logs, total, page, limit, totalPages: Math.ceil(total / limit) };
+};
+
+// ─────────────────────────────────────────────
+// COUPONS (ADMIN)
+// ─────────────────────────────────────────────
+export const listCouponsAdmin = async (filters: {
+    shopId?: string;
+    isActive?: boolean;
+    search?: string;
+    page?: number;
+    limit?: number;
+}) => {
+    const { shopId, isActive, search, page = 1, limit = 20 } = filters;
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+        ...(shopId && { shopId }),
+        ...(typeof isActive === "boolean" && { isActive }),
+        ...(search && { code: { contains: search, mode: "insensitive" } }),
+    };
+
+    const now = new Date();
+    const [coupons, total, totalCount, activeCount, expiredCount] = await Promise.all([
+        prisma.coupon.findMany({
+            where,
+            skip,
+            take: limit,
+            orderBy: { createdAt: "desc" },
+            include: {
+                shop: { select: { id: true, slug: true, profile: { select: { name: true } } } },
+                _count: { select: { usages: true } },
+            },
+        }),
+        prisma.coupon.count({ where }),
+        prisma.coupon.count(),
+        prisma.coupon.count({ where: { isActive: true, OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] } }),
+        prisma.coupon.count({ where: { expiresAt: { lte: now } } }),
+    ]);
+
+    return {
+        coupons,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        stats: { total: totalCount, active: activeCount, expired: expiredCount },
+    };
+};
+
+export const toggleCouponAdmin = async (id: string) => {
+    const coupon = await prisma.coupon.findUnique({ where: { id }, select: { isActive: true } });
+    if (!coupon) return null;
+    return prisma.coupon.update({ where: { id }, data: { isActive: !coupon.isActive }, select: { id: true, isActive: true } });
+};
+
+// ─────────────────────────────────────────────
+// PRODUCTS (ADMIN)
+// ─────────────────────────────────────────────
+export const listProductsAdmin = async (filters: {
+    search?: string;
+    status?: string;
+    shopId?: string;
+    platformCategoryId?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    inStock?: boolean;
+    page?: number;
+    limit?: number;
+}) => {
+    const {
+        search,
+        status,
+        shopId,
+        platformCategoryId,
+        minPrice,
+        maxPrice,
+        inStock,
+        page = 1,
+        limit = 20,
+    } = filters;
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+        deletedAt: null,
+        ...(status && { status: status as any }),
+        ...(shopId && { shopId }),
+        ...(platformCategoryId && { platformCategoryId }),
+        ...((minPrice !== undefined || maxPrice !== undefined) && {
+            basePrice: {
+                ...(minPrice !== undefined && { gte: minPrice }),
+                ...(maxPrice !== undefined && { lte: maxPrice }),
+            },
+        }),
+        ...(inStock !== undefined && (inStock ? { stock: { gt: 0 } } : { stock: { lte: 0 } })),
+        ...(search && {
+            OR: [
+                { name: { contains: search, mode: "insensitive" } },
+                { sku: { contains: search, mode: "insensitive" } },
+                { description: { contains: search, mode: "insensitive" } },
+                { shop: { slug: { contains: search, mode: "insensitive" } } },
+                { shop: { profile: { name: { contains: search, mode: "insensitive" } } } },
+            ],
+        }),
+    };
+
+    const [products, total, totalCount, activeCount, draftCount, archivedCount, outOfStockCount] =
+        await Promise.all([
+            prisma.product.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: { createdAt: "desc" },
+                include: {
+                    shop: {
+                        select: {
+                            id: true,
+                            slug: true,
+                            profile: { select: { name: true, logo: true } },
+                            owner: { select: { id: true, name: true, email: true } },
+                        },
+                    },
+                    platformCategory: { select: { id: true, name: true } },
+                    images: { orderBy: { isPrimary: "desc" }, select: { id: true, url: true, isPrimary: true } },
+                    _count: { select: { variants: true, reviews: true, orderItems: true } },
+                },
+            }),
+            prisma.product.count({ where }),
+            prisma.product.count({ where: { deletedAt: null } }),
+            prisma.product.count({ where: { deletedAt: null, status: "ACTIVE" } }),
+            prisma.product.count({ where: { deletedAt: null, status: "DRAFT" } }),
+            prisma.product.count({ where: { deletedAt: null, status: "ARCHIVED" } }),
+            prisma.product.count({ where: { deletedAt: null, stock: { lte: 0 } } }),
+        ]);
+
+    return {
+        products,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        stats: {
+            total: totalCount,
+            active: activeCount,
+            draft: draftCount,
+            archived: archivedCount,
+            outOfStock: outOfStockCount,
+        },
+    };
+};
+
+export const getProductByIdAdmin = async (id: string) => {
+    return prisma.product.findUnique({
+        where: { id },
+        include: {
+            shop: {
+                select: {
+                    id: true,
+                    slug: true,
+                    profile: { select: { name: true, logo: true } },
+                    owner: { select: { id: true, name: true, email: true } },
+                },
+            },
+            platformCategory: { select: { id: true, name: true } },
+            category: { select: { id: true, name: true } },
+            images: { orderBy: { isPrimary: "desc" } },
+            variants: { orderBy: { createdAt: "asc" } },
+            reviews: {
+                take: 5,
+                orderBy: { createdAt: "desc" },
+                include: { user: { select: { name: true, email: true } } },
+            },
+            _count: { select: { reviews: true, orderItems: true, wishlistItems: true } },
+        },
+    });
+};
+
+export const updateProductStatusAdmin = async (
+    id: string,
+    status: "ACTIVE" | "DRAFT" | "ARCHIVED",
+    adminUserId?: string
+) => {
+    const existing = await prisma.product.findUnique({
+        where: { id },
+        select: { id: true, status: true, name: true, shopId: true },
+    });
+    if (!existing) return null;
+
+    const updated = await prisma.product.update({
+        where: { id },
+        data: { status },
+        select: { id: true, name: true, status: true, updatedAt: true },
+    });
+
+    if (adminUserId) {
+        await prisma.auditLog.create({
+            data: {
+                userId: adminUserId,
+                action: "UPDATE",
+                entity: "PRODUCT",
+                entityId: id,
+                oldValue: { status: existing.status, name: existing.name },
+                newValue: { status },
+            },
+        });
+    }
+
+    return updated;
 };

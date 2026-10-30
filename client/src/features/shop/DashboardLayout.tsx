@@ -19,7 +19,14 @@ export function DashboardLayout() {
     }, [hasShopAccess, isError, isLoading, location.pathname, navigate, shopId]);
 
     if (isLoading) {
-        return <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">Loading your shop...</div>;
+        return (
+            <div className="flex min-h-screen items-center justify-center text-sm font-medium text-slate-500">
+                <div className="flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-orange-500 animate-ping" />
+                    Loading your store dashboard...
+                </div>
+            </div>
+        );
     }
 
     if (isError || !hasShopAccess) {
@@ -44,7 +51,7 @@ export function DashboardLayout() {
                             <DashboardSidebar variant="desktop" />
                         </div>
 
-                        <main className="min-w-0 flex-1 overflow-y-auto bg-white dark:!bg-[#12151c]">
+                        <main className="min-w-0 flex-1 overflow-y-auto ds-scroll bg-white dark:!bg-[#12151c]">
                             <div className="p-5 md:p-7 lg:p-10">
                                 <Outlet />
                             </div>

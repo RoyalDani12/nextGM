@@ -3,19 +3,20 @@ import { AdminSidebar } from "./AdminSidebar";
 import { SuperAdminHeader } from "./SuperAdminHeader";
 
 export const AdminLayout = () => (
-    <div className="admin-dashboard h-screen overflow-hidden bg-slate-50 font-sans antialiased">
-        <div className="mx-auto flex h-full w-full max-w-[1900px] flex-col">
+    <div className="admin-dashboard flex h-screen w-screen overflow-hidden bg-slate-50 font-sans antialiased">
+        {/* Desktop Sidebar: docked to the left, full height from the very top */}
+        <div className="hidden h-full shrink-0 border-r border-slate-800/80 bg-[#0B0F19] lg:flex">
+            <AdminSidebar />
+        </div>
+
+        {/* Right Content Area: Header at top + scrollable Main content */}
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
             <SuperAdminHeader />
-            <div className="flex min-h-0 flex-1 px-3 pb-3 md:px-5 md:pb-5">
-                <div className="flex min-h-0 flex-1 overflow-hidden rounded-3xl border border-slate-200/70 bg-white shadow-sm">
-                    <div className="hidden border-r border-slate-200 lg:flex">
-                        <AdminSidebar />
-                    </div>
-                    <main className="min-w-0 flex-1 overflow-y-auto bg-slate-50">
-                        <div className="p-5 md:p-7 lg:p-10"><Outlet /></div>
-                    </main>
+            <main className="min-w-0 flex-1 overflow-y-auto ds-scroll bg-slate-50/70">
+                <div className="p-4 md:p-6 lg:p-8">
+                    <Outlet />
                 </div>
-            </div>
+            </main>
         </div>
     </div>
 );

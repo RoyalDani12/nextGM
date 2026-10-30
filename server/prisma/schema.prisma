@@ -32,6 +32,34 @@ enum ShopStatus {
   SUSPENDED
   CLOSED
   PAUSED
+  REJECTED
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  IN_REVIEW
+  VERIFIED
+  REJECTED
+}
+
+enum LegalDocumentType {
+  CERTIFICATE_OF_INCORPORATION
+  BUSINESS_LICENSE
+  TAX_CERTIFICATE
+  PROOF_OF_ADDRESS
+  OWNER_IDENTITY_FRONT
+  OWNER_IDENTITY_BACK
+  BANK_STATEMENT
+  OPERATING_LICENSE
+  OTHER
+}
+
+enum RiskSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
 enum EmployeeRole {
@@ -270,6 +298,25 @@ model Shop {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
+  // Verification & Approval Workflow
+  rejectionReason  String?
+  rejectionNotes   String?
+  rejectedAt       DateTime?
+
+  suspensionReason String?
+  suspensionNotes  String?
+  suspendedAt      DateTime?
+
+  closureReason    String?
+  closureNotes     String?
+  closedAt         DateTime?
+
+  reopenedAt       DateTime?
+  reopenReason     String?
+
+  adminNotes       String?
+  healthScore      Int                @default(70)
+
   profile            ShopProfile?
   employees          ShopEmployee[]
   products           Product[]
@@ -282,6 +329,8 @@ model Shop {
   legalInfo          ShopLegalInfo?
   wallet             ShopWallet?
   walletTransactions WalletTransaction[]
+  adminNotesList     ShopAdminNote[]
+  riskFlags          ShopRiskFlag[]
 
   @@index([ownerId])
   @@index([slug])
@@ -309,14 +358,82 @@ model ShopProfile {
 }
 
 model ShopLegalInfo {
-  id                String   @id @default(cuid())
-  shopId            String   @unique
-  shop              Shop     @relation(fields: [shopId], references: [id])
-  legalBusinessName String
-  taxId             String
-  entityType        String // free text for now — "individual", "llc", etc. Not enum-constrained, kept minimal per scope.
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                         String              @id @default(cuid())
+  shopId                     String              @unique
+  shop                       Shop                @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  legalBusinessName          String
+  taxId                      String
+  entityType                 String // free text for now — "individual", "llc", etc.
+  businessVerificationStatus VerificationStatus  @default(UNVERIFIED)
+
+  taxIdStatus                VerificationStatus  @default(UNVERIFIED)
+  taxIdNotes                 String?
+  taxIdVerifiedAt            DateTime?
+
+  registeredAddress          String?
+  addressVerificationStatus  VerificationStatus  @default(UNVERIFIED)
+  addressVerificationNotes   String?
+  addressVerifiedAt          DateTime?
+
+  ownerKycStatus             VerificationStatus  @default(UNVERIFIED)
+  ownerIdType                String?
+  ownerIdNumber              String?
+  ownerIdCardFront           String?
+  ownerIdCardBack            String?
+  ownerKycNotes              String?
+  ownerKycVerifiedAt         DateTime?
+
+  documents                  ShopLegalDocument[]
+
+  createdAt                  DateTime            @default(now())
+  updatedAt                  DateTime            @updatedAt
+}
+
+model ShopLegalDocument {
+  id              String             @id @default(cuid())
+  shopLegalInfoId String
+  legalInfo       ShopLegalInfo      @relation(fields: [shopLegalInfoId], references: [id], onDelete: Cascade)
+  type            LegalDocumentType  @default(OTHER)
+  name            String
+  fileUrl         String
+  fileSize        Int?
+  mimeType        String?
+  status          VerificationStatus @default(PENDING)
+  rejectionReason String?
+  notes           String?
+  verifiedAt      DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([shopLegalInfoId])
+}
+
+model ShopAdminNote {
+  id        String   @id @default(cuid())
+  shopId    String
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  adminId   String
+  adminName String?
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([shopId])
+}
+
+model ShopRiskFlag {
+  id          String       @id @default(cuid())
+  shopId      String
+  shop        Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  flag        String
+  severity    RiskSeverity @default(MEDIUM)
+  description String?
+  resolved    Boolean      @default(false)
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  createdAt   DateTime     @default(now())
+
+  @@index([shopId])
+  @@index([resolved])
 }
 
 model ShopWallet {

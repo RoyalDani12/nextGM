@@ -1,6 +1,23 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Store, CreditCard, Settings, Users, Tags, Shield, LifeBuoy, LogOut, MessageSquare, Truck, RotateCcw } from "lucide-react";
+import {
+    LayoutDashboard,
+    Store,
+    CreditCard,
+    Users,
+    Tags,
+    Shield,
+    LifeBuoy,
+    LogOut,
+    MessageSquare,
+    Truck,
+    RotateCcw,
+    ShoppingCart,
+    BarChart3,
+    Wallet,
+    Ticket,
+    Package,
+} from "lucide-react";
 import { useLogout } from "@/features/auth/auth.hooks";
 
 interface AdminNavLinksProps {
@@ -8,7 +25,19 @@ interface AdminNavLinksProps {
     onNavItemClick?: () => void;
 }
 
-const NavItem = ({ href, icon: Icon, label, expanded, onClick }: { href: string; icon: React.ElementType; label: string; expanded: boolean; onClick?: () => void }) => {
+const NavItem = ({
+    href,
+    icon: Icon,
+    label,
+    expanded,
+    onClick,
+}: {
+    href: string;
+    icon: React.ElementType;
+    label: string;
+    expanded: boolean;
+    onClick?: () => void;
+}) => {
     const location = useLocation();
     const active = location.pathname === href || (href !== "/superadmin" && location.pathname.startsWith(href));
     return (
@@ -16,11 +45,30 @@ const NavItem = ({ href, icon: Icon, label, expanded, onClick }: { href: string;
             to={href}
             onClick={onClick}
             title={!expanded ? label : undefined}
-            className={`relative mb-1 flex items-center rounded-xl px-2.5 py-2 text-xs font-semibold transition-colors ${expanded ? "gap-3" : "justify-center"} ${active ? "bg-orange-50 text-orange-600" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"}`}
+            className={`group relative flex items-center rounded-xl mb-1 text-[13px] transition-all duration-200 select-none cursor-pointer ${
+                expanded ? "gap-3 px-3 py-2.5" : "justify-center px-0 py-2.5"
+            } ${
+                active
+                    ? "text-white font-semibold bg-gradient-to-r from-orange-500/20 via-orange-500/10 to-transparent border border-orange-500/30 shadow-[0_2px_12px_rgba(249,115,22,0.18)]"
+                    : "text-slate-400 font-medium hover:text-slate-100 hover:bg-slate-800/60 hover:translate-x-0.5"
+            }`}
         >
-            <Icon className={`size-4 shrink-0 ${active ? "text-orange-600" : "text-slate-400"}`} />
+            {/* Smooth glowing active tracker bar */}
+            {active && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full bg-gradient-to-b from-orange-400 to-amber-500 shadow-[0_0_10px_rgba(249,115,22,0.85)]" />
+            )}
+
+            <Icon
+                className={`size-4 shrink-0 transition-all duration-200 ${
+                    active
+                        ? "text-orange-400 drop-shadow-[0_0_8px_rgba(249,115,22,0.65)] scale-110"
+                        : "text-slate-400 group-hover:text-slate-200 group-hover:scale-105"
+                }`}
+            />
             {expanded && <span className="truncate">{label}</span>}
-            {active && <span className="absolute bottom-2 right-2 size-1.5 rounded-full bg-orange-500" />}
+            {active && expanded && (
+                <span className="ml-auto size-1.5 rounded-full bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.9)] shrink-0 animate-pulse" />
+            )}
         </Link>
     );
 };
@@ -29,28 +77,46 @@ export const AdminNavLinks = ({ expanded = true, onNavItemClick }: AdminNavLinks
     const logout = useLogout();
     return (
         <div className="flex min-h-full flex-col justify-between">
-            <div className="space-y-5">
+            <div className="space-y-4">
                 <div>
-                    {expanded && <p className="mb-2 px-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Platform</p>}
+                    {expanded && (
+                        <p className="px-3 mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                            Platform
+                        </p>
+                    )}
                     <NavItem href="/superadmin" icon={LayoutDashboard} label="Overview" expanded={expanded} onClick={onNavItemClick} />
-                    <NavItem href="/superadmin/shops" icon={Store} label="Tenants & stores" expanded={expanded} onClick={onNavItemClick} />
-                    <NavItem href="/superadmin/users" icon={Users} label="Users & access" expanded={expanded} onClick={onNavItemClick} />
+                    <NavItem href="/superadmin/analytics" icon={BarChart3} label="Analytics" expanded={expanded} onClick={onNavItemClick} />
+                    <NavItem href="/superadmin/orders" icon={ShoppingCart} label="All Orders" expanded={expanded} onClick={onNavItemClick} />
+                    <NavItem href="/superadmin/products" icon={Package} label="Product Catalog" expanded={expanded} onClick={onNavItemClick} />
+                    <NavItem href="/superadmin/shops" icon={Store} label="Tenants & Stores" expanded={expanded} onClick={onNavItemClick} />
+                    <NavItem href="/superadmin/users" icon={Users} label="Users & Access" expanded={expanded} onClick={onNavItemClick} />
                     <NavItem href="/superadmin/categories" icon={Tags} label="Categories" expanded={expanded} onClick={onNavItemClick} />
-                    <NavItem href="/superadmin/reviews" icon={MessageSquare} label="Reviews & moderation" expanded={expanded} onClick={onNavItemClick} />
+                    <NavItem href="/superadmin/coupons" icon={Ticket} label="Coupons" expanded={expanded} onClick={onNavItemClick} />
+                    <NavItem href="/superadmin/reviews" icon={MessageSquare} label="Reviews & Moderation" expanded={expanded} onClick={onNavItemClick} />
                     <NavItem href="/superadmin/shipments" icon={Truck} label="Fulfillment" expanded={expanded} onClick={onNavItemClick} />
-                    <NavItem href="/superadmin/returns" icon={RotateCcw} label="Returns & refunds" expanded={expanded} onClick={onNavItemClick} />
-                    <NavItem href="/superadmin/billing" icon={CreditCard} label="Global billing" expanded={expanded} onClick={onNavItemClick} />
+                    <NavItem href="/superadmin/returns" icon={RotateCcw} label="Returns & Refunds" expanded={expanded} onClick={onNavItemClick} />
+                    <NavItem href="/superadmin/payouts" icon={Wallet} label="Payouts" expanded={expanded} onClick={onNavItemClick} />
+                    <NavItem href="/superadmin/billing" icon={CreditCard} label="Global Billing" expanded={expanded} onClick={onNavItemClick} />
                 </div>
                 <div>
-                    {expanded && <p className="mb-2 px-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Administration</p>}
-                    <NavItem href="/superadmin/audits" icon={Shield} label="Security & audits" expanded={expanded} onClick={onNavItemClick} />
-                    <NavItem href="/superadmin/settings" icon={Settings} label="System settings" expanded={expanded} onClick={onNavItemClick} />
+                    {expanded && (
+                        <p className="px-3 mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                            Administration
+                        </p>
+                    )}
+                    <NavItem href="/superadmin/audits" icon={Shield} label="Security & Audits" expanded={expanded} onClick={onNavItemClick} />
                 </div>
             </div>
-            <div className="mt-6 border-t border-slate-100 pt-4">
-                <NavItem href="/superadmin/support" icon={LifeBuoy} label="Support center" expanded={expanded} onClick={onNavItemClick} />
-                <button onClick={() => logout.mutate()} title={!expanded ? "Sign out" : undefined} className={`flex w-full items-center rounded-xl px-2.5 py-2 text-xs font-semibold text-red-500 transition hover:bg-red-50 ${expanded ? "gap-3" : "justify-center"}`}>
-                    <LogOut className="size-4 shrink-0" />
+            <div className="mt-6 border-t border-slate-800/80 pt-3">
+                <NavItem href="/superadmin/support" icon={LifeBuoy} label="Support Center" expanded={expanded} onClick={onNavItemClick} />
+                <button
+                    onClick={() => logout.mutate()}
+                    title={!expanded ? "Sign out" : undefined}
+                    className={`flex w-full items-center rounded-xl px-2.5 py-2 text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors cursor-pointer ${
+                        expanded ? "gap-3" : "justify-center"
+                    }`}
+                >
+                    <LogOut className="size-4 shrink-0 text-rose-400" />
                     {expanded && <span>Sign out</span>}
                 </button>
             </div>
