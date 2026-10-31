@@ -21,9 +21,25 @@ export interface ShopProfile {
 }
 
 export interface ShopLegalInfo {
+  id?: string;
   legalBusinessName: string;
   taxId: string;
   entityType: string;
+  businessVerificationStatus?: string;
+  taxIdStatus?: string;
+  taxIdNotes?: string | null;
+  taxIdVerifiedAt?: string | null;
+  registeredAddress?: string | null;
+  addressVerificationStatus?: string;
+  addressVerificationNotes?: string | null;
+  addressVerifiedAt?: string | null;
+  ownerKycStatus?: "UNVERIFIED" | "PENDING" | "IN_REVIEW" | "VERIFIED" | "REJECTED";
+  ownerIdType?: string | null;
+  ownerIdNumber?: string | null;
+  ownerIdCardFront?: string | null;
+  ownerIdCardBack?: string | null;
+  ownerKycNotes?: string | null;
+  ownerKycVerifiedAt?: string | null;
 }
 
 export interface Shop {
@@ -68,9 +84,14 @@ export interface UpdateShopProfilePayload {
 }
 
 export interface UpdateShopLegalInfoPayload {
-  legalBusinessName: string;
-  taxId: string;
-  entityType: string;
+  legalBusinessName?: string;
+  taxId?: string;
+  entityType?: string;
+  ownerIdType?: string;
+  ownerIdNumber?: string;
+  ownerIdCardFront?: string;
+  ownerIdCardBack?: string;
+  submitForVerification?: boolean;
 }
 
 export type PublishReadinessChecks = {

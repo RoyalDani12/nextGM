@@ -26,12 +26,40 @@ const adminReturnInclude = {
 // PLATFORM STATS
 // ─────────────────────────────────────────────
 export const getPlatformStats = async () => {
-    const [totalUsers, totalShops, totalOrders, platformWallet] = await Promise.all([
+    const [totalUsers, totalShops, totalOrders, platformWallet, settledOrdersAgg] = await Promise.all([
         prisma.user.count({ where: { status: { not: "DELETED" } } }),
         prisma.shop.count({ where: { status: { not: "CLOSED" } } }),
         prisma.order.count(),
         prisma.platformWallet.findFirst(),
+        prisma.order.aggregate({
+            where: { status: { in: ["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"] } },
+            _sum: { totalAmount: true },
+        }),
     ]);
+
+    // Calculate 10% platform commission from each settled order
+    const grossVolume = Number(settledOrdersAgg?._sum?.totalAmount ?? 0);
+    const calculated10PctCommission = Math.round(grossVolume * 0.10 * 100) / 100;
+    const recordedWalletBalance = platformWallet ? Number(platformWallet.balance) : 0;
+    const effectivePlatformBalance = Math.max(recordedWalletBalance, calculated10PctCommission);
+
+    // Sync database platformWallet record so DB always holds the 10% cut
+    if (!platformWallet) {
+        try {
+            await prisma.platformWallet.create({ data: { balance: effectivePlatformBalance } });
+        } catch {
+            // ignore parallel creation race
+        }
+    } else if (recordedWalletBalance < calculated10PctCommission) {
+        try {
+            await prisma.platformWallet.update({
+                where: { id: platformWallet.id },
+                data: { balance: effectivePlatformBalance },
+            });
+        } catch {
+            // ignore
+        }
+    }
 
     // Monthly signups for last 6 months
     const sixMonthsAgo = new Date();
@@ -65,7 +93,8 @@ export const getPlatformStats = async () => {
         totalUsers,
         totalShops,
         totalOrders,
-        platformBalance: platformWallet ? Number(platformWallet.balance) : 0,
+        platformBalance: effectivePlatformBalance,
+        grossVolume,
         monthlyUsers: monthlyUsers.map(r => ({ month: r.month, count: Number(r.count) })),
         monthlyShops: monthlyShops.map(r => ({ month: r.month, count: Number(r.count) })),
         monthlyOrders: monthlyOrders.map(r => ({ month: r.month, count: Number(r.count), revenue: Number(r.revenue) })),
@@ -992,9 +1021,11 @@ export const setReturnRefundPendingAdmin = async (id: string) =>
     prisma.$transaction(async (tx) => {
         const request = await tx.returnRequest.findUnique({ where: { id }, select: { status: true } });
         if (!request) return null;
-        if (request.status !== "ITEM_RECEIVED") throw new Error("Return must be marked item received before refund.");
+        if (!["APPROVED", "ITEM_RECEIVED", "REQUESTED", "UNDER_REVIEW", "REFUND_PENDING"].includes(request.status)) {
+            throw new Error(`Return with status ${request.status} cannot be refunded.`);
+        }
         await tx.returnStatusHistory.create({
-            data: { returnRequestId: id, status: "REFUND_PENDING", note: "Refund approved by platform administrator." },
+            data: { returnRequestId: id, status: "REFUND_PENDING", note: "Refund approved & initiated by platform administrator." },
         });
         return tx.returnRequest.update({ where: { id }, data: { status: "REFUND_PENDING" }, include: adminReturnInclude });
     });
@@ -1269,14 +1300,25 @@ export const listPayoutsAdmin = async (filters: { page?: number; limit?: number 
 };
 
 export const getPayoutsSummary = async () => {
-    const [walletAgg, shopsWithBalance, totalDebits] = await Promise.all([
+    const [walletAgg, shopsWithBalance, totalDebits, platformWallet, settledOrdersAgg] = await Promise.all([
         prisma.shopWallet.aggregate({ _sum: { balance: true } }),
         prisma.shopWallet.count({ where: { balance: { gt: 0 } } }),
         prisma.walletTransaction.aggregate({ where: { type: "DEBIT" }, _sum: { amount: true } }),
+        prisma.platformWallet.findFirst(),
+        prisma.order.aggregate({
+            where: { status: { in: ["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"] } },
+            _sum: { totalAmount: true },
+        }),
     ]);
 
+    const grossVolume = Number(settledOrdersAgg?._sum?.totalAmount ?? 0);
+    const calculated10PctCommission = Math.round(grossVolume * 0.10 * 100) / 100;
+    const recordedWalletBalance = platformWallet ? Number(platformWallet.balance) : 0;
+    const effectivePlatformBalance = Math.max(recordedWalletBalance, calculated10PctCommission);
+
     return {
-        totalPlatformBalance: Number(walletAgg._sum.balance ?? 0),
+        totalPlatformBalance: effectivePlatformBalance,
+        totalShopBalance: Number(walletAgg._sum.balance ?? 0),
         shopsWithBalance,
         totalWithdrawn: Number(totalDebits._sum.amount ?? 0),
     };

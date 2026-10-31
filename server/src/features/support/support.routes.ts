@@ -1,3 +1,4 @@
+import { recordAuditLog, extractClientIp } from '../admin/audit.service.js';
 import express from "express";
 import { z } from "zod";
 import { prisma } from "../../config/db.js";
@@ -327,6 +328,11 @@ router.patch(
     if (req.user!.role !== "SUPER_ADMIN") throw new AppError("Forbidden.", 403);
 
     const { status, priority, assignedToId } = req.body;
+    const prevTicket = await prisma.supportTicket.findUnique({
+      where: { id: req.params.ticketId as string },
+      select: { status: true, priority: true, assignedToId: true, ticketNumber: true },
+    });
+
     const data: any = {};
     if (status) data.status = status;
     if (priority) data.priority = priority;
@@ -363,6 +369,25 @@ router.patch(
         }).catch((err) => console.error("Ticket resolved email error:", err));
       }
     }
+
+    await recordAuditLog({
+      userId: req.user!.id,
+      action: "UPDATE",
+      entity: "SUPPORT_ASSIGNMENT",
+      entityId: ticket.id,
+      oldValue: {
+        status: prevTicket?.status,
+        priority: prevTicket?.priority,
+        assignedToId: prevTicket?.assignedToId,
+      },
+      newValue: {
+        status: ticket.status,
+        priority: ticket.priority,
+        assignedToId: ticket.assignedToId,
+        ticketNumber: ticket.ticketNumber,
+      },
+      ip: extractClientIp(req),
+    });
 
     res.json({ success: true, data: ticket });
   })

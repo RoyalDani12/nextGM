@@ -12,7 +12,7 @@ export const getUploadSignatureController = asyncHandler(
         }
 
         const { resourceType, resourceId, mimeType } = req.query as {
-            resourceType: "user_avatar" | "shop_logo" | "shop_banner" | "product_image" | "category_image" | "return_evidence"
+            resourceType: "user_avatar" | "shop_logo" | "shop_banner" | "product_image" | "category_image" | "return_evidence" | "kyc_document"
             resourceId:   string
             mimeType:     "image/jpeg" | "image/png" | "image/webp"
         }

@@ -74,6 +74,17 @@ export const generateUploadSignatureService = async ({
             folder = "categories";
             break;
         }
+        case "kyc_document": {
+            const shop = await findShopById(resourceId);
+            if (!shop) {
+                throw new AppError("Shop not found.", 404);
+            }
+            if (shop.ownerId !== userId) {
+                throw new AppError("You do not own this shop.", 403);
+            }
+            folder = `shop_kyc/${resourceId}`;
+            break;
+        }
         case "return_evidence": {
             const returnRequest = await prisma.returnRequest.findFirst({
                 where: { id: resourceId, customerId: userId },

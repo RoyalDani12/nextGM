@@ -8,7 +8,8 @@ export type UploadResourceType =
   | "shop_banner"
   | "product_image"
   | "category_image"
-  | "return_evidence";
+  | "return_evidence"
+  | "kyc_document";
 
 export interface UploadSignatureResponse {
   signature: string;

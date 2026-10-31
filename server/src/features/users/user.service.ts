@@ -1,3 +1,4 @@
+import { recordAuditLog } from '../admin/audit.service.js';
 import { cloudinary } from "../../infrastructure/storage/cloudinary.client.js";
 import { AppError } from "../../middleware/appError.js";
 
@@ -135,6 +136,14 @@ export const deactivateAccountService = async (userId: string, password: string)
 
     await deactivateAccountRepository(userId);
     await deleteUserSession(userId);
+    await recordAuditLog({
+        userId,
+        action: "UPDATE",
+        entity: "USER_STATUS",
+        entityId: userId,
+        oldValue: { status: user.status },
+        newValue: { status: "DEACTIVATED", selfInitiated: true },
+    });
 
     return {
         message: "Account deactivated successfully.To activate Contact support via email.",
@@ -210,6 +219,14 @@ export const deleteAccountService = async (userId: string, password: string) => 
     }
     await deleteAccountRepositoryAndClearToken(userId);
     await deleteUserSession(userId);
+    await recordAuditLog({
+        userId,
+        action: "UPDATE",
+        entity: "USER_STATUS",
+        entityId: userId,
+        oldValue: { status: user.status },
+        newValue: { status: "DELETED", selfInitiated: true },
+    });
 
     const reactivationKeyToken = crypto.randomBytes(32).toString("hex");
     const { html, subject } = accountDeletionScheduledTemplate(user.name, reactivationKeyToken);

@@ -1,3 +1,4 @@
+import { recordAuditLog } from '../admin/audit.service.js';
 import Stripe from "stripe";
 import { env } from "../../config/env.js";
 import { AppError } from "../../middleware/appError.js";
@@ -127,7 +128,7 @@ export const generateOnboardingLinkService = async (shopId: string, origin: stri
     }
 };
 
-export const withdrawFundsService = async (shopId: string, amount: number) => {
+export const withdrawFundsService = async (shopId: string, amount: number, userId?: string, ip?: string) => {
     if (amount <= 0) {
         throw new AppError("Invalid withdrawal amount.", 400);
     }
@@ -164,6 +165,19 @@ export const withdrawFundsService = async (shopId: string, amount: number) => {
     });
 
     logger.info({ shopId, amount }, "Payout completed successfully");
+
+    if (userId) {
+        await recordAuditLog({
+            userId,
+            action: "UPDATE",
+            entity: "PAYOUT",
+            entityId: shopId,
+            oldValue: { previousBalance: Number(wallet.balance) },
+            newValue: { withdrawAmount: amount, newBalance: Number(result.wallet.balance), destination: stripeAccountId },
+            ip,
+        });
+    }
+
     return result;
 };
 

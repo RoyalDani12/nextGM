@@ -15,7 +15,34 @@ createRoot(document.getElementById("root")!).render(
             <BrowserRouter>
                 <App />
                 <Toaster />
-                <HotToaster position="top-right" />
+                <HotToaster
+                    position="top-right"
+                    toastOptions={{
+                        duration: 4000,
+                        style: {
+                            background: "#0f172a",
+                            color: "#f8fafc",
+                            borderRadius: "14px",
+                            border: "1px solid rgba(255, 255, 255, 0.12)",
+                            boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3)",
+                            fontSize: "13px",
+                            fontWeight: "600",
+                            padding: "12px 18px",
+                        },
+                        success: {
+                            iconTheme: {
+                                primary: "#10b981",
+                                secondary: "#ffffff",
+                            },
+                        },
+                        error: {
+                            iconTheme: {
+                                primary: "#f43f5e",
+                                secondary: "#ffffff",
+                            },
+                        },
+                    }}
+                />
             </BrowserRouter>
         </QueryClientProvider>
     </StrictMode>,

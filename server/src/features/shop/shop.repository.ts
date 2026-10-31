@@ -152,12 +152,40 @@ export const closeShopRepository = async (shopId: string) => {
 
 export const upsertShopLegalInfo = async (
     shopId: string,
-    data: { legalBusinessName: string; taxId: string; entityType: string },
+    data: {
+        legalBusinessName?: string;
+        taxId?: string;
+        entityType?: string;
+        ownerIdType?: string | null;
+        ownerIdNumber?: string | null;
+        ownerIdCardFront?: string | null;
+        ownerIdCardBack?: string | null;
+        ownerKycStatus?: any;
+    },
 ) => {
     return prisma.shopLegalInfo.upsert({
         where: { shopId },
-        create: { shopId, ...data },
-        update: data,
+        create: {
+            shopId,
+            legalBusinessName: data.legalBusinessName || "Individual Business",
+            taxId: data.taxId || "PENDING",
+            entityType: data.entityType || "LLC",
+            ownerIdType: data.ownerIdType,
+            ownerIdNumber: data.ownerIdNumber,
+            ownerIdCardFront: data.ownerIdCardFront,
+            ownerIdCardBack: data.ownerIdCardBack,
+            ownerKycStatus: data.ownerKycStatus || "UNVERIFIED",
+        },
+        update: {
+            ...(data.legalBusinessName !== undefined && { legalBusinessName: data.legalBusinessName }),
+            ...(data.taxId !== undefined && { taxId: data.taxId }),
+            ...(data.entityType !== undefined && { entityType: data.entityType }),
+            ...(data.ownerIdType !== undefined && { ownerIdType: data.ownerIdType }),
+            ...(data.ownerIdNumber !== undefined && { ownerIdNumber: data.ownerIdNumber }),
+            ...(data.ownerIdCardFront !== undefined && { ownerIdCardFront: data.ownerIdCardFront }),
+            ...(data.ownerIdCardBack !== undefined && { ownerIdCardBack: data.ownerIdCardBack }),
+            ...(data.ownerKycStatus !== undefined && { ownerKycStatus: data.ownerKycStatus }),
+        },
     });
 };
 

@@ -1,3 +1,4 @@
+import { recordAuditLog } from './audit.service.js';
 import bcrypt from "bcrypt";
 import { transporter } from "../../services/email.transporter.js";
 ﻿import { AppError } from "../../middleware/appError.js";
@@ -68,7 +69,7 @@ export const getUserByIdService = async (id: string) => {
     return user;
 };
 
-export const updateUserRoleService = async (id: string, role: string, adminUserId?: string) => {
+export const updateUserRoleService = async (id: string, role: string, adminUserId?: string, ip?: string) => {
     const validRoles = ["CUSTOMER", "SHOP_OWNER", "SUPER_ADMIN"];
     if (!validRoles.includes(role)) throw new AppError("Invalid role", 400);
     if (adminUserId && id === adminUserId && role !== "SUPER_ADMIN") {
@@ -76,10 +77,22 @@ export const updateUserRoleService = async (id: string, role: string, adminUserI
     }
     const user = await getUserByIdAdmin(id);
     if (!user) throw new AppError("User not found", 404);
-    return updateUserRoleAdmin(id, role);
+    const updated = await updateUserRoleAdmin(id, role);
+    if (adminUserId) {
+        await recordAuditLog({
+            userId: adminUserId,
+            action: "UPDATE",
+            entity: "USER_ROLE",
+            entityId: id,
+            oldValue: { role: user.role, email: user.email, name: user.name },
+            newValue: { role, email: user.email, name: user.name },
+            ip,
+        });
+    }
+    return updated;
 };
 
-export const updateUserStatusService = async (id: string, status: string, adminUserId?: string) => {
+export const updateUserStatusService = async (id: string, status: string, adminUserId?: string, ip?: string) => {
     const validStatuses = ["ACTIVE", "SUSPENDED", "DEACTIVATED"];
     if (!validStatuses.includes(status)) throw new AppError("Invalid status", 400);
     if (adminUserId && id === adminUserId && (status === "SUSPENDED" || status === "DEACTIVATED")) {
@@ -87,13 +100,26 @@ export const updateUserStatusService = async (id: string, status: string, adminU
     }
     const user = await getUserByIdAdmin(id);
     if (!user) throw new AppError("User not found", 404);
-    return updateUserStatusAdmin(id, status, adminUserId);
+    const updated = await updateUserStatusAdmin(id, status, adminUserId);
+    if (adminUserId) {
+        await recordAuditLog({
+            userId: adminUserId,
+            action: "UPDATE",
+            entity: "USER_STATUS",
+            entityId: id,
+            oldValue: { status: user.status, email: user.email, name: user.name },
+            newValue: { status, email: user.email, name: user.name },
+            ip,
+        });
+    }
+    return updated;
 };
 
 export const updateUserProfileService = async (
     id: string,
     data: { name?: string; email?: string; role?: string; phone?: string },
-    adminUserId?: string
+    adminUserId?: string,
+    ip?: string
 ) => {
     if (data.role) {
         const validRoles = ["CUSTOMER", "SHOP_OWNER", "SUPER_ADMIN"];
@@ -105,10 +131,33 @@ export const updateUserProfileService = async (
     const user = await getUserByIdAdmin(id);
     if (!user) throw new AppError("User not found", 404);
 
-    return updateUserProfileAdmin(id, data, adminUserId);
+    const updated = await updateUserProfileAdmin(id, data, adminUserId);
+    if (adminUserId) {
+        if (data.role && data.role !== user.role) {
+            await recordAuditLog({
+                userId: adminUserId,
+                action: "UPDATE",
+                entity: "USER_ROLE",
+                entityId: id,
+                oldValue: { role: user.role, email: user.email },
+                newValue: { role: data.role, email: user.email },
+                ip,
+            });
+        }
+        await recordAuditLog({
+            userId: adminUserId,
+            action: "UPDATE",
+            entity: "USER_PROFILE",
+            entityId: id,
+            oldValue: { name: user.name, email: user.email, phone: user.profile?.phone },
+            newValue: { name: data.name ?? user.name, email: data.email ?? user.email, phone: data.phone ?? user.profile?.phone },
+            ip,
+        });
+    }
+    return updated;
 };
 
-export const resetUserPasswordService = async (id: string, customPassword?: string, adminUserId?: string) => {
+export const resetUserPasswordService = async (id: string, customPassword?: string, adminUserId?: string, ip?: string) => {
     const user = await getUserByIdAdmin(id);
     if (!user) throw new AppError("User not found", 404);
 
@@ -116,6 +165,17 @@ export const resetUserPasswordService = async (id: string, customPassword?: stri
     const passwordHash = await bcrypt.hash(tempPassword, 12);
 
     await resetUserPasswordAdmin(id, passwordHash, adminUserId);
+    if (adminUserId) {
+        await recordAuditLog({
+            userId: adminUserId,
+            action: "UPDATE",
+            entity: "USER_PASSWORD",
+            entityId: id,
+            oldValue: { email: user.email, passwordChangedAt: user.passwordChangedAt },
+            newValue: { email: user.email, resetType: customPassword ? "CUSTOM_OVERRIDE" : "TEMPORARY_AUTO_GENERATED" },
+            ip,
+        });
+    }
 
     // Send transactional notification email to user
     try {
@@ -166,7 +226,7 @@ export const sendUserEmailService = async (id: string, subject: string, message:
     return { sent: true, to: user.email };
 };
 
-export const bulkUpdateUserStatusService = async (userIds: string[], status: string, adminUserId?: string) => {
+export const bulkUpdateUserStatusService = async (userIds: string[], status: string, adminUserId?: string, ip?: string) => {
     const validStatuses = ["ACTIVE", "SUSPENDED", "DEACTIVATED"];
     if (!validStatuses.includes(status)) throw new AppError("Invalid status", 400);
 
@@ -177,7 +237,21 @@ export const bulkUpdateUserStatusService = async (userIds: string[], status: str
             throw new AppError("Safety Protection: You cannot ban, suspend, or deactivate your own account.", 400);
         }
     }
-    return bulkUpdateUsersStatusAdmin(targetIds, status, adminUserId);
+    const result = await bulkUpdateUsersStatusAdmin(targetIds, status, adminUserId);
+    if (adminUserId) {
+        for (const uid of targetIds) {
+            await recordAuditLog({
+                userId: adminUserId,
+                action: "UPDATE",
+                entity: "USER_STATUS",
+                entityId: uid,
+                oldValue: { operation: "BULK_UPDATE" },
+                newValue: { status, operation: "BULK_UPDATE" },
+                ip,
+            });
+        }
+    }
+    return result;
 };
 
 export const bulkSendUserEmailService = async (userIds: string[], subject: string, message: string, adminUserId?: string) => {
@@ -374,24 +448,47 @@ export const getShopByIdService = async (id: string) => {
     };
 };
 
-export const updateShopStatusService = async (id: string, status: string) => {
+export const updateShopStatusService = async (id: string, status: string, adminId?: string, ip?: string) => {
     const validStatuses = ["ACTIVE", "PAUSED", "SUSPENDED", "CLOSED", "REJECTED", "PENDING"];
     if (!validStatuses.includes(status)) throw new AppError("Invalid shop status", 400);
     const shop = await getShopByIdAdmin(id);
     if (!shop) throw new AppError("Shop not found", 404);
-    return updateShopStatusAdmin(id, status);
+    const result = await updateShopStatusAdmin(id, status);
+    if (adminId) {
+        await recordAuditLog({
+            userId: adminId,
+            action: "UPDATE",
+            entity: "SHOP",
+            entityId: id,
+            oldValue: { status: shop.status, slug: shop.slug },
+            newValue: { status, slug: shop.slug },
+            ip,
+        });
+    }
+    return result;
 };
 
 export const approveShopService = async (
     id: string,
     adminId: string,
     adminName: string,
-    notes?: string
+    notes?: string,
+    ip?: string
 ) => {
     const shop = await getShopByIdAdmin(id);
     if (!shop) throw new AppError("Shop not found", 404);
     if (shop.status === "ACTIVE") throw new AppError("Shop is already active", 400);
-    return approveShopAdmin(id, adminId, adminName, notes);
+    const result = await approveShopAdmin(id, adminId, adminName, notes);
+    await recordAuditLog({
+        userId: adminId,
+        action: "UPDATE",
+        entity: "SHOP",
+        entityId: id,
+        oldValue: { status: shop.status, slug: shop.slug },
+        newValue: { status: "ACTIVE", approvedBy: adminName, notes },
+        ip,
+    });
+    return result;
 };
 
 export const rejectShopService = async (
@@ -399,12 +496,23 @@ export const rejectShopService = async (
     adminId: string,
     adminName: string,
     reason: string,
-    notes?: string
+    notes?: string,
+    ip?: string
 ) => {
     if (!reason || !reason.trim()) throw new AppError("Rejection reason is required", 400);
     const shop = await getShopByIdAdmin(id);
     if (!shop) throw new AppError("Shop not found", 404);
-    return rejectShopAdmin(id, adminId, adminName, reason.trim(), notes?.trim());
+    const result = await rejectShopAdmin(id, adminId, adminName, reason.trim(), notes?.trim());
+    await recordAuditLog({
+        userId: adminId,
+        action: "UPDATE",
+        entity: "SHOP",
+        entityId: id,
+        oldValue: { status: shop.status, slug: shop.slug },
+        newValue: { status: "REJECTED", reason: reason.trim(), notes: notes?.trim(), rejectedBy: adminName },
+        ip,
+    });
+    return result;
 };
 
 export const suspendShopService = async (
@@ -412,12 +520,23 @@ export const suspendShopService = async (
     adminId: string,
     adminName: string,
     reason: string,
-    notes?: string
+    notes?: string,
+    ip?: string
 ) => {
     if (!reason || !reason.trim()) throw new AppError("Suspension reason is required", 400);
     const shop = await getShopByIdAdmin(id);
     if (!shop) throw new AppError("Shop not found", 404);
-    return suspendShopAdmin(id, adminId, adminName, reason.trim(), notes?.trim());
+    const result = await suspendShopAdmin(id, adminId, adminName, reason.trim(), notes?.trim());
+    await recordAuditLog({
+        userId: adminId,
+        action: "UPDATE",
+        entity: "SHOP",
+        entityId: id,
+        oldValue: { status: shop.status, slug: shop.slug },
+        newValue: { status: "SUSPENDED", reason: reason.trim(), notes: notes?.trim(), suspendedBy: adminName },
+        ip,
+    });
+    return result;
 };
 
 export const closeShopService = async (
@@ -425,12 +544,23 @@ export const closeShopService = async (
     adminId: string,
     adminName: string,
     reason: string,
-    notes?: string
+    notes?: string,
+    ip?: string
 ) => {
     if (!reason || !reason.trim()) throw new AppError("Closure reason is required", 400);
     const shop = await getShopByIdAdmin(id);
     if (!shop) throw new AppError("Shop not found", 404);
-    return closeShopAdmin(id, adminId, adminName, reason.trim(), notes?.trim());
+    const result = await closeShopAdmin(id, adminId, adminName, reason.trim(), notes?.trim());
+    await recordAuditLog({
+        userId: adminId,
+        action: "UPDATE",
+        entity: "SHOP",
+        entityId: id,
+        oldValue: { status: shop.status, slug: shop.slug },
+        newValue: { status: "CLOSED", reason: reason.trim(), notes: notes?.trim(), closedBy: adminName },
+        ip,
+    });
+    return result;
 };
 
 export const reopenShopService = async (
@@ -438,13 +568,24 @@ export const reopenShopService = async (
     adminId: string,
     adminName: string,
     reason: string,
-    targetStatus: "ACTIVE" | "PENDING" = "ACTIVE"
+    targetStatus: "ACTIVE" | "PENDING" = "ACTIVE",
+    ip?: string
 ) => {
     if (!reason || !reason.trim()) throw new AppError("Reopen reason is required", 400);
     const shop = await getShopByIdAdmin(id);
     if (!shop) throw new AppError("Shop not found", 404);
     if (shop.status === "ACTIVE") throw new AppError("Shop is already active", 400);
-    return reopenShopAdmin(id, adminId, adminName, reason.trim(), targetStatus);
+    const result = await reopenShopAdmin(id, adminId, adminName, reason.trim(), targetStatus);
+    await recordAuditLog({
+        userId: adminId,
+        action: "UPDATE",
+        entity: "SHOP",
+        entityId: id,
+        oldValue: { status: shop.status, slug: shop.slug },
+        newValue: { status: targetStatus, reason: reason.trim(), reopenedBy: adminName },
+        ip,
+    });
+    return result;
 };
 
 export const updateShopVerificationService = async (
@@ -542,26 +683,44 @@ export const getReturnService = async (id: string) => {
     return request;
 };
 
-export const refundReturnService = async (id: string) => {
+export const refundReturnService = async (id: string, adminUserId?: string, ip?: string) => {
     const request = await getReturnAdmin(id);
     if (!request) throw new AppError("Return request not found.", 404);
     if (request.resolution !== "REFUND") throw new AppError("This return requests a replacement, not a refund.", 400);
-    if (request.status !== "ITEM_RECEIVED") throw new AppError("The return must be marked as received before refunding.", 400);
+
+    const eligibleStatuses = ["APPROVED", "ITEM_RECEIVED", "REQUESTED", "UNDER_REVIEW", "REFUND_PENDING"];
+    if (!eligibleStatuses.includes(request.status)) {
+        throw new AppError(`Cannot refund return in '${request.status}' status. Only approved or active returns can be refunded.`, 400);
+    }
+
+    const previousStatus = request.status;
     const updated = await setReturnRefundPendingAdmin(id);
     if (!updated) throw new AppError("Return request not found.", 404);
     try {
-        return await initiateRefundService(request.orderId);
+        const refundResult = await initiateRefundService(request.orderId);
+        if (adminUserId) {
+            await recordAuditLog({
+                userId: adminUserId,
+                action: "UPDATE",
+                entity: "REFUND",
+                entityId: id,
+                oldValue: { returnId: id, orderId: request.orderId, status: previousStatus, refundStatus: "PENDING" },
+                newValue: { returnId: id, orderId: request.orderId, status: "REFUNDED", refundResult },
+                ip,
+            });
+        }
+        return refundResult;
     } catch (error) {
-        await prismaReturnRollback(id);
+        await prismaReturnRollback(id, previousStatus);
         throw error;
     }
 };
 
-const prismaReturnRollback = async (id: string) => {
+const prismaReturnRollback = async (id: string, fallbackStatus: string = "APPROVED") => {
     const { prisma } = await import("../../config/db.js");
     await prisma.$transaction(async (tx) => {
-        await tx.returnStatusHistory.create({ data: { returnRequestId: id, status: "ITEM_RECEIVED", note: "Refund initiation failed; returned to received state." } });
-        await tx.returnRequest.update({ where: { id }, data: { status: "ITEM_RECEIVED" } });
+        await tx.returnStatusHistory.create({ data: { returnRequestId: id, status: fallbackStatus as any, note: "Refund initiation failed; returned to previous state." } });
+        await tx.returnRequest.update({ where: { id }, data: { status: fallbackStatus as any } });
     });
 };
 
@@ -607,9 +766,22 @@ export const listCouponsService = (filters: {
     limit?: number;
 }) => listCouponsAdmin(filters);
 
-export const toggleCouponService = async (id: string) => {
+export const toggleCouponService = async (id: string, adminUserId?: string, ip?: string) => {
+    const { prisma } = await import("../../config/db.js");
+    const prevCoupon = await prisma.coupon.findUnique({ where: { id }, select: { id: true, code: true, isActive: true } });
     const result = await toggleCouponAdmin(id);
     if (!result) throw new AppError("Coupon not found", 404);
+    if (adminUserId) {
+        await recordAuditLog({
+            userId: adminUserId,
+            action: "UPDATE",
+            entity: "COUPON",
+            entityId: id,
+            oldValue: { code: prevCoupon?.code, isActive: prevCoupon?.isActive },
+            newValue: { code: prevCoupon?.code, isActive: result.isActive },
+            ip,
+        });
+    }
     return result;
 };
 
@@ -635,12 +807,80 @@ export const getProductByIdAdminService = async (id: string) => {
 export const updateProductStatusService = async (
     id: string,
     status: "ACTIVE" | "DRAFT" | "ARCHIVED",
-    adminUserId?: string
+    adminUserId?: string,
+    ip?: string
 ) => {
     const validStatuses = ["ACTIVE", "DRAFT", "ARCHIVED"];
     if (!validStatuses.includes(status)) throw new AppError("Invalid product status", 400);
+    const product = await getProductByIdAdmin(id);
     const updated = await updateProductStatusAdmin(id, status, adminUserId);
     if (!updated) throw new AppError("Product not found", 404);
+    if (adminUserId) {
+        await recordAuditLog({
+            userId: adminUserId,
+            action: "UPDATE",
+            entity: "PRODUCT_MODERATION",
+            entityId: id,
+            oldValue: { name: product?.name, status: product?.status, shopId: product?.shopId },
+            newValue: { name: updated.name, status: updated.status, shopId: product?.shopId },
+            ip,
+        });
+    }
     return updated;
 };
 
+
+export const impersonateUserService = async (
+    targetUserId: string,
+    adminUser: { id: string; email: string; name: string },
+    ip?: string
+) => {
+    if (adminUser.id === targetUserId) {
+        throw new AppError("Cannot impersonate yourself.", 400);
+    }
+    const targetUser = await getUserByIdAdmin(targetUserId);
+    if (!targetUser) {
+        throw new AppError("User to impersonate not found.", 404);
+    }
+    if (targetUser.role === "SUPER_ADMIN") {
+        throw new AppError("Safety Protection: Cannot impersonate another Super Administrator.", 403);
+    }
+    if (targetUser.status === "SUSPENDED" || targetUser.status === "DELETED") {
+        throw new AppError(`Cannot impersonate user with status ${targetUser.status}.`, 400);
+    }
+
+    const { generateAccessToken, generateRefreshToken } = await import("../auth/token.service.js");
+    const accessToken = generateAccessToken(targetUser.id, targetUser.role);
+    const refreshToken = generateRefreshToken(targetUser.id);
+
+    await recordAuditLog({
+        userId: adminUser.id,
+        action: "LOGIN",
+        entity: "IMPERSONATION",
+        entityId: targetUserId,
+        oldValue: null,
+        newValue: {
+            impersonatedUserId: targetUser.id,
+            impersonatedEmail: targetUser.email,
+            impersonatedName: targetUser.name,
+            impersonatedRole: targetUser.role,
+            adminId: adminUser.id,
+            adminEmail: adminUser.email,
+            timestamp: new Date().toISOString(),
+        },
+        ip,
+    });
+
+    return {
+        accessToken,
+        refreshToken,
+        user: {
+            id: targetUser.id,
+            email: targetUser.email,
+            name: targetUser.name,
+            role: targetUser.role,
+            status: targetUser.status,
+            profile: targetUser.profile,
+        },
+    };
+};

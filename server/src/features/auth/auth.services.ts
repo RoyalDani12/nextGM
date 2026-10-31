@@ -1,3 +1,4 @@
+import { recordAuditLog } from '../admin/audit.service.js';
 import { LoginDto, RegisterDto,DeviceInfo } from "./auth.types.js";
 import { AppError } from "../../middleware/appError.js";
 import {
@@ -361,6 +362,15 @@ export const resetPasswordService = async (token: string, password: string) => {
     await resetPasswordAndRevoke(resetToken.id, resetToken.userId, hashedPassword);
 
     await deleteUserSession(resetToken.userId);
+
+    await recordAuditLog({
+        userId: resetToken.userId,
+        action: "UPDATE",
+        entity: "USER_PASSWORD",
+        entityId: resetToken.userId,
+        oldValue: { email: resetToken.user.email },
+        newValue: { email: resetToken.user.email, resetMethod: "USER_SELF_RESET_LINK" },
+    });
 
     const { subject, html } = passwordResetSuccessTemplate(resetToken.user.name);
 

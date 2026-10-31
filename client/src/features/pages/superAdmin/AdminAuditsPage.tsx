@@ -108,7 +108,11 @@ export const AdminAuditsPage = () => {
                             <option value="ORDER">Order</option>
                             <option value="PRODUCT">Product</option>
                             <option value="RETURN">Return</option>
+                            <option value="REFUND">Refund</option>
                             <option value="COUPON">Coupon</option>
+                            <option value="PAYOUT">Payout</option>
+                            <option value="SUPPORT">Support</option>
+                            <option value="IMPERSONATION">Impersonation</option>
                             <option value="AUTH">Auth / Session</option>
                         </select>
 

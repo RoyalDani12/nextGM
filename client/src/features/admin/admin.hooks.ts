@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi, adminApiExtended, type AdminShopFilters, type AdminUserFilters, type AdminReviewFilters, type AdminOrderFilters, type AdminAuditFilters, type AdminCouponFilters, type AdminProductFilters } from "./admin.api";
-// import { toast } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 
 export const useAdminStats = () =>
     useQuery({ queryKey: ["admin", "stats"], queryFn: adminApi.getStats, staleTime: 60_000 });
@@ -25,10 +25,10 @@ export const useUpdateUserRole = () => {
     return useMutation({
         mutationFn: ({ id, role }: { id: string; role: string }) => adminApi.updateUserRole(id, role),
         onSuccess: () => {
-            alert("User role updated");
+            toast.success("User role updated successfully");
             qc.invalidateQueries({ queryKey: ["admin", "users"] });
         },
-        onError: (err: any) => alert(err?.response?.data?.message ?? "Failed to update role"),
+        onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to update role"),
     });
 };
 
@@ -37,10 +37,10 @@ export const useUpdateUserStatus = () => {
     return useMutation({
         mutationFn: ({ id, status }: { id: string; status: string }) => adminApi.updateUserStatus(id, status),
         onSuccess: () => {
-            alert("User status updated");
+            toast.success("User status updated successfully");
             qc.invalidateQueries({ queryKey: ["admin", "users"] });
         },
-        onError: (err: any) => alert(err?.response?.data?.message ?? "Failed to update status"),
+        onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to update status"),
     });
 };
 
@@ -245,7 +245,15 @@ export const useRefundReturn = () => {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: (id: string) => adminApi.refundReturn(id),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "returns"] }),
+        onSuccess: () => {
+            toast.success("Refund issued and settled successfully!");
+            qc.invalidateQueries({ queryKey: ["admin", "returns"] });
+            qc.invalidateQueries({ queryKey: ["admin", "stats"] });
+            qc.invalidateQueries({ queryKey: ["admin", "payouts"] });
+        },
+        onError: (err: any) => {
+            toast.error(err?.response?.data?.message || "Failed to issue refund.");
+        },
     });
 };
 
@@ -320,7 +328,7 @@ export const useToggleCoupon = () => {
     return useMutation({
         mutationFn: (id: string) => adminApiExtended.toggleCoupon(id),
         onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "coupons"] }),
-        onError: (err: any) => alert(err?.response?.data?.message ?? "Failed to toggle coupon"),
+        onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to toggle coupon"),
     });
 };
 
@@ -348,7 +356,7 @@ export const useUpdateProductStatus = () => {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["admin", "products"] });
         },
-        onError: (err: any) => alert(err?.response?.data?.message ?? "Failed to update product status"),
+        onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to update product status"),
     });
 };
 export const useUpdateUserProfile = () => {
@@ -359,7 +367,7 @@ export const useUpdateUserProfile = () => {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["admin", "users"] });
         },
-        onError: (err: any) => alert(err?.response?.data?.message ?? "Failed to update profile"),
+        onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to update profile"),
     });
 };
 
@@ -371,7 +379,7 @@ export const useResetUserPassword = () => {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["admin", "users"] });
         },
-        onError: (err: any) => alert(err?.response?.data?.message ?? "Failed to reset password"),
+        onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to reset password"),
     });
 };
 
@@ -379,7 +387,7 @@ export const useSendUserEmail = () => {
     return useMutation({
         mutationFn: ({ id, data }: { id: string; data: { subject: string; message: string } }) =>
             adminApi.sendUserEmail(id, data),
-        onError: (err: any) => alert(err?.response?.data?.message ?? "Failed to send email"),
+        onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to send email"),
     });
 };
 
@@ -391,7 +399,7 @@ export const useBulkUpdateUserStatus = () => {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["admin", "users"] });
         },
-        onError: (err: any) => alert(err?.response?.data?.message ?? "Failed to perform bulk status update"),
+        onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to perform bulk status update"),
     });
 };
 
@@ -399,7 +407,14 @@ export const useBulkSendUserEmail = () => {
     return useMutation({
         mutationFn: ({ userIds, subject, message }: { userIds: string[]; subject: string; message: string }) =>
             adminApi.bulkSendUserEmail(userIds, subject, message),
-        onError: (err: any) => alert(err?.response?.data?.message ?? "Failed to send bulk email"),
+        onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to send bulk email"),
     });
 };
 
+
+// ─── Impersonation ───────────────────────────
+export const useImpersonateUser = () => {
+    return useMutation({
+        mutationFn: (id: string) => adminApiExtended.impersonateUser(id),
+    });
+};

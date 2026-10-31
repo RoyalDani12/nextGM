@@ -744,4 +744,10 @@ export const adminApiExtended = {
         const res = await api.patch(`${base}/coupons/${id}/toggle`);
         return res.data.data;
     },
+
+    // Impersonation
+    impersonateUser: async (id: string): Promise<{ accessToken: string; user: any }> => {
+        const res = await api.post(`${base}/users/${id}/impersonate`);
+        return res.data.data;
+    },
 };

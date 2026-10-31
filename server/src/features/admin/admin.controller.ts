@@ -1,3 +1,4 @@
+import { extractClientIp } from './audit.service.js';
 ﻿import type { Request, Response } from "express";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import {
@@ -45,6 +46,7 @@ import {
     listProductsService,
     getProductByIdAdminService,
     updateProductStatusService,
+    impersonateUserService,
 } from "./admin.service.js";
 
 // ─── Platform Stats ───────────────────────────
@@ -75,24 +77,27 @@ export const getUserByIdController = asyncHandler(async (req: Request, res: Resp
 export const updateUserRoleController = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params as { id: string };
     const { role } = req.body as { role: string };
-    const adminUserId = (req as any).user?.userId;
-    const data = await updateUserRoleService(id, role, adminUserId);
+    const adminUserId = req.user?.id || (req as any).user?.userId;
+    const clientIp = extractClientIp(req);
+    const data = await updateUserRoleService(id, role, adminUserId, clientIp);
     res.status(200).json({ success: true, message: "User role updated", data });
 });
 
 
 export const updateUserProfileController = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params as { id: string };
-    const adminUserId = (req as any).user?.userId;
-    const data = await updateUserProfileService(id, req.body, adminUserId);
+    const adminUserId = req.user?.id || (req as any).user?.userId;
+    const clientIp = extractClientIp(req);
+    const data = await updateUserProfileService(id, req.body, adminUserId, clientIp);
     res.status(200).json({ success: true, message: "User profile updated", data });
 });
 
 export const resetUserPasswordController = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params as { id: string };
     const { customPassword } = req.body as { customPassword?: string };
-    const adminUserId = (req as any).user?.userId;
-    const data = await resetUserPasswordService(id, customPassword, adminUserId);
+    const adminUserId = req.user?.id || (req as any).user?.userId;
+    const clientIp = extractClientIp(req);
+    const data = await resetUserPasswordService(id, customPassword, adminUserId, clientIp);
     res.status(200).json({ success: true, message: "Password reset successfully", data });
 });
 
@@ -106,8 +111,9 @@ export const sendUserEmailController = asyncHandler(async (req: Request, res: Re
 
 export const bulkUpdateUserStatusController = asyncHandler(async (req: Request, res: Response) => {
     const { userIds, status } = req.body as { userIds: string[]; status: string };
-    const adminUserId = (req as any).user?.userId;
-    const data = await bulkUpdateUserStatusService(userIds, status, adminUserId);
+    const adminUserId = req.user?.id || (req as any).user?.userId;
+    const clientIp = extractClientIp(req);
+    const data = await bulkUpdateUserStatusService(userIds, status, adminUserId, clientIp);
     res.status(200).json({ success: true, message: "Bulk user statuses updated", data });
 });
 
@@ -121,8 +127,9 @@ export const bulkSendUserEmailController = asyncHandler(async (req: Request, res
 export const updateUserStatusController = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params as { id: string };
     const { status } = req.body as { status: string };
-    const adminUserId = (req as any).user?.userId;
-    const data = await updateUserStatusService(id, status, adminUserId);
+    const adminUserId = req.user?.id || (req as any).user?.userId;
+    const clientIp = extractClientIp(req);
+    const data = await updateUserStatusService(id, status, adminUserId, clientIp);
     res.status(200).json({ success: true, message: "User status updated", data });
 });
 
@@ -150,7 +157,9 @@ export const getShopByIdController = asyncHandler(async (req: Request, res: Resp
 export const updateShopStatusController = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params as { id: string };
     const { status } = req.body as { status: string };
-    const data = await updateShopStatusService(id, status);
+    const adminUserId = req.user?.id || (req as any).user?.userId;
+    const clientIp = extractClientIp(req);
+    const data = await updateShopStatusService(id, status, adminUserId, clientIp);
     res.status(200).json({ success: true, message: "Shop status updated", data });
 });
 
@@ -158,7 +167,8 @@ export const approveShopController = asyncHandler(async (req: Request, res: Resp
     const { id } = req.params as { id: string };
     const { notes } = req.body as { notes?: string };
     const adminUser = req.user as any;
-    const data = await approveShopService(id, adminUser.id, adminUser.name || "Super Admin", notes);
+    const clientIp = extractClientIp(req);
+    const data = await approveShopService(id, adminUser.id, adminUser.name || "Super Admin", notes, clientIp);
     res.status(200).json({ success: true, message: "Shop approved and activated successfully", data });
 });
 
@@ -166,7 +176,8 @@ export const rejectShopController = asyncHandler(async (req: Request, res: Respo
     const { id } = req.params as { id: string };
     const { reason, notes } = req.body as { reason: string; notes?: string };
     const adminUser = req.user as any;
-    const data = await rejectShopService(id, adminUser.id, adminUser.name || "Super Admin", reason, notes);
+    const clientIp = extractClientIp(req);
+    const data = await rejectShopService(id, adminUser.id, adminUser.name || "Super Admin", reason, notes, clientIp);
     res.status(200).json({ success: true, message: "Shop application rejected", data });
 });
 
@@ -174,7 +185,8 @@ export const suspendShopController = asyncHandler(async (req: Request, res: Resp
     const { id } = req.params as { id: string };
     const { reason, notes } = req.body as { reason: string; notes?: string };
     const adminUser = req.user as any;
-    const data = await suspendShopService(id, adminUser.id, adminUser.name || "Super Admin", reason, notes);
+    const clientIp = extractClientIp(req);
+    const data = await suspendShopService(id, adminUser.id, adminUser.name || "Super Admin", reason, notes, clientIp);
     res.status(200).json({ success: true, message: "Shop suspended", data });
 });
 
@@ -182,7 +194,8 @@ export const closeShopController = asyncHandler(async (req: Request, res: Respon
     const { id } = req.params as { id: string };
     const { reason, notes } = req.body as { reason: string; notes?: string };
     const adminUser = req.user as any;
-    const data = await closeShopService(id, adminUser.id, adminUser.name || "Super Admin", reason, notes);
+    const clientIp = extractClientIp(req);
+    const data = await closeShopService(id, adminUser.id, adminUser.name || "Super Admin", reason, notes, clientIp);
     res.status(200).json({ success: true, message: "Shop closed permanently", data });
 });
 
@@ -190,7 +203,8 @@ export const reopenShopController = asyncHandler(async (req: Request, res: Respo
     const { id } = req.params as { id: string };
     const { reason, targetStatus } = req.body as { reason: string; targetStatus?: "ACTIVE" | "PENDING" };
     const adminUser = req.user as any;
-    const data = await reopenShopService(id, adminUser.id, adminUser.name || "Super Admin", reason, targetStatus);
+    const clientIp = extractClientIp(req);
+    const data = await reopenShopService(id, adminUser.id, adminUser.name || "Super Admin", reason, targetStatus, clientIp);
     res.status(200).json({ success: true, message: "Shop reopened successfully", data });
 });
 
@@ -291,7 +305,9 @@ export const getReturnController = asyncHandler(async (req: Request, res: Respon
 });
 
 export const refundReturnController = asyncHandler(async (req: Request, res: Response) => {
-    const data = await refundReturnService(req.params.id as string);
+    const adminUserId = req.user?.id || (req as any).user?.userId;
+    const clientIp = extractClientIp(req);
+    const data = await refundReturnService(req.params.id as string, adminUserId, clientIp);
     res.status(200).json({ success: true, message: "Refund initiated.", data });
 });
 
@@ -367,7 +383,9 @@ export const listCouponsController = asyncHandler(async (req: Request, res: Resp
 });
 
 export const toggleCouponController = asyncHandler(async (req: Request, res: Response) => {
-    const data = await toggleCouponService(req.params.id as string);
+    const adminUserId = req.user?.id || (req as any).user?.userId;
+    const clientIp = extractClientIp(req);
+    const data = await toggleCouponService(req.params.id as string, adminUserId, clientIp);
     res.status(200).json({ success: true, message: "Coupon toggled", data });
 });
 
@@ -396,8 +414,27 @@ export const getProductByIdAdminController = asyncHandler(async (req: Request, r
 
 export const updateProductStatusAdminController = asyncHandler(async (req: Request, res: Response) => {
     const { status } = req.body as { status: "ACTIVE" | "DRAFT" | "ARCHIVED" };
-    const adminUserId = (req as any).user?.userId;
-    const data = await updateProductStatusService(req.params.id as string, status, adminUserId);
+    const adminUserId = req.user?.id || (req as any).user?.userId;
+    const clientIp = extractClientIp(req);
+    const data = await updateProductStatusService(req.params.id as string, status, adminUserId, clientIp);
     res.status(200).json({ success: true, message: "Product status updated", data });
 });
 
+
+export const impersonateUserController = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    const adminUser = req.user as any;
+    const clientIp = extractClientIp(req);
+    const data = await impersonateUserService(id, { id: adminUser.id, email: adminUser.email, name: adminUser.name }, clientIp);
+    res.cookie("refreshToken", data.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    res.status(200).json({
+        success: true,
+        message: `Impersonation active as ${data.user.name} (${data.user.email})`,
+        data: { accessToken: data.accessToken, user: data.user },
+    });
+});

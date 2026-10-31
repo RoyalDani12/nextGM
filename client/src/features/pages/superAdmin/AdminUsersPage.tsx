@@ -1,3 +1,4 @@
+import { toast } from "react-hot-toast";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -986,7 +987,7 @@ const EditUserModal = ({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (isSelf && role !== "SUPER_ADMIN") {
-            alert("Safety lock: You cannot remove your own Super Admin privileges.");
+            toast.error("Safety lock: You cannot remove your own Super Admin privileges.");
             return;
         }
 

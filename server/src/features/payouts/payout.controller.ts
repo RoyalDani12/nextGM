@@ -1,3 +1,4 @@
+import { extractClientIp } from '../admin/audit.service.js';
 import type { Request, Response } from "express";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { AppError } from "../../middleware/appError.js";
@@ -48,7 +49,8 @@ export const withdrawFundsController = asyncHandler(async (req: Request, res: Re
     if (typeof amount !== "number" || amount <= 0) throw new AppError("A positive numeric amount is required", 400);
 
     await verifyShopOwner(shopId, userId);
-    const result = await withdrawFundsService(shopId, amount);
+    const clientIp = extractClientIp(req);
+    const result = await withdrawFundsService(shopId, amount, userId, clientIp);
 
     res.status(200).json({
         success: true,

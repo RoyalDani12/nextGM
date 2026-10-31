@@ -60,17 +60,39 @@ export const markPaymentFailed = async (checkoutId: string) => {
     });
 };
 
-export const findPaymentForRefund = async ( orderId:string)=>{
-  return prisma.payment.findUnique({
-    where: { checkoutId: orderId }, // TODO update refund logic later
-    select:{
-      id:true,
-      status:true,
-      providerPaymentId:true,
-      amount:true
-    }
-  })
-}
+export const findPaymentForRefund = async (orderId: string) => {
+  // 1. Direct match on checkoutId (in case orderId was checkoutId)
+  let payment = await prisma.payment.findUnique({
+    where: { checkoutId: orderId },
+    select: {
+      id: true,
+      status: true,
+      providerPaymentId: true,
+      amount: true,
+      checkoutId: true,
+    },
+  });
+  if (payment) return payment;
+
+  // 2. Query order to retrieve its checkoutId
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { checkoutId: true },
+  });
+  if (order?.checkoutId) {
+    payment = await prisma.payment.findUnique({
+      where: { checkoutId: order.checkoutId },
+      select: {
+        id: true,
+        status: true,
+        providerPaymentId: true,
+        amount: true,
+        checkoutId: true,
+      },
+    });
+  }
+  return payment;
+};
 
 export const markPaymendRefundPending = async (paymentId:string)=>{
   
@@ -253,5 +275,75 @@ export const findPaymentByProviderId = async (providerPaymentId: string) => {
     return prisma.payment.findUnique({
         where: { providerPaymentId },
         select: { checkoutId: true },
+    });
+};
+
+export const executeAdminRefundLedger = async (orderId: string, refundRefId: string = `ref_admin_${Date.now()}`) => {
+    return prisma.$transaction(async (tx) => {
+        const targetOrder = await tx.order.findUnique({
+            where: { id: orderId },
+            select: { id: true, checkoutId: true, customerId: true, totalAmount: true, shopId: true },
+        });
+
+        if (!targetOrder) throw new Error("Order not found.");
+
+        await tx.order.update({
+            where: { id: orderId },
+            data: { status: "REFUNDED" },
+        });
+
+        if (targetOrder.checkoutId) {
+            await tx.payment.updateMany({
+                where: { checkoutId: targetOrder.checkoutId, status: { in: ["COMPLETED", "PENDING"] } },
+                data: { status: "REFUNDED" },
+            });
+        }
+
+        await tx.orderStatusHistory.create({
+            data: { orderId, status: "REFUNDED", note: `Refund processed by platform administrator (${refundRefId}).` },
+        });
+
+        const returnRequests = await tx.returnRequest.findMany({
+            where: { orderId, status: { in: ["REQUESTED", "UNDER_REVIEW", "APPROVED", "ITEM_RECEIVED", "REFUND_PENDING"] } },
+            select: { id: true },
+        });
+
+        if (returnRequests.length) {
+            await tx.returnRequest.updateMany({
+                where: { id: { in: returnRequests.map(r => r.id) } },
+                data: { status: "REFUNDED", resolvedAt: new Date() },
+            });
+            await tx.returnStatusHistory.createMany({
+                data: returnRequests.map((request) => ({
+                    returnRequestId: request.id,
+                    status: "REFUNDED" as const,
+                    note: `Refund confirmed and issued to customer (${refundRefId}).`,
+                })),
+            });
+        }
+
+        // Reverse 90% merchant earnings from ShopWallet
+        const orderTotal = Number(targetOrder.totalAmount);
+        const shopCut = Math.round(orderTotal * 0.90 * 100) / 100;
+        const shopWallet = await tx.shopWallet.findUnique({ where: { shopId: targetOrder.shopId } });
+        if (shopWallet) {
+            const newBalance = Math.max(0, Number(shopWallet.balance) - shopCut);
+            await tx.shopWallet.update({
+                where: { shopId: targetOrder.shopId },
+                data: { balance: newBalance },
+            });
+            await tx.walletTransaction.create({
+                data: {
+                    shopId: targetOrder.shopId,
+                    orderId,
+                    type: "DEBIT",
+                    amount: shopCut,
+                    balanceAfter: newBalance,
+                    note: "Customer return refund debit (90%)",
+                },
+            });
+        }
+
+        return { success: true, orderId, refundRefId, customerId: targetOrder.customerId };
     });
 };

@@ -182,17 +182,33 @@ export const closeShopService = async (userId: string, shopId: string) => {
 
 
 export const updateShopLegalInfoService = async (
-    // userId: string,
     shopId: string,
-    data: { legalBusinessName: string; taxId: string; entityType: string },
+    data: {
+        legalBusinessName?: string;
+        taxId?: string;
+        entityType?: string;
+        ownerIdType?: string | null;
+        ownerIdNumber?: string | null;
+        ownerIdCardFront?: string | null;
+        ownerIdCardBack?: string | null;
+        submitForVerification?: boolean;
+    },
 ) => {
     const shop = await findShopById(shopId);
 
     if (!shop) {
         throw new AppError("Shop not found.", 404);
     }
-   
-    return upsertShopLegalInfo(shopId, data);
+
+    const updatePayload: any = { ...data };
+    delete updatePayload.submitForVerification;
+
+    // If seller submits for KYC verification or provides both front and back ID cards
+    if (data.submitForVerification || (data.ownerIdCardFront && data.ownerIdCardBack)) {
+        updatePayload.ownerKycStatus = "PENDING";
+    }
+
+    return upsertShopLegalInfo(shopId, updatePayload);
 };
 
 

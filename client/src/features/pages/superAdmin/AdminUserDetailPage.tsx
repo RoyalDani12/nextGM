@@ -1,3 +1,4 @@
+import { toast } from "react-hot-toast";
 import React, { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
@@ -9,6 +10,7 @@ import {
     Mail,
     Edit2,
     KeyRound,
+    UserCheck,
     Ban,
     CheckCircle2,
     XCircle,
@@ -23,6 +25,7 @@ import {
     useUpdateUserProfile,
     useResetUserPassword,
     useSendUserEmail,
+    useImpersonateUser,
 } from "@/features/admin/admin.hooks";
 import { useAuthStore } from "@/store/auth.store";
 import { ModalPortal } from "@/components/ui/ds-components";
@@ -58,6 +61,28 @@ export const AdminUserDetailPage = () => {
     const { data: user, isLoading, isError } = useAdminUser(id!);
 
     const updateStatus = useUpdateUserStatus();
+    const impersonateMutation = useImpersonateUser();
+    const setAuth = useAuthStore((s) => s.setAuth);
+
+    const handleImpersonate = async () => {
+        if (!user) return;
+        const confirmMsg = `Start impersonation session as ${user.name} (${user.email})?\n\nThis will log an official security audit event and grant you access under their permissions.`;
+        if (!window.confirm(confirmMsg)) return;
+
+        try {
+            const result = await impersonateMutation.mutateAsync(user.id);
+            setAuth(result.user, result.accessToken);
+            if (result.user.role === "SHOP_OWNER" && user.ownedShops?.length) {
+                navigate(`/dashboard/shop/${user.ownedShops[0].id}`);
+            } else if (result.user.role === "SHOP_OWNER") {
+                navigate("/dashboard");
+            } else {
+                navigate("/");
+            }
+        } catch (err: any) {
+            toast.error(err?.response?.data?.message || "Failed to initiate impersonation session.");
+        }
+    };
 
     // Modals
     const [showEditModal, setShowEditModal] = useState(false);
@@ -83,7 +108,7 @@ export const AdminUserDetailPage = () => {
 
     const handleStatusChange = (newStatus: "ACTIVE" | "SUSPENDED" | "DEACTIVATED") => {
         if (isSelf && (newStatus === "SUSPENDED" || newStatus === "DEACTIVATED")) {
-            alert("Self-protection: You cannot ban, suspend, or deactivate your own account.");
+            toast.error("Self-protection: You cannot ban, suspend, or deactivate your own account.");
             return;
         }
 
@@ -156,6 +181,17 @@ export const AdminUserDetailPage = () => {
                         <KeyRound size={14} />
                         Reset Password
                     </button>
+                    {!isSelf && user.role !== "SUPER_ADMIN" && (
+                        <button
+                            onClick={handleImpersonate}
+                            disabled={impersonateMutation.isPending}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition-colors cursor-pointer"
+                            title="Log in directly as this user"
+                        >
+                            <UserCheck size={14} className="text-purple-600" />
+                            {impersonateMutation.isPending ? "Connecting..." : "Impersonate User"}
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -344,7 +380,7 @@ const EditDetailModal = ({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (isSelf && role !== "SUPER_ADMIN") {
-            alert("Safety lock: You cannot remove your own Super Admin privileges.");
+            toast.error("Safety lock: You cannot remove your own Super Admin privileges.");
             return;
         }
 

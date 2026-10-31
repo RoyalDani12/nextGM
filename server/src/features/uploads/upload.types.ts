@@ -1,5 +1,5 @@
 
-export type ResourceType = "user_avatar" | "shop_logo" | "shop_banner" | "product_image" | "category_image" | "return_evidence"
+export type ResourceType = "user_avatar" | "shop_logo" | "shop_banner" | "product_image" | "category_image" | "return_evidence" | "kyc_document"
  export type MimeType     = "image/jpeg" | "image/png" | "image/webp"
 export interface GenerateSignatureInput {
     userId:       string

@@ -72,8 +72,13 @@ export const closeShopSchema = z.object({
 // shop.schema.ts
 export const updateShopLegalInfoSchema = z.object({
     body: z.object({
-        legalBusinessName: z.string().min(2),
-        taxId: z.string().min(3),
-        entityType: z.string().min(2),
-    }).strict(),
+        legalBusinessName: z.string().min(2).optional(),
+        taxId: z.string().min(3).optional(),
+        entityType: z.string().min(2).optional(),
+        ownerIdType: z.string().nullable().optional(),
+        ownerIdNumber: z.string().nullable().optional(),
+        ownerIdCardFront: z.string().nullable().optional(),
+        ownerIdCardBack: z.string().nullable().optional(),
+        submitForVerification: z.boolean().optional(),
+    }).passthrough(),
 });

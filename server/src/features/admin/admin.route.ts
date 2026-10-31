@@ -46,6 +46,7 @@ import {
     listProductsController,
     getProductByIdAdminController,
     updateProductStatusAdminController,
+    impersonateUserController,
 } from "./admin.controller.js";
 
 const router = express.Router();
@@ -65,6 +66,7 @@ router.patch("/users/:id/role", updateUserRoleController);
 router.patch("/users/:id/status", updateUserStatusController);
 router.patch("/users/:id/profile", updateUserProfileController);
 router.post("/users/:id/reset-password", resetUserPasswordController);
+router.post("/users/:id/impersonate", impersonateUserController);
 router.post("/users/:id/send-email", sendUserEmailController);
 
 // Shops & Verification Approval Workflow

@@ -3,7 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
     Search, Plus, Menu, User as UserIcon,
     Settings, LogOut, Command, ExternalLink,
-    Store
+    Store,
+    ShieldCheck
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -98,10 +99,17 @@ export function DashboardNavbar() {
                         </span>
                     </div>
 
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 shadow-2xs">
-                        <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Live Store
-                    </span>
+                    {activeShop?.legalInfo?.ownerKycStatus === 'VERIFIED' ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-100/70 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 shadow-2xs">
+                            <ShieldCheck className="size-3 text-emerald-600" />
+                            Verified Merchant
+                        </span>
+                    ) : (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 shadow-2xs">
+                            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live Store
+                        </span>
+                    )}
                 </div>
             </div>
 
