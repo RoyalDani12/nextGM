@@ -1,8 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Image as ImageIcon, Pencil } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Image as ImageIcon, Pencil, ArrowUpRight } from "lucide-react";
 import type { Product, ProductStatus } from "@/features/product/product.types";
 
 interface ProductCardProps {
@@ -45,13 +42,15 @@ export default function ProductCard({
     navigate(`/dashboard/shop/${shopId}/products/${productId}`);
   };
 
+  const isActive = product.status === "ACTIVE";
+
   return (
-    <Card 
+    <div 
       onClick={handleNavigateToDetail}
-      className="group relative overflow-hidden rounded-xl border border-border/60 bg-card cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-xl"
+      className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:border-orange-500/40 hover:shadow-xl shadow-2xs flex flex-col justify-between"
     >
       {/* IMAGE CONTAINER */}
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
         {primaryImage ? (
           <>
             <img
@@ -70,88 +69,97 @@ export default function ProductCard({
             )}
           </>
         ) : (
-          <div className="flex h-full items-center justify-center bg-muted/50">
-            <ImageIcon className="h-10 w-10 text-muted-foreground/30" />
+          <div className="flex h-full items-center justify-center bg-slate-50 text-slate-300">
+            <ImageIcon className="size-10" />
           </div>
         )}
 
+        {/* TYPE BADGE */}
         {product.type && (
           <div className="absolute left-3 top-3 z-10">
-            <Badge variant="secondary" className="bg-background/80 font-medium backdrop-blur-md shadow-sm">
+            <span className="rounded-lg bg-white/90 backdrop-blur-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-700 shadow-2xs border border-white/40">
               {product.type}
-            </Badge>
+            </span>
           </div>
         )}
 
+        {/* STATUS BADGE */}
         <div className="absolute right-3 top-3 z-10">
-          <Badge 
-            variant={product.status === "ACTIVE" ? "default" : "secondary"} 
-            className="bg-background/80 backdrop-blur-md shadow-sm text-[10px]"
-          >
+          <span className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider backdrop-blur-md shadow-2xs border ${
+            isActive
+              ? "bg-emerald-500/90 text-white border-emerald-400"
+              : "bg-slate-800/80 text-slate-200 border-slate-700"
+          }`}>
+            <span className={`size-1.5 rounded-full ${isActive ? "bg-white animate-pulse" : "bg-slate-400"}`} />
             {product.status || "DRAFT"}
-          </Badge>
+          </span>
         </div>
 
+        {/* QUICK EDIT HOVER BUTTON */}
         {onEdit && (
           <div className="absolute right-3 bottom-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <Button
+            <button
               type="button"
-              size="icon"
-              variant="secondary"
-              className="h-8 w-8 rounded-full bg-background/90 backdrop-blur-md shadow-md hover:bg-background"
+              className="flex size-8 items-center justify-center rounded-xl bg-white/95 backdrop-blur-md shadow-md hover:bg-white text-slate-700 hover:text-orange-600 transition-all cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 onEdit(product);
               }}
+              title="Edit product"
             >
-              <Pencil className="h-3.5 w-3.5" />
-            </Button>
+              <Pencil className="size-3.5" />
+            </button>
           </div>
         )}
       </div>
 
-      {/* CARD CONTENT - ONLY NAME, DESCRIPTION, PRICE, STOCK */}
-      <CardContent className="p-4 space-y-3">
+      {/* CARD CONTENT */}
+      <div className="p-4 space-y-2.5 flex-1 flex flex-col justify-between">
         <div>
-          <h3 className="font-semibold text-foreground tracking-tight truncate group-hover:text-primary transition-colors">
-            {product.name}
-          </h3>
-          <p className="mt-1 text-xs text-muted-foreground line-clamp-2 min-h-[32px] leading-relaxed">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-bold text-sm text-slate-900 tracking-tight truncate group-hover:text-orange-600 transition-colors">
+              {product.name}
+            </h3>
+            <ArrowUpRight className="size-3.5 text-slate-300 group-hover:text-orange-500 shrink-0 transition-colors" />
+          </div>
+          <p className="mt-1 text-xs text-slate-500 line-clamp-2 leading-relaxed min-h-[32px]">
             {product.description || "No description provided."}
           </p>
         </div>
 
-        <div className="flex items-center justify-between pt-2 border-t border-border/40">
-          <span className="text-xl font-bold tracking-tight text-foreground">
-            ${Number(product.basePrice ?? 0).toFixed(2)}
-          </span>
-          <StockBadge stock={Number(product.stock ?? 0)} />
-        </div>
-
-        {product.sku && (
-          <div className="text-[11px] text-muted-foreground/70 font-mono tracking-wider pt-0.5">
-            SKU: {product.sku}
+        <div className="pt-2 border-t border-slate-100 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-lg font-black tracking-tight text-slate-900">
+              ${Number(product.basePrice ?? 0).toFixed(2)}
+            </span>
+            <StockBadge stock={Number(product.stock ?? 0)} />
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          {product.sku && (
+            <div className="text-[10px] text-slate-400 font-mono tracking-wider">
+              SKU: {product.sku}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
 function StockBadge({ stock }: { stock: number }) {
   if (stock === 0) {
-    return <Badge variant="destructive" className="text-[10px] px-2 py-0.5">Out of stock</Badge>;
+    return <span className="rounded-lg bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold px-2 py-0.5">Out of stock</span>;
   }
   if (stock <= 5) {
     return (
-      <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] px-2 py-0.5 font-medium">
+      <span className="rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold px-2 py-0.5">
         {stock} left
-      </Badge>
+      </span>
     );
   }
   return (
-    <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] px-2 py-0.5 font-medium">
+    <span className="rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5">
       {stock} in stock
-    </Badge>
+    </span>
   );
 }

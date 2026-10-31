@@ -5,7 +5,7 @@ import { SuperAdminHeader } from "./SuperAdminHeader";
 export const AdminLayout = () => (
     <div className="admin-dashboard flex h-screen w-screen overflow-hidden bg-slate-50 font-sans antialiased">
         {/* Desktop Sidebar: docked to the left, full height from the very top */}
-        <div className="hidden h-full shrink-0 border-r border-slate-800/80 bg-[#0B0F19] lg:flex">
+        <div className="hidden h-full shrink-0 border-r border-slate-800 bg-[#0F172A] lg:flex">
             <AdminSidebar />
         </div>
 

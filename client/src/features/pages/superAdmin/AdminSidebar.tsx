@@ -1,26 +1,33 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { PanelLeft } from "lucide-react";
 import { AdminNavLinks } from "./AdminNavLinks";
 
-const PIN_STORAGE_KEY = "superadmin-sidebar-pinned";
+const PIN_STORAGE_KEY = "admin-sidebar-pinned";
 
 interface AdminSidebarProps {
     variant?: "desktop" | "mobile";
     onNavItemClick?: () => void;
 }
 
-export const AdminSidebar = ({ variant = "desktop", onNavItemClick }: AdminSidebarProps) => {
+export const AdminSidebar = ({
+    variant = "desktop",
+    onNavItemClick,
+}: AdminSidebarProps) => {
     const isMobile = variant === "mobile";
-    const [pinned, setPinned] = useState(() => {
+
+    const [pinned, setPinned] = useState<boolean>(() => {
         if (isMobile || typeof window === "undefined") return true;
         const stored = window.localStorage.getItem(PIN_STORAGE_KEY);
         return stored === null ? true : stored === "true";
     });
+
     const [peeking, setPeeking] = useState(false);
 
     useEffect(() => {
-        if (!isMobile) window.localStorage.setItem(PIN_STORAGE_KEY, String(pinned));
+        if (!isMobile) {
+            window.localStorage.setItem(PIN_STORAGE_KEY, String(pinned));
+        }
     }, [isMobile, pinned]);
 
     const collapsed = !isMobile && !pinned;
@@ -30,14 +37,38 @@ export const AdminSidebar = ({ variant = "desktop", onNavItemClick }: AdminSideb
         <div
             onMouseEnter={() => collapsed && setPeeking(true)}
             onMouseLeave={() => setPeeking(false)}
-            className={`relative h-full shrink-0 transition-[width] duration-200 ease-out ${collapsed ? "w-16" : "w-64"}`}
+            className={`relative h-full shrink-0 transition-[width] duration-200 ease-out ${
+                collapsed ? "w-16" : "w-64"
+            }`}
         >
-            <aside className={`flex h-full flex-col select-none bg-[rgba(131,224,88,0.86)] text-slate-200 transition-all duration-200 ease-out ${expanded ? "w-64" : "w-full"} ${peeking ? "absolute left-0 top-0 z-50 rounded-r-3xl border-r border-orange-800 bg-[#4d6e14] shadow-2xl shadow-black/80" : ""}`}>
-                <div className={`flex h-16 shrink-0 items-center border-b border-slate-800/80 px-3.5 ${expanded ? "justify-between" : "justify-center"}`}>
-                    <Link to="/superadmin" onClick={onNavItemClick} className="flex items-center gap-2.5 overflow-hidden group">
-                        <div className="flex size-9 items-center justify-center rounded-xl bg-slate-900 border border-slate-800 shadow-inner shrink-0 group-hover:scale-105 transition-transform duration-200">
-                            <img src="/ChatGPT Image Sep 5, 2026, 12_33_26 AM.png" alt="Nexions" className="size-6 object-contain" />
+            <aside
+                className={`flex h-full flex-col select-none bg-[#0F172A] text-slate-100 transition-all duration-200 ease-out border-r border-slate-800 ${
+                    expanded ? "w-64" : "w-full"
+                } ${
+                    peeking
+                        ? "absolute left-0 top-0 z-50 rounded-r-3xl border-r border-slate-800 bg-[#0F172A] shadow-2xl shadow-black/80"
+                        : ""
+                }`}
+            >
+                {/* BRAND HEADER */}
+                <div
+                    className={`flex h-16 shrink-0 items-center border-b border-slate-800 px-3.5 ${
+                        expanded ? "justify-between" : "justify-center"
+                    }`}
+                >
+                    <Link
+                        to="/superadmin"
+                        onClick={onNavItemClick}
+                        className="flex items-center gap-2.5 overflow-hidden group"
+                    >
+                        <div className="flex size-9 items-center justify-center rounded-xl bg-slate-900 border border-slate-700/60 shadow-inner shrink-0 group-hover:scale-105 transition-transform duration-200">
+                            <img
+                                src="/ChatGPT Image Sep 5, 2026, 12_33_26 AM.png"
+                                alt="Nexions"
+                                className="size-6 object-contain"
+                            />
                         </div>
+
                         {expanded && (
                             <div className="flex flex-col">
                                 <span className="text-[13px] font-black tracking-tight text-white flex items-center gap-1.5">
@@ -46,32 +77,41 @@ export const AdminSidebar = ({ variant = "desktop", onNavItemClick }: AdminSideb
                                         Admin
                                     </span>
                                 </span>
+
                                 <span className="text-[10px] font-bold tracking-wider uppercase text-slate-400">
                                     Control Center
                                 </span>
                             </div>
                         )}
                     </Link>
+
                     {!isMobile && (
                         <button
                             onClick={() => setPinned((value) => !value)}
-                            className="shrink-0 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-800/80 hover:text-white cursor-pointer"
+                            className="shrink-0 rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white cursor-pointer"
                             title={pinned ? "Collapse sidebar" : "Pin sidebar"}
                         >
                             <PanelLeft className="size-4" />
                         </button>
                     )}
                 </div>
+
+                {/* NAVIGATION */}
                 <div className="min-h-0 flex-1 overflow-y-auto px-2.5 py-3.5 ds-scroll">
-                    <AdminNavLinks expanded={expanded} onNavItemClick={onNavItemClick} />
+                    <AdminNavLinks
+                        expanded={expanded}
+                        onNavItemClick={onNavItemClick}
+                    />
                 </div>
+
+                {/* FOOTER */}
                 {expanded && (
-                    <div className="border-t border-slate-800/80 px-4 py-3 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                    <div className="border-t border-slate-800 px-4 py-3 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
                         <span className="flex items-center gap-2">
-                            <span className="size-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
+                            <span className="size-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
                             Platform Live
                         </span>
-                        <span className="font-mono text-[10px] text-slate-400">v2.4</span>
+                        <span className="font-mono text-[9px] text-slate-400">v2.4</span>
                     </div>
                 )}
             </aside>

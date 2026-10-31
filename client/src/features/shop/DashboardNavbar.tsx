@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
     Search, Plus, Menu, User as UserIcon,
     Settings, LogOut, Command, ExternalLink,
-    Sparkles
+    Store
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ export function DashboardNavbar() {
     const user = useAuthStore((state) => state.user);
     const logout = useLogout();
     const navigate = useNavigate();
-    const { shopId } = useParams<{ shopId: string }>();
+    const { shopId = "" } = useParams<{ shopId: string }>();
     const { data: shopsResponse } = useMyShops();
     const activeShop = shopsResponse?.data?.find((shop) => shop.id === shopId);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -46,149 +46,161 @@ export function DashboardNavbar() {
         .toUpperCase() || "US";
 
     return (
-        <div className="sticky top-0 z-40 w-full bg-slate-50 pt-3 px-3 pb-2 md:pt-4 md:px-6 dark:bg-[#0b0d12]">
-            <header className="flex items-center justify-between gap-4 w-full h-16 px-3 md:px-5 bg-white border border-slate-200/70 rounded-full shadow-sm dark:border-white/10 dark:!bg-[#171a21] dark:shadow-black/20">
-                <div className="flex items-center gap-3 md:gap-5">
-                    <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
-                        <SheetTrigger
-                            render={
-                                <Button variant="ghost" size="icon" className="lg:hidden text-slate-700 hover:bg-slate-100 rounded-full">
-                                    <Menu className="size-5" />
-                                </Button>
-                            }
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-slate-200/80 bg-white/95 backdrop-blur-md px-4 md:px-7 ds-shadow-xs transition-all duration-300">
+            <div className="flex items-center gap-3 md:gap-4">
+                {/* Mobile Drawer Trigger */}
+                <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
+                    <SheetTrigger
+                        render={
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="lg:hidden text-slate-700 hover:bg-slate-100 rounded-xl cursor-pointer"
+                            >
+                                <Menu className="size-5" />
+                            </Button>
+                        }
+                    />
+                    <SheetContent
+                        side="left"
+                        className="p-0 w-72 bg-[#0F172A] border-r border-slate-800 text-white [&_[data-slot=sheet-close]]:hidden"
+                    >
+                        <SheetHeader className="sr-only">
+                            <SheetTitle>Store Navigation</SheetTitle>
+                        </SheetHeader>
+                        <DashboardSidebar
+                            variant="mobile"
+                            onNavItemClick={() => setIsMobileOpen(false)}
                         />
-                        <SheetContent
-                            side="left"
-                            className="p-0 w-72 bg-white border-r border-slate-200 text-slate-900 [&_[data-slot=sheet-close]]:hidden"
-                        >
-                            <SheetHeader className="sr-only">
-                                <SheetTitle>Navigation Menu</SheetTitle>
-                            </SheetHeader>
-                            <DashboardSidebar
-                                variant="mobile"
-                                onNavItemClick={() => setIsMobileOpen(false)}
-                            />
-                        </SheetContent>
-                    </Sheet>
+                    </SheetContent>
+                </Sheet>
 
-                    {/* SaaS Workspace Switcher / Logo */}
-                    <div className="hidden md:flex items-center gap-3 pr-5 border-r border-slate-100 cursor-pointer group">
-                        <div className="size-9 rounded-xl bg-orange-500 flex items-center justify-center shadow-sm shadow-orange-500/20">
-                            <Sparkles className="size-4 text-white" />
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-[13px] font-bold text-slate-900 group-hover:text-orange-600 transition-colors">
-                                Nexions
-                            </span>
-                            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-                                Pro Plan
-                            </span>
-                        </div>
+                {/* Mobile Store Name (hidden on desktop) */}
+                <div className="flex items-center gap-2 lg:hidden">
+                    <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-600 text-white">
+                        <Store className="size-4" />
                     </div>
+                    <span className="text-xs font-black tracking-tight text-slate-900 truncate max-w-[130px]">
+                        {activeShop?.profile?.name || "Merchant"}
+                    </span>
                 </div>
 
-                {/* CENTER SECTION: Search */}
-                <div className="flex-1 max-w-xl flex items-center gap-3">
-                    <div className="relative flex-1 hidden md:block group">
-                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400 group-focus-within:text-orange-500 transition-colors" />
-                        <Input
-                            type="search"
-                            placeholder="Search orders, products, customers..."
-                            className="pl-10 pr-12 h-10 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:border-orange-500 focus-visible:ring-4 focus-visible:ring-orange-500/10 rounded-full text-sm font-medium transition-all"
-                        />
-                        <kbd className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white border border-slate-200 text-[9px] font-bold text-slate-400 shadow-sm">
-                            <Command className="size-3" /> K
-                        </kbd>
+                {/* Desktop Store Breadcrumb & Status */}
+                <div className="hidden lg:flex items-center gap-2.5 text-xs">
+                    <div className="flex items-center gap-2">
+                        <span className="flex items-center gap-1.5 font-bold text-slate-800">
+                            <Store className="size-4 text-orange-500" />
+                            {activeShop?.profile?.name || "Store"}
+                        </span>
+                        <span className="text-slate-300">/</span>
+                        <span className="font-mono text-[11px] text-slate-500 font-medium">
+                            {activeShop?.slug ? `/${activeShop.slug}` : "Workspace"}
+                        </span>
                     </div>
+
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 shadow-2xs">
+                        <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Live Store
+                    </span>
                 </div>
+            </div>
 
-                {/* RIGHT SECTION */}
-                <div className="flex items-center gap-2 sm:gap-3">
-                    <Button
-                        size="sm"
-                        className="bg-orange-500 hover:bg-orange-600 text-white rounded-full font-bold h-9 px-4 shadow-sm shadow-orange-500/20 transition-all hover:shadow-orange-500/40 hover:-translate-y-0.5 hidden sm:flex gap-1.5 cursor-pointer"
-                        onClick={() => navigate("/shops/new")}
-                    >
-                        <Plus className="size-4" />
-                        <span>Create Shop</span>
-                    </Button>
+            {/* CENTER SEARCH */}
+            <div className="flex-1 max-w-md hidden md:flex items-center">
+                <div className="relative w-full group">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400 group-focus-within:text-orange-500 transition-colors" />
+                    <Input
+                        type="search"
+                        placeholder="Search products, orders, customers..."
+                        className="pl-10 pr-12 h-9 bg-slate-50/80 border-slate-200/80 focus-visible:bg-white focus-visible:border-orange-500 focus-visible:ring-2 focus-visible:ring-orange-500/20 rounded-xl text-xs font-medium transition-all"
+                    />
+                    <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-white border border-slate-200 text-[9px] font-bold text-slate-400 shadow-2xs">
+                        <Command className="size-2.5" /> K
+                    </kbd>
+                </div>
+            </div>
 
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="hidden sm:inline-flex rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 size-9 cursor-pointer"
-                        onClick={() => window.open(activeShop ? `/${activeShop.slug}` : "/", "_blank")}
-                        title="View Live Store"
-                    >
-                        <ExternalLink className="size-4" />
-                    </Button>
+            {/* RIGHT CONTROLS */}
+            <div className="flex items-center gap-2 sm:gap-2.5">
+                {/* Add Product Shortcut */}
+                <Button
+                    size="sm"
+                    className="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl font-bold h-9 px-3.5 shadow-sm shadow-orange-500/20 transition-all hover:shadow-orange-500/35 hover:-translate-y-0.5 hidden sm:flex items-center gap-1.5 cursor-pointer text-xs"
+                    onClick={() => navigate(`/dashboard/shop/${shopId}/products`)}
+                >
+                    <Plus className="size-3.5" />
+                    <span>Add Product</span>
+                </Button>
 
+                {/* View Public Storefront Link */}
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 size-9 cursor-pointer transition-colors"
+                    onClick={() => window.open(activeShop ? `/${activeShop.slug}` : "/", "_blank")}
+                    title="Open public storefront"
+                >
+                    <ExternalLink className="size-4" />
+                </Button>
+
+                {/* Notifications */}
+                <div className="rounded-xl">
                     <NotificationDropdown shopId={shopId} />
-                    {false && <DropdownMenu>
-                        <DropdownMenuTrigger
-                            render={
-                                <Button variant="ghost" size="icon" className="relative text-slate-600 hover:bg-slate-100 rounded-full size-9 transition-colors cursor-pointer">
-                                    <span className="size-4" />
-                                    <span className="absolute top-2 right-2.5 size-2 bg-orange-500 rounded-full ring-2 ring-white" />
-                                </Button>
-                            }
-                        />
-                        <DropdownMenuContent align="end" className="w-80 p-3 rounded-3xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50">
-                            <div className="flex items-center justify-between px-2 pb-2 mb-2 border-b border-slate-100">
-                                <p className="text-xs font-black text-slate-900">Notifications</p>
-                                <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">2 New</span>
-                            </div>
-                            <div className="p-2 hover:bg-slate-50 rounded-2xl cursor-pointer transition-colors">
-                                <p className="text-[13px] text-slate-800 font-medium">New order #1024 received</p>
-                                <p className="text-[11px] text-slate-400 mt-0.5">2 minutes ago</p>
-                            </div>
-                        </DropdownMenuContent>
-                    </DropdownMenu>}
+                </div>
 
-                    <div className="h-5 w-px bg-slate-200 mx-1 hidden sm:block" />
+                <div className="h-5 w-px bg-slate-200 mx-0.5 hidden sm:block" />
 
-                    <DropdownMenu>
-                        <DropdownMenuTrigger
-                            render={
-                                <button className="outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-orange-500 rounded-full ml-1 cursor-pointer">
-                                    <Avatar className="size-9 ring-2 ring-orange-500/20 ring-offset-2 ring-offset-white shadow-sm">
-                                        <AvatarImage src={user?.profile?.avatar ?? undefined} alt={user?.name} />
-                                        <AvatarFallback className="bg-slate-900 text-white text-xs font-black">
-                                            {initials}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                </button>
-                            }
-                        />
-                        <DropdownMenuContent align="end" className="w-64 mt-2 p-2 rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
-                            <div className="px-4 py-3 bg-slate-50 rounded-2xl border border-slate-100 mb-2 flex items-center gap-3">
-                                <Avatar className="size-10">
+                {/* Avatar Profile Dropdown */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger
+                        render={
+                            <button className="outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-orange-500 rounded-full cursor-pointer">
+                                <Avatar className="size-9 ring-2 ring-orange-500/25 ring-offset-2 hover:ring-orange-500/50 transition-all">
                                     <AvatarImage src={user?.profile?.avatar ?? undefined} alt={user?.name} />
-                                    <AvatarFallback className="bg-orange-100 text-orange-700 text-xs font-black">
+                                    <AvatarFallback className="bg-slate-900 text-white text-xs font-black">
                                         {initials}
                                     </AvatarFallback>
                                 </Avatar>
-                                <div className="flex flex-col overflow-hidden">
-                                    <p className="text-sm font-black text-slate-900 truncate">{user?.name}</p>
-                                    <p className="text-[11px] font-medium text-slate-500 truncate">{user?.email}</p>
-                                </div>
+                            </button>
+                        }
+                    />
+                    <DropdownMenuContent align="end" className="w-68 mt-2 p-2 rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
+                        <div className="px-3.5 py-3 bg-slate-50 rounded-2xl border border-slate-100 mb-2 flex items-center gap-3">
+                            <Avatar className="size-9">
+                                <AvatarImage src={user?.profile?.avatar ?? undefined} alt={user?.name} />
+                                <AvatarFallback className="bg-orange-100 text-orange-700 text-xs font-black">
+                                    {initials}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col min-w-0">
+                                <p className="text-xs font-black text-slate-900 truncate">{user?.name || "Merchant"}</p>
+                                <p className="text-[11px] font-medium text-slate-500 truncate">{user?.email}</p>
                             </div>
-                            <DropdownMenuGroup>
-                                <DropdownMenuItem onClick={() => navigate("/account/settings")} className="cursor-pointer gap-3 py-2.5 px-3 rounded-2xl text-xs font-bold text-slate-700 focus:bg-slate-100 focus:text-slate-900">
-                                    <UserIcon className="size-4 text-slate-400" /> Account Settings
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => navigate(`/dashboard/shop/${shopId}/settings`)} className="cursor-pointer gap-3 py-2.5 px-3 rounded-2xl text-xs font-bold text-slate-700 focus:bg-slate-100 focus:text-slate-900">
-                                    <Settings className="size-4 text-slate-400" /> Workspace Settings
-                                </DropdownMenuItem>
-                            </DropdownMenuGroup>
-                            <DropdownMenuSeparator className="my-1.5 bg-slate-100 mx-2" />
-                            <DropdownMenuItem onClick={() => logout.mutate()} className="cursor-pointer gap-3 py-2.5 px-3 rounded-2xl text-xs font-bold text-red-600 focus:bg-red-50 focus:text-red-700">
-                                <LogOut className="size-4" /> Sign Out
+                        </div>
+                        <DropdownMenuGroup>
+                            <DropdownMenuItem
+                                onClick={() => navigate("/account/settings")}
+                                className="cursor-pointer gap-2.5 py-2 px-3 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                            >
+                                <UserIcon className="size-4 text-slate-400" /> Account Settings
                             </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-            </header>
-        </div>
+                            <DropdownMenuItem
+                                onClick={() => navigate(`/dashboard/shop/${shopId}/settings`)}
+                                className="cursor-pointer gap-2.5 py-2 px-3 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                            >
+                                <Settings className="size-4 text-slate-400" /> Store Settings
+                            </DropdownMenuItem>
+                        </DropdownMenuGroup>
+                        <DropdownMenuSeparator className="my-1.5 bg-slate-100" />
+                        <DropdownMenuItem
+                            onClick={() => logout.mutate()}
+                            className="cursor-pointer gap-2.5 py-2 px-3 rounded-xl text-xs font-semibold text-red-600 focus:bg-red-50 focus:text-red-700"
+                        >
+                            <LogOut className="size-4" /> Sign Out
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+        </header>
     );
 }

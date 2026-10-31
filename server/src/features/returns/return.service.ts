@@ -224,8 +224,11 @@ const ensureShopReturn = async (shopId: string, returnId: string) => {
 
 export const getShopReturnsService = async (
   shopId: string,
-  query: { status?: string; search?: string; page: number; limit: number },
+  query: { status?: string; search?: string; page?: number | string; limit?: number | string },
 ) => {
+  const page = Math.max(1, Number(query.page) || 1);
+  const limit = Math.max(1, Math.min(100, Number(query.limit) || 20));
+  const skip = (page - 1) * limit;
   const where = {
     order: { shopId },
     ...(query.status && query.status !== "ALL" ? { status: query.status as ReturnStatus } : {}),
@@ -245,15 +248,15 @@ export const getShopReturnsService = async (
       where,
       include: returnInclude,
       orderBy: { createdAt: "desc" },
-      skip: (query.page - 1) * query.limit,
-      take: query.limit,
+      skip,
+      take: limit,
     }),
     prisma.returnRequest.count({ where }),
     prisma.returnRequest.groupBy({ by: ["status"], where, _count: { _all: true } }),
   ]);
   return {
     returns,
-    pagination: { page: query.page, limit: query.limit, total, totalPages: Math.ceil(total / query.limit) },
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     statusCounts: Object.fromEntries(statusCounts.map((entry) => [entry.status, entry._count._all])),
   };
 };

@@ -21,6 +21,7 @@ import {
     MapPin,
     AlertOctagon,
     Download,
+    Check,
 } from "lucide-react";
 import {
     AreaChart,
@@ -234,6 +235,12 @@ export function AnalyticsPage() {
             color: "#ef4444", // Vibrant Red
         },
     ];
+    const healthScore = Math.max(0, Math.min(100, Math.round(
+        (summary.fulfillmentRate * 0.5) +
+        ((100 - summary.returnRate) * 0.25) +
+        ((100 - summary.cancellationRate) * 0.25)
+    )));
+
     const performanceInsight =
         summary.revenueGrowth > 0
             ? "Revenue is moving in the right direction. Keep your best-selling products in stock and protect delivery speed."
@@ -299,136 +306,315 @@ export function AnalyticsPage() {
                 </div>
             </div>
 
-            {/* Primary business snapshot */}
+            {/* 1. VISUAL BUSINESS SNAPSHOT CARDS WITH EMBEDDED SPARKLINES & GAUGES */}
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                {/* 1. GREEN: Revenue & Productive Growth */}
-                <div className="relative min-h-[178px] overflow-hidden rounded-3xl border border-emerald-100/70 bg-gradient-to-br from-white to-emerald-50/40 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:shadow-lg">
+                {/* 1. EMERALD: Revenue & Trend Sparkline */}
+                <div className="relative overflow-hidden rounded-3xl border border-emerald-100/80 bg-white p-5 shadow-xs transition-all hover:shadow-md hover:-translate-y-0.5">
                     <div className="flex items-center justify-between">
                         <span className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
                             Period Revenue
                         </span>
-                        <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200">
-                            <DollarSign className="size-4.5" />
+                        <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200">
+                            <DollarSign className="size-4" />
+                        </div>
+                    </div>
+
+                    <div className="mt-2.5 flex items-baseline justify-between gap-2">
+                        <div>
+                            <p className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
+                                {formatCurrency(summary.totalRevenue)}
+                            </p>
+                            <div className="mt-1 flex items-center gap-1.5">
+                                {summary.revenueGrowth >= 0 ? (
+                                    <span className="inline-flex items-center font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-[11px] border border-emerald-200">
+                                        <TrendingUp className="mr-1 size-3" />
+                                        +{summary.revenueGrowth}%
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full text-[11px] border border-rose-200">
+                                        <TrendingDown className="mr-1 size-3" />
+                                        {summary.revenueGrowth}%
+                                    </span>
+                                )}
+                                <span className="text-[10px] text-slate-400">vs prev</span>
+                            </div>
                         </div>
 
-                    </div>
-                    <div className="mt-3">
-                        <p className="text-4xl font-black tracking-[-0.04em] text-slate-950 sm:text-5xl">
-                            {formatCurrency(summary.totalRevenue)}
-                        </p>
-                        <div className="mt-2 flex items-center justify-between text-xs">
-                            {summary.revenueGrowth >= 0 ? (
-                                <span className="inline-flex items-center font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                                    <TrendingUp className="mr-1 size-3.5" />
-                                    +{summary.revenueGrowth}%
-                                </span>
-                            ) : (
-                                <span className="inline-flex items-center font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
-                                    <TrendingDown className="mr-1 size-3.5" />
-                                    {summary.revenueGrowth}%
-                                </span>
-                            )}
-                            <span className="text-[11px] text-slate-400">vs prev period</span>
+                        {/* Visual Sparkline */}
+                        <div className="h-11 w-24 shrink-0">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={timeline} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
+                                    <defs>
+                                        <linearGradient id="miniRevGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
+                                            <stop offset="100%" stopColor="#10b981" stopOpacity={0.0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <Area type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} fill="url(#miniRevGrad)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
                         </div>
+                    </div>
+
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                        <span>Net Retention:</span>
+                        <span className="font-bold text-emerald-700">
+                            {summary.totalRevenue > 0 ? Math.round((summary.netRevenue / summary.totalRevenue) * 100) : 100}%
+                        </span>
                     </div>
                 </div>
 
-                {/* 2. Orders volume */}
-                <div className="relative min-h-[178px] overflow-hidden rounded-3xl border border-orange-100/70 bg-gradient-to-br from-white to-orange-50/40 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:shadow-lg">
+                {/* 2. ORANGE: Orders Volume & Mini Bar Sparkline */}
+                <div className="relative overflow-hidden rounded-3xl border border-orange-100/80 bg-white p-5 shadow-xs transition-all hover:shadow-md hover:-translate-y-0.5">
                     <div className="flex items-center justify-between">
                         <span className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
                             Completed Orders
                         </span>
-                        <div className="flex size-9 items-center justify-center rounded-xl bg-orange-50 text-orange-600 border border-orange-200">
-                            <ShoppingBag className="size-4.5" />
+                        <div className="flex size-8 items-center justify-center rounded-xl bg-orange-50 text-orange-600 border border-orange-200">
+                            <ShoppingBag className="size-4" />
                         </div>
                     </div>
-                    <div className="mt-3">
-                        <p className="text-4xl font-black tracking-[-0.04em] text-slate-950 sm:text-5xl">
-                            {formatNumber(summary.totalOrders)}
-                        </p>
-                        <div className="mt-2 flex items-center justify-between text-xs">
-                            <span className="inline-flex items-center font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">
-                                <TrendingUp className="mr-1 size-3.5" />
-                                +{summary.ordersGrowth}%
-                            </span>
-                            <span className="text-[11px] text-slate-400">
-                                {summary.allPlacedOrdersCount} total placed
-                            </span>
+
+                    <div className="mt-2.5 flex items-baseline justify-between gap-2">
+                        <div>
+                            <p className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
+                                {formatNumber(summary.totalOrders)}
+                            </p>
+                            <div className="mt-1 flex items-center gap-1.5">
+                                <span className="inline-flex items-center font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full text-[11px] border border-orange-200">
+                                    <TrendingUp className="mr-1 size-3" />
+                                    +{summary.ordersGrowth}%
+                                </span>
+                                <span className="text-[10px] text-slate-400">{summary.allPlacedOrdersCount} placed</span>
+                            </div>
                         </div>
+
+                        {/* Visual Sparkline */}
+                        <div className="h-11 w-24 shrink-0">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={timeline} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
+                                    <Bar dataKey="orders" fill="#f97316" radius={[2, 2, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                        <span>Fulfillment:</span>
+                        <span className="font-bold text-slate-800">
+                            {summary.allPlacedOrdersCount > 0 ? Math.round((summary.totalOrders / summary.allPlacedOrdersCount) * 100) : 100}% cleared
+                        </span>
                     </div>
                 </div>
 
-                {/* 3. YELLOW / AMBER: Average Order Value */}
-                <div className="relative min-h-[178px] overflow-hidden rounded-3xl border border-amber-100/70 bg-gradient-to-br from-white to-amber-50/40 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:shadow-lg">
+                {/* 3. AMBER: Average Order Value & Trend */}
+                <div className="relative overflow-hidden rounded-3xl border border-amber-100/80 bg-white p-5 shadow-xs transition-all hover:shadow-md hover:-translate-y-0.5">
                     <div className="flex items-center justify-between">
                         <span className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
                             Avg. Order Value
                         </span>
-                        <div className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 border border-amber-200">
-                            <Sparkles className="size-4.5" />
+                        <div className="flex size-8 items-center justify-center rounded-xl bg-amber-50 text-amber-600 border border-amber-200">
+                            <Sparkles className="size-4" />
                         </div>
                     </div>
-                    <div className="mt-3">
-                        <p className="text-4xl font-black tracking-[-0.04em] text-slate-950 sm:text-5xl">
-                            {formatCurrency(summary.averageOrderValue)}
-                        </p>
-                        <div className="mt-2 flex items-center justify-between text-xs">
-                            <span className="text-amber-800 font-bold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                                {summary.uniqueCustomers} buyers
-                            </span>
-                            <span className="text-[11px] text-slate-400">
-                                {formatNumber(summary.unitsSold)} items sold
-                            </span>
+
+                    <div className="mt-2.5 flex items-baseline justify-between gap-2">
+                        <div>
+                            <p className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
+                                {formatCurrency(summary.averageOrderValue)}
+                            </p>
+                            <div className="mt-1 flex items-center gap-1.5">
+                                <span className="font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full text-[11px] border border-amber-200">
+                                    {summary.uniqueCustomers} buyers
+                                </span>
+                            </div>
                         </div>
+
+                        {/* Visual Sparkline */}
+                        <div className="h-11 w-24 shrink-0">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={timeline} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
+                                    <defs>
+                                        <linearGradient id="miniAovGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.4} />
+                                            <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <Area type="monotone" dataKey="revenue" stroke="#f59e0b" strokeWidth={2} fill="url(#miniAovGrad)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                        <span>Items Sold:</span>
+                        <span className="font-bold text-slate-800">{formatNumber(summary.unitsSold)} units</span>
                     </div>
                 </div>
 
-                {/* 4. TEAL / CYAN: Delivery & Fulfillment Success */}
-                <div className="relative min-h-[178px] overflow-hidden rounded-3xl border border-teal-100/70 bg-gradient-to-br from-white to-teal-50/40 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:shadow-lg">
+                {/* 4. TEAL: Delivery Success & Radial Ring */}
+                <div className="relative overflow-hidden rounded-3xl border border-teal-100/80 bg-white p-5 shadow-xs transition-all hover:shadow-md hover:-translate-y-0.5">
                     <div className="flex items-center justify-between">
                         <span className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
                             Delivery Success
                         </span>
-                        <div className="flex size-9 items-center justify-center rounded-xl bg-teal-50 text-teal-600 border border-teal-200">
-                            <ShieldCheck className="size-4.5" />
+                        <div className="flex size-8 items-center justify-center rounded-xl bg-teal-50 text-teal-600 border border-teal-200">
+                            <ShieldCheck className="size-4" />
                         </div>
                     </div>
-                    <div className="mt-3">
-                        <div className="flex items-baseline gap-2">
-                            <p className="text-4xl font-black tracking-[-0.04em] text-slate-950 sm:text-5xl">
-                                {summary.fulfillmentRate}%
-                            </p>
-                            <span className="text-xs font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
-                                Excellent
-                            </span>
+
+                    <div className="mt-2.5 flex items-center justify-between gap-2">
+                        <div>
+                            <div className="flex items-baseline gap-1.5">
+                                <p className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
+                                    {summary.fulfillmentRate}%
+                                </p>
+                            </div>
+                            <div className="mt-1 flex items-center gap-1.5">
+                                <span className="text-[11px] font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
+                                    Excellent SLA
+                                </span>
+                            </div>
                         </div>
-                        <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
-                            <span>Fulfillment SLA</span>
-                            <span>{summary.returnRequests} return claims</span>
+
+                        {/* Circular SVG Progress Ring */}
+                        <div className="relative size-12 shrink-0 flex items-center justify-center">
+                            <svg className="size-12 -rotate-90" viewBox="0 0 48 48">
+                                <circle cx="24" cy="24" r="19" stroke="#f1f5f9" strokeWidth="4" fill="none" />
+                                <circle
+                                    cx="24"
+                                    cy="24"
+                                    r="19"
+                                    stroke="#0d9488"
+                                    strokeWidth="4"
+                                    fill="none"
+                                    strokeDasharray="119.38"
+                                    strokeDashoffset={119.38 - (119.38 * Math.min(summary.fulfillmentRate, 100)) / 100}
+                                    strokeLinecap="round"
+                                />
+                            </svg>
+                            <Check className="absolute size-4 text-teal-600 font-bold" />
                         </div>
+                    </div>
+
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                        <span>Return Claims:</span>
+                        <span className="font-bold text-slate-800">{summary.returnRequests} claims</span>
                     </div>
                 </div>
             </div>
 
-            <section className="overflow-hidden rounded-3xl border border-orange-100 bg-gradient-to-r from-orange-50 via-white to-emerald-50/50 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.04)] md:p-6">
-                <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
-                    <div className="min-w-[220px] lg:max-w-xs">
-                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-orange-600">Performance pulse</p>
-                        <p className="mt-2 text-sm font-bold leading-6 text-slate-900">{performanceInsight}</p>
-                    </div>
-                    <div className="grid flex-1 gap-4 sm:grid-cols-4">
-                        {[
-                            ["Net revenue", formatCurrency(summary.netRevenue), summary.totalRevenue > 0 ? (summary.netRevenue / summary.totalRevenue) * 100 : 0, "bg-emerald-500"],
-                            ["Returning buyers", `${summary.repeatCustomerRate}%`, summary.repeatCustomerRate, "bg-orange-500"],
-                            ["Returns", `${summary.returnRate}%`, Math.min(summary.returnRate, 100), "bg-amber-500"],
-                            ["Cancellations", `${summary.cancellationRate}%`, Math.min(summary.cancellationRate, 100), "bg-rose-500"],
-                        ].map(([label, value, percent, bar]) => (
-                            <div key={label}>
-                                <div className="flex items-end justify-between gap-2"><p className="text-[10px] font-black uppercase tracking-wider text-slate-400">{label}</p><p className="text-lg font-black text-slate-900">{value}</p></div>
-                                <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/80"><div className={`h-full rounded-full ${bar}`} style={{ width: `${Math.max(4, Math.min(Number(percent), 100))}%` }} /></div>
+            {/* Visual Store Operations & Health Matrix */}
+            <section className="overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                    {/* LEFT: Health Score Radial & AI Recommendation */}
+                    <div className="lg:col-span-4 flex items-center gap-4 border-b lg:border-b-0 lg:border-r border-slate-100 pb-5 lg:pb-0 lg:pr-6">
+                        {/* Radial Ring */}
+                        <div className="relative size-20 shrink-0 flex items-center justify-center">
+                            <svg className="size-20 -rotate-90" viewBox="0 0 64 64">
+                                <circle cx="32" cy="32" r="26" stroke="#f1f5f9" strokeWidth="5" fill="none" />
+                                <circle
+                                    cx="32"
+                                    cy="32"
+                                    r="26"
+                                    stroke="#10b981"
+                                    strokeWidth="5"
+                                    fill="none"
+                                    strokeDasharray="163.36"
+                                    strokeDashoffset={163.36 - (163.36 * healthScore) / 100}
+                                    strokeLinecap="round"
+                                />
+                            </svg>
+                            <div className="absolute flex flex-col items-center">
+                                <span className="text-sm font-black text-slate-900">{healthScore}%</span>
+                                <span className="text-[8px] font-bold uppercase tracking-wider text-emerald-700">Health</span>
                             </div>
-                        ))}
+                        </div>
+
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-1.5">
+                                <span className="size-2 rounded-full bg-emerald-500" />
+                                <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Performance Pulse</p>
+                            </div>
+                            <p className="text-xs font-bold text-slate-800 leading-snug">{performanceInsight}</p>
+                        </div>
+                    </div>
+
+                    {/* RIGHT: 4 Visual Metric Cards with Progress Meters & Badges */}
+                    <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        {/* 1. Net Revenue */}
+                        <div className="rounded-2xl bg-slate-50 border border-slate-200/70 p-3.5 space-y-2">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Net Revenue</span>
+                                <span className="size-2 rounded-full bg-emerald-500" />
+                            </div>
+                            <p className="text-base font-black text-slate-900">{formatCurrency(summary.netRevenue)}</p>
+                            <div className="space-y-1">
+                                <div className="h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
+                                    <div
+                                        className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                                        style={{ width: `${Math.min(100, summary.totalRevenue > 0 ? (summary.netRevenue / summary.totalRevenue) * 100 : 100)}%` }}
+                                    />
+                                </div>
+                                <p className="text-[10px] text-slate-500 font-medium">
+                                    {summary.totalRevenue > 0 ? Math.round((summary.netRevenue / summary.totalRevenue) * 100) : 100}% retained
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* 2. Returning Buyers */}
+                        <div className="rounded-2xl bg-slate-50 border border-slate-200/70 p-3.5 space-y-2">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Returning Buyers</span>
+                                <span className="size-2 rounded-full bg-orange-500" />
+                            </div>
+                            <p className="text-base font-black text-slate-900">{summary.repeatCustomerRate}%</p>
+                            <div className="space-y-1">
+                                <div className="h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
+                                    <div
+                                        className="h-full rounded-full bg-orange-500 transition-all duration-500"
+                                        style={{ width: `${Math.min(100, Math.max(8, summary.repeatCustomerRate))}%` }}
+                                    />
+                                </div>
+                                <p className="text-[10px] text-slate-500 font-medium">High loyalty</p>
+                            </div>
+                        </div>
+
+                        {/* 3. Returns */}
+                        <div className="rounded-2xl bg-slate-50 border border-slate-200/70 p-3.5 space-y-2">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Return Rate</span>
+                                <span className="size-2 rounded-full bg-amber-500" />
+                            </div>
+                            <p className="text-base font-black text-slate-900">{summary.returnRate}%</p>
+                            <div className="space-y-1">
+                                <div className="h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
+                                    <div
+                                        className="h-full rounded-full bg-amber-500 transition-all duration-500"
+                                        style={{ width: `${Math.min(100, Math.max(6, summary.returnRate))}%` }}
+                                    />
+                                </div>
+                                <p className="text-[10px] text-slate-500 font-medium">Within safe SLA</p>
+                            </div>
+                        </div>
+
+                        {/* 4. Cancellations */}
+                        <div className="rounded-2xl bg-slate-50 border border-slate-200/70 p-3.5 space-y-2">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Cancellations</span>
+                                <span className="size-2 rounded-full bg-rose-500" />
+                            </div>
+                            <p className="text-base font-black text-slate-900">{summary.cancellationRate}%</p>
+                            <div className="space-y-1">
+                                <div className="h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
+                                    <div
+                                        className="h-full rounded-full bg-rose-500 transition-all duration-500"
+                                        style={{ width: `${Math.min(100, Math.max(6, summary.cancellationRate))}%` }}
+                                    />
+                                </div>
+                                <p className="text-[10px] text-slate-500 font-medium">Low risk level</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>

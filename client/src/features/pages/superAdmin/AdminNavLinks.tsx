@@ -45,29 +45,24 @@ const NavItem = ({
             to={href}
             onClick={onClick}
             title={!expanded ? label : undefined}
-            className={`group relative flex items-center rounded-xl mb-1 text-[13px] transition-all duration-200 select-none cursor-pointer ${
+            className={`group relative flex items-center rounded-xl mb-1 text-[13px] transition-all duration-150 select-none cursor-pointer ${
                 expanded ? "gap-3 px-3 py-2.5" : "justify-center px-0 py-2.5"
             } ${
                 active
-                    ? "text-white font-semibold bg-gradient-to-r from-orange-500/20 via-orange-500/10 to-transparent border border-orange-500/30 shadow-[0_2px_12px_rgba(249,115,22,0.18)]"
-                    : "text-slate-400 font-medium hover:text-slate-100 hover:bg-slate-800/60 hover:translate-x-0.5"
+                    ? "text-white font-bold bg-gradient-to-r from-orange-500 to-amber-500 shadow-md shadow-orange-500/25"
+                    : "text-slate-300 font-medium hover:text-white hover:bg-white/10 hover:translate-x-0.5"
             }`}
         >
-            {/* Smooth glowing active tracker bar */}
-            {active && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full bg-gradient-to-b from-orange-400 to-amber-500 shadow-[0_0_10px_rgba(249,115,22,0.85)]" />
-            )}
-
             <Icon
-                className={`size-4 shrink-0 transition-all duration-200 ${
+                className={`size-4 shrink-0 transition-all duration-150 ${
                     active
-                        ? "text-orange-400 drop-shadow-[0_0_8px_rgba(249,115,22,0.65)] scale-110"
-                        : "text-slate-400 group-hover:text-slate-200 group-hover:scale-105"
+                        ? "text-white scale-110"
+                        : "text-slate-400 group-hover:text-white group-hover:scale-105"
                 }`}
             />
             {expanded && <span className="truncate">{label}</span>}
             {active && expanded && (
-                <span className="ml-auto size-1.5 rounded-full bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.9)] shrink-0 animate-pulse" />
+                <span className="ml-auto size-1.5 rounded-full bg-white shadow-xs shrink-0" />
             )}
         </Link>
     );
@@ -80,7 +75,7 @@ export const AdminNavLinks = ({ expanded = true, onNavItemClick }: AdminNavLinks
             <div className="space-y-4">
                 <div>
                     {expanded && (
-                        <p className="px-3 mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                        <p className="px-3 mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
                             Platform
                         </p>
                     )}
@@ -100,14 +95,14 @@ export const AdminNavLinks = ({ expanded = true, onNavItemClick }: AdminNavLinks
                 </div>
                 <div>
                     {expanded && (
-                        <p className="px-3 mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                        <p className="px-3 mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
                             Administration
                         </p>
                     )}
                     <NavItem href="/superadmin/audits" icon={Shield} label="Security & Audits" expanded={expanded} onClick={onNavItemClick} />
                 </div>
             </div>
-            <div className="mt-6 border-t border-slate-800/80 pt-3">
+            <div className="mt-6 border-t border-slate-800 pt-3">
                 <NavItem href="/superadmin/support" icon={LifeBuoy} label="Support Center" expanded={expanded} onClick={onNavItemClick} />
                 <button
                     onClick={() => logout.mutate()}
