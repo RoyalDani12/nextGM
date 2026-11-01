@@ -1,5 +1,5 @@
 import { Job, Worker } from "bullmq";
-import { redis } from "../../cache/redis.client.js";
+import { queueRedis } from "../../cache/redis.client.js";
 import { transporter } from "../../../services/email.transporter.js";
 
 
@@ -19,7 +19,7 @@ export const emailWorker = new Worker("emails",
     console.log(`Email sent to ${to} | job: ${job.id}`)
    },
    {
-    connection:redis,
+    connection:queueRedis,
     concurrency:5 // process 5 emails at the same time
    }
   )

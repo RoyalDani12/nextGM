@@ -1,5 +1,5 @@
 import { Job,Worker } from "bullmq"
-import { redis } from "../../cache/redis.client.js"
+import { queueRedis } from "../../cache/redis.client.js"
 import { prisma } from "../../../config/db.js"
 import { OrderStatus } from "@prisma/client"
 import { logger } from "../../../config/logger.js"
@@ -70,7 +70,7 @@ export const orderExpirationWorker = new Worker(
     })
      console.log(`[Queue] Order ${orderId} reservation expired, stock restored.`);
    },{
-    connection:redis,
+    connection:queueRedis,
     concurrency:5,
    }
 

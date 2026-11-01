@@ -1,5 +1,5 @@
 import { Job, Worker } from "bullmq";
-import { redis } from "../../cache/redis.client.js";
+import { queueRedis } from "../../cache/redis.client.js";
 import { deleteImageFromCloudinary } from "../../storage/cloudinary.client.js";
 
 export const imageWorker = new Worker(
@@ -15,7 +15,7 @@ export const imageWorker = new Worker(
         await deleteImageFromCloudinary(publicId);
     },
     {
-        connection: redis,
+        connection:queueRedis,
         concurrency: 3,
     },
 );

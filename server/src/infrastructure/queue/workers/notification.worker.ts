@@ -1,5 +1,5 @@
 import { Job,Worker } from "bullmq"
-import { redis } from "../../cache/redis.client.js"
+import { queueRedis } from "../../cache/redis.client.js";
 import { createNotificationRecored } from "../../../features/notification/notification.repository.js"
 import { emailQueue } from "../queue.client.js"
 import { renderOrderPlacedEmail, renderGenericNotificationEmail } from "../../../services/email.templates.js";
@@ -44,7 +44,7 @@ export const notificationWorker = new Worker(
             });
         },
     {
-        connection: redis,
+        connection: queueRedis,
         concurrency: 5,
     },
 );
