@@ -335,7 +335,8 @@ export const browseProductRepository = async (options: BrowseProductsOptions) =>
         }),
     };
 
-    const productsWithRatings = await prisma.product.findMany({
+    const paginateInDatabase = sort !== "rating" && !minRating;
+    const productQuery = prisma.product.findMany({
             where,
             select: {
                 id: true,
@@ -368,14 +369,25 @@ export const browseProductRepository = async (options: BrowseProductsOptions) =>
                 },
             },
             orderBy: sort === "rating" ? { createdAt: "desc" } : { [sort]: order },
+            ...(paginateInDatabase ? { skip, take } : {}),
         });
+
+    const [productsWithRatings, totalCount] = paginateInDatabase
+        ? await Promise.all([productQuery, prisma.product.count({ where })])
+        : [await productQuery, undefined];
+
     const ratedProducts = productsWithRatings.map(({ reviews, coupons, ...product }) => {
         const reviewCount = reviews.length;
         const averageRating = reviewCount ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviewCount : 0;
         return { ...product, averageRating: Number(averageRating.toFixed(1)), reviewCount, promotion: coupons[0]?.coupon ?? null };
     }).filter((product) => !minRating || product.averageRating >= minRating);
     if (sort === "rating") ratedProducts.sort((a, b) => order === "asc" ? a.averageRating - b.averageRating : b.averageRating - a.averageRating);
-    return { products: ratedProducts.slice(skip, skip + take), total: ratedProducts.length, categoryBreadcrumb };
+
+    return {
+        products: paginateInDatabase ? ratedProducts : ratedProducts.slice(skip, skip + take),
+        total: paginateInDatabase ? totalCount! : ratedProducts.length,
+        categoryBreadcrumb,
+    };
 };
 
 export const findProductWithShop = async (productId: string) => {

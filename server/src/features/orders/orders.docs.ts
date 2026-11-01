@@ -1,8 +1,9 @@
 export const orderDocs = {
-  "/api/orders/checkout": {
+  "/api/v1/orders/checkout": {
     "post": {
       "tags": ["Orders"],
-      "summary": "Checkout cart and create an order",
+      "summary": "Create checkout session & lock orders",
+      "description": "Validates inventory, applies discounts/coupons, splits cart by merchant shops, and creates pending order records ready for payment.",
       "security": [{ "bearerAuth": [] }],
       "requestBody": {
         "required": true,
@@ -10,157 +11,123 @@ export const orderDocs = {
           "application/json": {
             "schema": {
               "type": "object",
-              "required": ["cartItems", "shippingAddress", "paymentMethod"],
+              "required": ["shippingAddress"],
               "properties": {
-                "cartItems": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "productId": { "type": "string", "example": "prod_67890" },
-                      "quantity": { "type": "integer", "example": 2 }
-                    }
+                "shippingAddress": {
+                  "type": "object",
+                  "required": ["fullName", "street", "city", "state", "postalCode", "country", "phone"],
+                  "properties": {
+                    "fullName": { "type": "string", "example": "Jane Doe" },
+                    "street": { "type": "string", "example": "742 Evergreen Terrace" },
+                    "city": { "type": "string", "example": "Springfield" },
+                    "state": { "type": "string", "example": "OR" },
+                    "postalCode": { "type": "string", "example": "97477" },
+                    "country": { "type": "string", "example": "US" },
+                    "phone": { "type": "string", "example": "+15551234567" }
                   }
                 },
-                "shippingAddress": { "type": "string", "example": "123 Main St, Debre Berhan" },
-                "paymentMethod": { "type": "string", "example": "STRIPE" }
+                "couponCode": { "type": "string", "example": "WELCOME10" },
+                "notes": { "type": "string", "example": "Please leave at side door" }
               }
             }
           }
         }
       },
       "responses": {
-        "201": { "description": "Order created successfully" },
-        "400": { "description": "Validation failed" },
-        "401": { "description": "Unauthorized" }
+        "201": {
+          "description": "Checkout initiated. Returns checkoutId and sub-orders for each shop."
+        },
+        "400": { "description": "Cart is empty, price changed, or insufficient inventory." }
       }
     }
   },
-  "/api/orders": {
+  "/api/v1/orders": {
     "get": {
       "tags": ["Orders"],
-      "summary": "Get customer order history",
-      "security": [{ "bearerAuth": [] }],
-      "responses": {
-        "200": { "description": "List of customer orders retrieved" },
-        "401": { "description": "Unauthorized" }
-      }
-    }
-  },
-  "/api/orders/{orderId}": {
-    "get": {
-      "tags": ["Orders"],
-      "summary": "Get customer order details by ID",
+      "summary": "List customer order history",
+      "description": "Returns all orders placed by the authenticated customer with fulfillment and payment status.",
       "security": [{ "bearerAuth": [] }],
       "parameters": [
-        {
-          "name": "orderId",
-          "in": "path",
-          "required": true,
-          "schema": { "type": "string" },
-          "example": "ord_12345"
-        }
+        { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+        { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 10 } },
+        { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["ALL", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"] } }
       ],
       "responses": {
-        "200": { "description": "Order details retrieved" },
-        "401": { "description": "Unauthorized" },
-        "404": { "description": "Order not found" }
+        "200": { "description": "Customer orders list retrieved." }
       }
     }
   },
-  "/api/orders/{orderId}/cancel": {
+  "/api/v1/orders/{orderId}": {
+    "get": {
+      "tags": ["Orders"],
+      "summary": "Get customer order details",
+      "description": "Returns full line item breakdown, tracking code, shipping address, and invoice for a specific order.",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        { "name": "orderId", "in": "path", "required": true, "schema": { "type": "string" } }
+      ],
+      "responses": {
+        "200": { "description": "Order details returned." },
+        "404": { "description": "Order not found." }
+      }
+    }
+  },
+  "/api/v1/orders/{orderId}/cancel": {
     "post": {
       "tags": ["Orders"],
-      "summary": "Cancel a specific order",
+      "summary": "Cancel unfulfilled order",
+      "description": "Customer cancellation of an order before fulfillment dispatch.",
       "security": [{ "bearerAuth": [] }],
       "parameters": [
-        {
-          "name": "orderId",
-          "in": "path",
-          "required": true,
-          "schema": { "type": "string" },
-          "example": "ord_12345"
-        }
+        { "name": "orderId", "in": "path", "required": true, "schema": { "type": "string" } }
       ],
       "responses": {
-        "200": { "description": "Order cancelled successfully" },
-        "400": { "description": "Order cannot be cancelled" },
-        "401": { "description": "Unauthorized" }
+        "200": { "description": "Order cancelled." },
+        "400": { "description": "Order has already been shipped or completed." }
       }
     }
   },
-  "/api/orders/{shopId}/orders": {
+  "/api/v1/orders/{shopId}/orders": {
     "get": {
       "tags": ["Orders"],
-      "summary": "Get all orders placed under a specific shop",
+      "summary": "List merchant shop orders (Seller)",
+      "description": "Returns orders placed for the merchant's store with customer details, items, and delivery deadlines.",
       "security": [{ "bearerAuth": [] }],
       "parameters": [
-        {
-          "name": "shopId",
-          "in": "path",
-          "required": true,
-          "schema": { "type": "string" },
-          "example": "shop_99887"
-        }
+        { "name": "shopId", "in": "path", "required": true, "schema": { "type": "string" } },
+        { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["ALL", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"] } },
+        { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+        { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } }
       ],
       "responses": {
-        "200": { "description": "Shop orders retrieved" },
-        "401": { "description": "Unauthorized" },
-        "403": { "description": "Forbidden - Access Denied" }
+        "200": { "description": "Shop orders list returned." }
       }
     }
   },
-  "/api/orders/{shopId}/orders/{orderId}": {
+  "/api/v1/orders/{shopId}/orders/{orderId}": {
     "get": {
       "tags": ["Orders"],
-      "summary": "Get specific order details for a shop",
+      "summary": "Get merchant shop order detail",
+      "description": "Returns detailed line items, packaging slip info, and customer delivery address.",
       "security": [{ "bearerAuth": [] }],
       "parameters": [
-        {
-          "name": "shopId",
-          "in": "path",
-          "required": true,
-          "schema": { "type": "string" },
-          "example": "shop_99887"
-        },
-        {
-          "name": "orderId",
-          "in": "path",
-          "required": true,
-          "schema": { "type": "string" },
-          "example": "ord_12345"
-        }
+        { "name": "shopId", "in": "path", "required": true, "schema": { "type": "string" } },
+        { "name": "orderId", "in": "path", "required": true, "schema": { "type": "string" } }
       ],
       "responses": {
-        "200": { "description": "Shop order details retrieved" },
-        "401": { "description": "Unauthorized" },
-        "403": { "description": "Forbidden - Access Denied" },
-        "404": { "description": "Order not found" }
+        "200": { "description": "Shop order detail returned." }
       }
     }
   },
-  
-  "/api/orders/{shopId}/orders/{orderId}/status": {
+  "/api/v1/orders/{shopId}/orders/{orderId}/shipment": {
     "patch": {
       "tags": ["Orders"],
-      "summary": "Update order status via state machine event",
-      "description": "Transitions an order status safely by validating the sent event against the current state machine rules.",
+      "summary": "Mark order as shipped with tracking",
+      "description": "Records carrier name and tracking number, updates status to SHIPPED, and sends customer shipping confirmation.",
       "security": [{ "bearerAuth": [] }],
       "parameters": [
-        {
-          "name": "shopId",
-          "in": "path",
-          "required": true,
-          "schema": { "type": "string" },
-          "example": "shop_99887"
-        },
-        {
-          "name": "orderId",
-          "in": "path",
-          "required": true,
-          "schema": { "type": "string" },
-          "example": "ord_12345"
-        }
+        { "name": "shopId", "in": "path", "required": true, "schema": { "type": "string" } },
+        { "name": "orderId", "in": "path", "required": true, "schema": { "type": "string" } }
       ],
       "requestBody": {
         "required": true,
@@ -168,57 +135,48 @@ export const orderDocs = {
           "application/json": {
             "schema": {
               "type": "object",
-              "required": ["event"],
+              "required": ["carrier", "trackingNumber"],
               "properties": {
-                "event": {
-                  "type": "string",
-                  "enum": [
-                    "PAYMENT_SUCCESS",
-                    "PAYMENT_TIMEOUT",
-                    "FULFILLMENT_START",
-                    "COURIER_PICKUP",
-                    "CUSTOMER_CONFIRMATION",
-                    "CUSTOMER_RETURN_FILED"
-                  ],
-                  "description": "The explicit event triggering the transition in the status lifecycle state chart",
-                  "example": "FULFILLMENT_START"
-                }
+                "carrier": { "type": "string", "example": "FedEx" },
+                "trackingNumber": { "type": "string", "example": "794829103948" },
+                "estimatedDelivery": { "type": "string", "format": "date-time" }
               }
             }
           }
         }
       },
       "responses": {
-        "200": {
-          "description": "Order status updated successfully",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "success": { "type": "boolean", "example": true },
-                  "previousStatus": { "type": "string", "example": "PAID" },
-                  "currentStatus": { "type": "string", "example": "PROCESSING" }
-                }
+        "200": { "description": "Order marked shipped and tracking recorded." }
+      }
+    }
+  },
+  "/api/v1/orders/{shopId}/orders/{orderId}/status": {
+    "patch": {
+      "tags": ["Orders"],
+      "summary": "Update order status",
+      "description": "Transitions order between PROCESSING, DELIVERED, or CANCELLED.",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        { "name": "shopId", "in": "path", "required": true, "schema": { "type": "string" } },
+        { "name": "orderId", "in": "path", "required": true, "schema": { "type": "string" } }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": ["status"],
+              "properties": {
+                "status": { "type": "string", "enum": ["PROCESSING", "DELIVERED", "CANCELLED"] }
               }
             }
           }
-        },
-        "400": { 
-          "description": "Bad Request - Invalid state machine transition or schema validation failed" 
-        },
-        "401": { 
-          "description": "Unauthorized - Missing or invalid authentication token" 
-        },
-        "403": { 
-          "description": "Forbidden - Authenticated user does not have permission to manage this shop" 
-        },
-        "404": { 
-          "description": "Order or shop not found" 
         }
+      },
+      "responses": {
+        "200": { "description": "Order status updated." }
       }
     }
   }
-
-
 };

@@ -1,8 +1,8 @@
 import { Queue } from "bullmq";
-import { redis } from "../cache/redis.client.js";
+import { queueRedis } from "../cache/redis.client.js";
 
 export const emailQueue = new Queue("emails", {
-    connection: redis,
+    connection: queueRedis,
     defaultJobOptions: {
         attempts: 3,
         backoff: {
@@ -18,7 +18,7 @@ export const emailQueue = new Queue("emails", {
 emailQueue.on("error", () => {});
 
 export const imageCleanupQueue = new Queue("image-cleanup", {
-    connection: redis,
+    connection: queueRedis,
     defaultJobOptions: {
         attempts: 3,
         backoff: {
@@ -34,7 +34,7 @@ export const imageCleanupQueue = new Queue("image-cleanup", {
 imageCleanupQueue.on("error", () => {});
 
 export const accountPurgeQueue = new Queue("accountPurgeQueue", {
-    connection: redis,
+    connection: queueRedis,
     defaultJobOptions: {
         attempts: 3,
         backoff: {
@@ -48,7 +48,7 @@ export const accountPurgeQueue = new Queue("accountPurgeQueue", {
 accountPurgeQueue.on("error", () => {});
 
 export const orderExpirationQueue = new Queue("order-expiration", {
-    connection: redis,
+    connection: queueRedis,
     defaultJobOptions: {
         attempts: 3,
         backoff: {
@@ -64,7 +64,7 @@ export const orderExpirationQueue = new Queue("order-expiration", {
 orderExpirationQueue.on("error", () => {});
 
 export const notificationQueue = new Queue("notifications", {
-    connection: redis,
+    connection: queueRedis,
     defaultJobOptions: {
         attempts: 3,
         backoff: {
