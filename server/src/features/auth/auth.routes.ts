@@ -23,7 +23,12 @@ import {
   resetPasswordSchema} 
   from "./auth.schema.js";
 import { validate } from "../../middleware/validate.middleware.js";
-import { authLimiter } from "../../middleware/rateLimiter.middleware.js";
+import {
+  authLimiter,
+  loginLimiter,
+  emailVerificationLimiter,
+  passwordResetLimiter,
+} from "../../middleware/rateLimiter.middleware.js";
 import { authenticate } from "../../middleware/auth.middleware.js";
 
 
@@ -37,13 +42,13 @@ router.post(
 
 router.get(
   "/verify-email",
-  authLimiter,
+  emailVerificationLimiter,
   validate(verifyEmailSchema),
   verifyEmailController,
 );
 
 router.post('/login',
-  authLimiter,
+  loginLimiter,
   validate(loginSchema),
   loginController
 )
@@ -64,19 +69,19 @@ router.post('/logout',
 
 
 router.post('/resend-verification',
-  authLimiter,
+  emailVerificationLimiter,
   validate(resendVerificationSchema),
   resendVerificationController
 )
 
 router.post('/forgot-password',
-  authLimiter,
+  passwordResetLimiter,
   validate(forgotPasswordSchema),
   forgotPasswordController
 )
 
 router.post('/reset-password',
-  authLimiter,
+  passwordResetLimiter,
   validate(resetPasswordSchema),
   resetPasswordController
 )

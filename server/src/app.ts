@@ -3,6 +3,7 @@ dotenv.config()
 import express from "express"
 import { setupSwagger } from "./config/swagger.config.js"
 const app = express()
+app.set("trust proxy", 1)
 import helmet from "helmet"
 import cookieParser from "cookie-parser"
 import { corsConfig } from "./config/cors.js"

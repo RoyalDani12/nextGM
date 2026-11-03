@@ -30,15 +30,51 @@ export const notificationLimiter = rateLimit({
 });
 
 
-// limiter for auth routes
+// limiter for general registration and auth operations
 export const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    status: "error",
+    message: "Too many requests. Please try again later.",
+  },
+});
+
+// dedicated limiter for login attempts (brute-force defense)
+export const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    status: "error",
+    message: "Too many login attempts. Please try again later.",
+  },
+});
+
+// limiter for email verification and resend
+export const emailVerificationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    status: "error",
+    message: "Too many email verification requests. Please try again later.",
+  },
+});
+
+// limiter for password reset requests
+export const passwordResetLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     status: "error",
-    message: "Too many login attempts. Please try again later.",
+    message: "Too many password reset attempts. Please try again later.",
   },
 });
 
