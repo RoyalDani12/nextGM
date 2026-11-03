@@ -42,11 +42,11 @@ export const AdminSidebar = ({
             }`}
         >
             <aside
-                className={`flex h-full flex-col select-none bg-[#0F172A] text-slate-100 transition-all duration-200 ease-out border-r border-slate-800 ${
+                className={`flex h-full flex-col select-none bg-[#533257] text-slate-100 transition-all duration-200 ease-out border-r border-slate-800 ${
                     expanded ? "w-64" : "w-full"
                 } ${
                     peeking
-                        ? "absolute left-0 top-0 z-50 rounded-r-3xl border-r border-slate-800 bg-[#0F172A] shadow-2xl shadow-black/80"
+                        ? "absolute left-0 top-0 z-50 rounded-r-3xl border-r border-slate-800 bg-[#533257] shadow-2xl shadow-black/80"
                         : ""
                 }`}
             >

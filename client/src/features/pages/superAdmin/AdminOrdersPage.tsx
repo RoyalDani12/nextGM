@@ -56,14 +56,14 @@ export const AdminOrdersPage = () => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-7xl mx-auto">
             {/* Header */}
             <div>
-                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2 tracking-tight">
                     <ShoppingCart className="size-6 text-orange-600" />
                     All Orders
                 </h1>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-xs font-medium text-slate-500 mt-1">
                     {data ? `${data.total.toLocaleString()} total platform orders` : "Loading..."}
                 </p>
             </div>
@@ -83,23 +83,23 @@ export const AdminOrdersPage = () => {
             <AdminOrderAnalyticsSection parentDateFrom={dateFrom} parentDateTo={dateTo} />
 
             {/* Filter Bar */}
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 space-y-3">
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 space-y-3">
                 <div className="flex flex-col sm:flex-row gap-3">
                     {/* Search */}
                     <form onSubmit={handleSearch} className="flex gap-2 flex-1">
                         <div className="relative flex-1">
-                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                             <input
                                 type="text"
                                 placeholder="Search by customer, email, order ID..."
                                 value={searchInput}
                                 onChange={(e) => setSearchInput(e.target.value)}
-                                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 bg-slate-50/50"
                             />
                         </div>
                         <button
                             type="submit"
-                            className="px-4 py-2 text-sm font-semibold bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors shrink-0"
+                            className="px-4 py-2 text-sm font-semibold bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors shrink-0 shadow-2xs cursor-pointer"
                         >
                             Search
                         </button>
@@ -113,7 +113,7 @@ export const AdminOrdersPage = () => {
                                 setStatus(e.target.value);
                                 setPage(1);
                             }}
-                            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            className="text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer text-slate-700 font-medium"
                         >
                             <option value="">All Statuses</option>
                             {ORDER_STATUSES.filter(Boolean).map((s) => (
@@ -126,8 +126,8 @@ export const AdminOrdersPage = () => {
                 </div>
 
                 {/* Date range row */}
-                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100 text-xs text-gray-500">
-                    <span className="font-medium text-gray-700">Date range:</span>
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 text-xs text-slate-500">
+                    <span className="font-semibold text-slate-700">Date range:</span>
                     <input
                         type="date"
                         value={dateFrom}
@@ -135,7 +135,7 @@ export const AdminOrdersPage = () => {
                             setDateFrom(e.target.value);
                             setPage(1);
                         }}
-                        className="border border-gray-200 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-orange-500"
+                        className="border border-slate-200 rounded-lg px-2 py-1 text-xs focus:ring-1 focus:ring-orange-500 bg-slate-50/50"
                     />
                     <span>to</span>
                     <input
@@ -145,13 +145,13 @@ export const AdminOrdersPage = () => {
                             setDateTo(e.target.value);
                             setPage(1);
                         }}
-                        className="border border-gray-200 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-orange-500"
+                        className="border border-slate-200 rounded-lg px-2 py-1 text-xs focus:ring-1 focus:ring-orange-500 bg-slate-50/50"
                     />
 
                     {(search || status || dateFrom || dateTo) && (
                         <button
                             onClick={resetFilters}
-                            className="ml-auto text-xs text-orange-600 hover:text-orange-700 font-semibold underline"
+                            className="ml-auto text-xs text-orange-600 hover:text-orange-700 font-semibold underline cursor-pointer"
                         >
                             Reset filters
                         </button>
@@ -160,7 +160,7 @@ export const AdminOrdersPage = () => {
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
                 {isLoading ? (
                     <div className="flex items-center justify-center h-64">
                         <Loader2 className="animate-spin text-orange-500" size={32} />
@@ -176,49 +176,49 @@ export const AdminOrdersPage = () => {
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-gray-400 uppercase tracking-wider bg-gray-50/50 border-b border-gray-100">
+                            <thead className="text-[11px] text-slate-500 uppercase tracking-wider bg-slate-50/80 border-b border-slate-100 font-bold">
                                 <tr>
-                                    <th className="px-5 py-3 font-semibold">Order ID</th>
-                                    <th className="px-5 py-3 font-semibold">Customer</th>
-                                    <th className="px-5 py-3 font-semibold">Store</th>
-                                    <th className="px-5 py-3 font-semibold">Status</th>
-                                    <th className="px-5 py-3 font-semibold">Total</th>
-                                    <th className="px-5 py-3 font-semibold">Items</th>
-                                    <th className="px-5 py-3 font-semibold">Date</th>
-                                    <th className="px-5 py-3 font-semibold text-right">Action</th>
+                                    <th className="px-5 py-3 font-bold">Order ID</th>
+                                    <th className="px-5 py-3 font-bold">Customer</th>
+                                    <th className="px-5 py-3 font-bold">Store</th>
+                                    <th className="px-5 py-3 font-bold">Status</th>
+                                    <th className="px-5 py-3 font-bold">Total</th>
+                                    <th className="px-5 py-3 font-bold">Items</th>
+                                    <th className="px-5 py-3 font-bold">Date</th>
+                                    <th className="px-5 py-3 font-bold text-right">Action</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
+                            <tbody className="divide-y divide-slate-100">
                                 {data.orders.map((order) => (
-                                    <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-5 py-3.5 font-mono text-xs text-gray-500">
+                                    <tr key={order.id} className="hover:bg-slate-50/60 transition-colors">
+                                        <td className="px-5 py-3.5 font-mono text-xs text-slate-500">
                                             {order.id.slice(0, 8)}...
                                         </td>
                                         <td className="px-5 py-3.5">
-                                            <p className="font-medium text-gray-900">{order.customer.name}</p>
-                                            <p className="text-xs text-gray-400">{order.customer.email}</p>
+                                            <p className="font-semibold text-slate-900">{order.customer.name}</p>
+                                            <p className="text-xs text-slate-400">{order.customer.email}</p>
                                         </td>
                                         <td className="px-5 py-3.5">
-                                            <span className="font-medium text-gray-700">
+                                            <span className="font-medium text-slate-700">
                                                 {order.shop.profile?.name ?? order.shop.slug}
                                             </span>
                                         </td>
                                         <td className="px-5 py-3.5">
                                             <OrderStatusBadge status={order.status} />
                                         </td>
-                                        <td className="px-5 py-3.5 font-bold text-orange-600">
+                                        <td className="px-5 py-3.5 font-black text-slate-900">
                                             ${Number(order.totalAmount).toFixed(2)}
                                         </td>
-                                        <td className="px-5 py-3.5 text-gray-500 text-xs">
+                                        <td className="px-5 py-3.5 text-slate-500 text-xs">
                                             {order._count.items} {order._count.items === 1 ? "item" : "items"}
                                         </td>
-                                        <td className="px-5 py-3.5 text-xs text-gray-400 whitespace-nowrap">
+                                        <td className="px-5 py-3.5 text-xs text-slate-400 whitespace-nowrap">
                                             {new Date(order.createdAt).toLocaleDateString()}
                                         </td>
                                         <td className="px-5 py-3.5 text-right">
                                             <button
                                                 onClick={() => setSelectedOrderId(order.id)}
-                                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors"
+                                                className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-xl transition-colors cursor-pointer"
                                             >
                                                 <Eye size={12} />
                                                 View
@@ -233,15 +233,15 @@ export const AdminOrdersPage = () => {
 
                 {/* Pagination */}
                 {data && data.totalPages > 1 && (
-                    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-                        <p className="text-sm text-gray-500">
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 bg-slate-50/40">
+                        <p className="text-xs font-semibold text-slate-500">
                             Page {data.page} of {data.totalPages} · {data.total} orders
                         </p>
                         <div className="flex gap-2">
                             <button
                                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                                 disabled={page === 1}
-                                className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors"
+                                className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold border border-slate-200 rounded-xl disabled:opacity-40 hover:bg-white transition-colors cursor-pointer shadow-2xs text-slate-700 bg-white"
                             >
                                 <ChevronLeft size={14} />
                                 Prev
@@ -249,7 +249,7 @@ export const AdminOrdersPage = () => {
                             <button
                                 onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
                                 disabled={page >= data.totalPages}
-                                className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors"
+                                className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold border border-slate-200 rounded-xl disabled:opacity-40 hover:bg-white transition-colors cursor-pointer shadow-2xs text-slate-700 bg-white"
                             >
                                 Next
                                 <ChevronRight size={14} />

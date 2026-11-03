@@ -122,7 +122,7 @@ export function DashboardSidebar({
             <aside
                 className={`seller-sidebar flex flex-col h-full bg-[#533257] text-white select-none transition-all duration-200 ease-out border-r border-slate-800 ${
                     isFlyout
-                        ? "absolute left-0 top-0 w-64 z-50 rounded-r-2xl border-r border-slate-800 shadow-2xl shadow-black/80 bg-[#0F172A]"
+                        ? "absolute left-0 top-0 w-64 z-50 rounded-r-2xl border-r border-slate-800 shadow-2xl shadow-black/80 bg-[#533257]"
                         : "w-full"
                 }`}
             >

@@ -26,7 +26,7 @@ export const SuperAdminHeader = () => {
                     <SheetTrigger render={<Button variant="ghost" size="icon" className="rounded-xl text-slate-700 lg:hidden cursor-pointer hover:bg-slate-100" />}>
                         <Menu className="size-5" />
                     </SheetTrigger>
-                    <SheetContent side="left" className="w-72 p-0 bg-[#0F172A] border-r border-slate-800 text-white [&_[data-slot=sheet-close]]:hidden">
+                    <SheetContent side="left" className="w-72 p-0 bg-[#533257] border-r border-slate-800 text-white [&_[data-slot=sheet-close]]:hidden">
                         <SheetHeader className="sr-only"><SheetTitle>Admin navigation</SheetTitle></SheetHeader>
                         <AdminSidebar variant="mobile" onNavItemClick={() => setMobileOpen(false)} />
                     </SheetContent>

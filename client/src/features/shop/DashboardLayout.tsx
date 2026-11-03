@@ -36,7 +36,7 @@ export function DashboardLayout() {
     return (
         <div className="seller-dashboard flex h-screen w-screen overflow-hidden bg-slate-50 font-sans antialiased">
             {/* Desktop Sidebar: docked to the left, full height from the very top */}
-            <div className="hidden h-full shrink-0 border-r border-slate-800 bg-[#0F172A] lg:flex">
+            <div className="hidden h-full shrink-0 border-r border-slate-800 bg-[#533257] lg:flex">
                 <DashboardSidebar variant="desktop" />
             </div>
 

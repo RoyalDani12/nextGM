@@ -64,7 +64,7 @@ export function DashboardNavbar() {
                     />
                     <SheetContent
                         side="left"
-                        className="p-0 w-72 bg-[#0F172A] border-r border-slate-800 text-white [&_[data-slot=sheet-close]]:hidden"
+                        className="p-0 w-72 bg-[#533257] border-r border-slate-800 text-white [&_[data-slot=sheet-close]]:hidden"
                     >
                         <SheetHeader className="sr-only">
                             <SheetTitle>Store Navigation</SheetTitle>
