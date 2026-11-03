@@ -1,7 +1,9 @@
-import { recordAuditLog } from './audit.service.js';
+import { recordAuditLog } from "./audit.service.js";
 import bcrypt from "bcrypt";
 import { transporter } from "../../services/email.transporter.js";
-﻿import { AppError } from "../../middleware/appError.js";
+import { AppError } from "../../middleware/appError.js";
+import { deleteUserSession } from "../../infrastructure/cache/session.cache.js";
+import { prisma } from "../../config/db.js";
 import {
     getPlatformStats,
     listUsersAdmin,
@@ -78,6 +80,7 @@ export const updateUserRoleService = async (id: string, role: string, adminUserI
     const user = await getUserByIdAdmin(id);
     if (!user) throw new AppError("User not found", 404);
     const updated = await updateUserRoleAdmin(id, role);
+    await deleteUserSession(id);
     if (adminUserId) {
         await recordAuditLog({
             userId: adminUserId,
@@ -101,6 +104,10 @@ export const updateUserStatusService = async (id: string, status: string, adminU
     const user = await getUserByIdAdmin(id);
     if (!user) throw new AppError("User not found", 404);
     const updated = await updateUserStatusAdmin(id, status, adminUserId);
+    await deleteUserSession(id);
+    if (status === "SUSPENDED" || status === "DEACTIVATED") {
+        await prisma.refreshToken.deleteMany({ where: { userId: id } });
+    }
     if (adminUserId) {
         await recordAuditLog({
             userId: adminUserId,
@@ -165,6 +172,7 @@ export const resetUserPasswordService = async (id: string, customPassword?: stri
     const passwordHash = await bcrypt.hash(tempPassword, 12);
 
     await resetUserPasswordAdmin(id, passwordHash, adminUserId);
+    await deleteUserSession(id);
     if (adminUserId) {
         await recordAuditLog({
             userId: adminUserId,
@@ -238,6 +246,12 @@ export const bulkUpdateUserStatusService = async (userIds: string[], status: str
         }
     }
     const result = await bulkUpdateUsersStatusAdmin(targetIds, status, adminUserId);
+    for (const uid of targetIds) {
+        await deleteUserSession(uid);
+    }
+    if (status === "SUSPENDED" || status === "DEACTIVATED") {
+        await prisma.refreshToken.deleteMany({ where: { userId: { in: targetIds } } });
+    }
     if (adminUserId) {
         for (const uid of targetIds) {
             await recordAuditLog({
