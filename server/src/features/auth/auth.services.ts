@@ -141,7 +141,7 @@ export const loginService = async (userData: LoginDto,deviceInfo:DeviceInfo) => 
 
         const reactivationKey = randomBytes(32).toString('hex')
         await redis.set(
-            `reactivation:${reactivationKey}`,
+            `reactivate:${reactivationKey}`,
             user.id,
             "EX",
             60 * 10 // 10 minutes

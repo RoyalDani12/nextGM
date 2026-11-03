@@ -139,7 +139,7 @@ export const deactivateAccountRepository = async (userId: string) => {
 export const reactivateAccountRepository = async (userId: string) => {
     return prisma.user.update({
         where: { id: userId },
-        data: { status: "ACTIVE" },
+        data: { status: "ACTIVE", deletedAt: null },
         select: {
             id: true,
             name: true,

@@ -165,8 +165,8 @@ export const reactivateAccountService = async (reactivationKey: string) => {
     if (!user) {
         throw new AppError("User not found", 404);
     }
-    if (user.status !== "DEACTIVATED") {
-        throw new AppError("Account is not deactivated.", 400);
+    if (user.status !== "DEACTIVATED" && user.status !== "DELETED") {
+        throw new AppError("Account is not deactivated or scheduled for deletion.", 400);
     }
 
     await reactivateAccountRepository(userId);
@@ -229,6 +229,9 @@ export const deleteAccountService = async (userId: string, password: string) => 
     });
 
     const reactivationKeyToken = crypto.randomBytes(32).toString("hex");
+    const THIRTY_DAYS_SEC = 30 * 24 * 60 * 60;
+    await redis.set(`reactivate:${reactivationKeyToken}`, user.id, "EX", THIRTY_DAYS_SEC);
+
     const { html, subject } = accountDeletionScheduledTemplate(user.name, reactivationKeyToken);
     await emailQueue.add("send-scheduled-deletion-email", {
         to: user.email,
