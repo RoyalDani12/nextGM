@@ -52,27 +52,37 @@ export const checkoutSchema = z.object({
 export type CheckoutInput = z.infer<typeof checkoutSchema>
 
 
-export const  getOrdersSchema = z.object({
-    
-       query:z.object({
-         status: z
-           .enum([
-               "PENDING","CONFIRMED","PROCESSING","SHIPPED","DELIVERED","CANCELLED","REFUNDED"
-         ]).optional(),
-         
-         page:z
-               .string()
-               .regex(/^\d+$/)
-               .transform(Number)
-               .optional(),
-         limit: z
-              .string()
-              .regex(/^\d+$/)
-              .transform(Number)
-              .optional()
+export const getOrdersSchema = z.object({
+    query: z.object({
+        status: z
+            .enum([
+                "PENDING",
+                "CONFIRMED",
+                "PROCESSING",
+                "SHIPPED",
+                "DELIVERED",
+                "CANCELLED",
+                "REFUNDED",
+            ])
+            .optional(),
 
-       })
-})
+        page: z
+            .union([
+                z.string().regex(/^\d+$/).transform(Number),
+                z.number().int().positive(),
+            ])
+            .optional(),
+        limit: z
+            .union([
+                z.string().regex(/^\d+$/).transform(Number),
+                z.number().int().positive(),
+            ])
+            .optional(),
+        search: z.string().trim().max(100).optional(),
+        startDate: z.string().trim().optional(),
+        endDate: z.string().trim().optional(),
+    }),
+});
 export const updateOrderStatusSchema = z.object({
   body: z.object({
     status: z.enum([

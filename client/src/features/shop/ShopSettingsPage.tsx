@@ -48,6 +48,8 @@ import { ShopStatusToggle } from "./components/ShopStatusToggle";
 import { CloseShopDialog } from "./components/CloseShopDialog";
 import type { UpdateShopProfilePayload, UpdateShopLegalInfoPayload } from "./shop.types";
 
+type ShopSettingsProfileForm = UpdateShopProfilePayload & { name: string };
+
 export function ShopSettingsPage() {
   const { shopId = "" } = useParams<{ shopId: string }>();
   const { data: shopsData, isLoading: isShopsLoading, refetch: refetchShops } = useMyShops();
@@ -60,7 +62,7 @@ export function ShopSettingsPage() {
   const publishShop = usePublishShop(shopId);
 
   // Profile Form State
-  const [profileForm, setProfileForm] = useState<UpdateShopProfilePayload>({
+  const [profileForm, setProfileForm] = useState<ShopSettingsProfileForm>({
     name: "",
     description: "",
     phone: "",
@@ -211,11 +213,12 @@ export function ShopSettingsPage() {
     e.preventDefault();
     setProfileSuccessMsg(false);
 
+    const { name: _name, ...profileFields } = profileForm;
     const payload = Object.fromEntries(
-      Object.entries(profileForm).filter(
+      Object.entries(profileFields).filter(
         ([_, val]) => val !== undefined && val !== null && String(val).trim() !== ""
       )
-    );
+    ) as UpdateShopProfilePayload;
 
     updateProfile.mutate(
       { shopId: shop.id, payload },
@@ -511,9 +514,9 @@ export function ShopSettingsPage() {
                 <Input
                   id="storeName"
                   value={profileForm.name || ""}
-                  onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                  readOnly
+                  className="rounded-xl bg-muted"
                   placeholder="e.g. Nexus Premium Outfitter"
-                  className="rounded-xl"
                   required
                 />
               </div>

@@ -1,4 +1,5 @@
 import { OrderStatus } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "../../config/db.js";
 import { AppError } from "../../middleware/appError.js";
 import {
@@ -25,6 +26,42 @@ const addDays = (date: Date, days: number) => {
     const result = new Date(date);
     result.setDate(result.getDate() + days);
     return result;
+};
+
+export const reserveInventoryItem = async (
+    tx: Prisma.TransactionClient,
+    item: { productId: string; variantId?: string | null; quantity: number; productName: string },
+    orderId: string,
+    expiresAt: Date,
+) => {
+    const quantity = Number(item.quantity);
+    if (item.variantId) {
+        const reserved = await tx.productVariant.updateMany({
+            where: { id: item.variantId, stock: { gte: quantity } },
+            data: { stock: { decrement: quantity } },
+        });
+        if (!reserved.count) {
+            throw new AppError(`Insufficient stock for ${item.productName}.`, 400);
+        }
+    } else {
+        const reserved = await tx.product.updateMany({
+            where: { id: item.productId, stock: { gte: quantity } },
+            data: { stock: { decrement: quantity } },
+        });
+        if (!reserved.count) {
+            throw new AppError(`Insufficient stock for ${item.productName}.`, 400);
+        }
+    }
+
+    await tx.inventoryReservation.create({
+        data: {
+            orderId,
+            productId: item.productId,
+            variantId: item.variantId ?? null,
+            quantity,
+            expiresAt,
+        },
+    });
 };
 
 export const createOrdersFromCart = async (
@@ -120,6 +157,7 @@ export const createOrdersFromCart = async (
         for (const { group, subtotal, discountAmount, couponId, shipping } of preparedGroups) {
             const discountedTotal = subtotal - discountAmount;
             const totalWithShipping = discountedTotal + shipping.fee;
+            const reservationExpiresAt = getReservationExpiryTimestamp();
 
             const order = await tx.order.create({
                 data: {
@@ -131,7 +169,7 @@ export const createOrdersFromCart = async (
                     discountAmount: discountAmount.toFixed(2),
                     status: "PENDING",
                     idempotencyKey: crypto.randomUUID(),
-                    reservationExpiresAt: getReservationExpiryTimestamp(),
+                    reservationExpiresAt,
                 },
             });
 
@@ -181,23 +219,16 @@ export const createOrdersFromCart = async (
                 },
             });
 
-            // decrement stock atomically
+            // Reserve stock atomically. The stock predicate is the concurrency
+            // guard; if another checkout consumed the remaining units, the
+            // transaction rolls back without creating a partial order.
             for (const item of group.items) {
-                if (item.variantId) {
-                    await tx.productVariant.update({
-                        where: { id: item.variantId },
-                        data: {
-                            stock: { decrement: Number(item.quantity) },
-                        },
-                    });
-                } else {
-                    await tx.product.update({
-                        where: { id: item.productId },
-                        data: {
-                            stock: { decrement: Number(item.quantity) },
-                        },
-                    });
-                }
+                await reserveInventoryItem(tx, {
+                    productId: item.productId,
+                    variantId: item.variantId,
+                    quantity: Number(item.quantity),
+                    productName: item.product.name,
+                }, order.id, reservationExpiresAt);
             }
             createdOrders.push({
                 id: order.id,
@@ -327,6 +358,7 @@ export const getCustomerOrderByIdRepository = async (orderId: string, customerId
                             id: true,
                             name: true,
                             slug: true,
+                            sku: true,
                             images: {
                                 where: { isPrimary: true },
                                 select: { url: true },
@@ -446,20 +478,29 @@ export const cancelOrderRepository = async (
             const released = await tx.couponUsage.deleteMany({ where: { couponId: coupon.couponId, userId: coupon.customerId } });
             if (released.count) await tx.coupon.update({ where: { id: coupon.couponId }, data: { usedCount: { decrement: 1 } } });
         }
-        // restore stock — increment is always safe, no gte guard needed
+        const reservations = await tx.inventoryReservation.findMany({
+            where: { orderId, status: "ACTIVE" },
+            select: { id: true, productId: true, variantId: true, quantity: true },
+        });
         await Promise.all(
-            items.map((item) =>
-                item.variantId
+            reservations.map((reservation) =>
+                reservation.variantId
                     ? tx.productVariant.update({
-                          where: { id: item.variantId },
-                          data: { stock: { increment: item.quantity } },
+                          where: { id: reservation.variantId },
+                          data: { stock: { increment: reservation.quantity } },
                       })
                     : tx.product.update({
-                          where: { id: item.productId },
-                          data: { stock: { increment: item.quantity } },
+                          where: { id: reservation.productId },
+                          data: { stock: { increment: reservation.quantity } },
                       }),
             ),
         );
+        if (reservations.length) {
+            await tx.inventoryReservation.updateMany({
+                where: { id: { in: reservations.map(({ id }) => id) }, status: "ACTIVE" },
+                data: { status: "RELEASED" },
+            });
+        }
 
         await tx.orderStatusHistory.create({
             data: {
@@ -548,13 +589,45 @@ export const markOrderShippedRepository = async (
 };
 
 export const getShopOrdersRepository = async (options: GetShopOrdersOptions) => {
-    const { shopId, status, skip, take } = options;
+    const { shopId, status, search, startDate, endDate, skip, take } = options;
 
-    const where = {
+    const where: any = {
         shopId,
         deletedAt: null,
         ...(status && { status }),
     };
+
+    // Date range filter
+    const createdAtCondition: { gte?: Date; lte?: Date } = {};
+    if (startDate) {
+        const s = new Date(startDate);
+        if (!isNaN(s.getTime())) {
+            s.setHours(0, 0, 0, 0);
+            createdAtCondition.gte = s;
+        }
+    }
+    if (endDate) {
+        const e = new Date(endDate);
+        if (!isNaN(e.getTime())) {
+            e.setHours(23, 59, 59, 999);
+            createdAtCondition.lte = e;
+        }
+    }
+    if (Object.keys(createdAtCondition).length > 0) {
+        where.createdAt = createdAtCondition;
+    }
+
+    // Search filter across customer name, email, order ID, and tracking number
+    if (search && search.trim()) {
+        const term = search.trim();
+        where.OR = [
+            { id: { contains: term, mode: "insensitive" } },
+            { customer: { name: { contains: term, mode: "insensitive" } } },
+            { customer: { email: { contains: term, mode: "insensitive" } } },
+            { shippingAddress: { fullName: { contains: term, mode: "insensitive" } } },
+            { shipment: { trackingNumber: { contains: term, mode: "insensitive" } } },
+        ];
+    }
 
     const [orders, total] = await Promise.all([
         prisma.order.findMany({
@@ -564,11 +637,20 @@ export const getShopOrdersRepository = async (options: GetShopOrdersOptions) => 
                 status: true,
                 totalAmount: true,
                 createdAt: true,
+                customer: {
+                    select: { id: true, name: true, email: true },
+                },
                 items: {
                     select: { id: true, quantity: true },
                 },
                 shippingAddress: {
-                    select: { fullName: true, city: true, country: true },
+                    select: {
+                        fullName: true,
+                        city: true,
+                        country: true,
+                        address: true,
+                        phone: true,
+                    },
                 },
                 checkout: {
                     select: {
@@ -585,6 +667,7 @@ export const getShopOrdersRepository = async (options: GetShopOrdersOptions) => 
                         estimatedDeliveryEnd: true,
                         carrier: true,
                         trackingNumber: true,
+                        trackingUrl: true,
                         shippedAt: true,
                         deliveredAt: true,
                     },
@@ -632,7 +715,21 @@ export const getShopOrderByIdRepository = async (orderId: string, shopId: string
                         },
                     },
                     variant: {
-                        select: { id: true, name: true },
+                        select: { id: true, name: true, sku: true },
+                    },
+                },
+            },
+            customer: {
+                select: { name: true, email: true },
+            },
+            shop: {
+                select: {
+                    profile: {
+                        select: {
+                            name: true,
+                            logo: true,
+                            returnsPolicy: true,
+                        },
                     },
                 },
             },
@@ -771,10 +868,16 @@ export const beginRefundRepository = async (orderId: string) => {
             return { success: false as const, reason: "race" as const };
         }
 
-        return { success: true as const };
+        return { success: true as const, previousStatus: order.status };
     });
 };
 
+export const cancelRefundRepository = async (orderId: string, previousStatus: OrderStatus = "CONFIRMED") => {
+    await prisma.order.updateMany({
+        where: { id: orderId, status: "REFUND_PENDING" },
+        data: { status: previousStatus },
+    });
+};
 
 export const confirmRefundedRepository = async (orderId:string)=>{
     return prisma.$transaction( async ( tx)=>{

@@ -243,12 +243,15 @@ export const cancelOrderService = async (orderId: string, customerId: string) =>
 
 export const getShopOrdersService = async (shopId: string, query: GetOrdersQuery) => {
     const page = Math.max(1, query.page ?? 1);
-    const limit = Math.min(50, query.limit ?? 20);
+    const limit = Math.min(1000, Math.max(1, query.limit ?? 20));
     const skip = (page - 1) * limit;
 
     const { orders, total } = await getShopOrdersRepository({
         shopId,
         status: query.status,
+        search: query.search,
+        startDate: query.startDate,
+        endDate: query.endDate,
         skip,
         take: limit,
     });
@@ -260,11 +263,18 @@ export const getShopOrdersService = async (shopId: string, query: GetOrdersQuery
         status: order.status,
         totalAmount: order.totalAmount,
         createdAt: order.createdAt,
-        itemCount: order.items.length,
+        itemCount: order.items.reduce((s: number, it: any) => s + (it.quantity || 1), 0) || order.items.length,
+        customer: {
+            id: (order as any).customer?.id ?? null,
+            name: (order as any).customer?.name ?? null,
+            email: (order as any).customer?.email ?? null,
+        },
         shipTo: {
             fullName: order.shippingAddress?.fullName ?? null,
             city: order.shippingAddress?.city ?? null,
             country: order.shippingAddress?.country ?? null,
+            addressLine1: order.shippingAddress?.address ?? null,
+            phone: (order.shippingAddress as any)?.phone ?? null,
         },
         paymentStatus: (order as any).checkout?.payment?.status ?? null,
         shipment: order.shipment,

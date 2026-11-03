@@ -28,10 +28,22 @@ export const getCustomerOrderByIdRequest = async (orderId: string) => {
   return data;
 };
 
-export const getShopOrdersRequest = async (shopId:string)=>{
-  const { data } = await api.get(`/orders/${shopId}/orders`)
-  return data
+export interface GetShopOrdersParams {
+  status?: string;
+  search?: string;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  limit?: number;
 }
+
+export const getShopOrdersRequest = async (
+  shopId: string,
+  params?: GetShopOrdersParams
+) => {
+  const { data } = await api.get(`/orders/${shopId}/orders`, { params });
+  return data;
+};
 
 export const getShopOrderByIdRequest = async (
   shopId: string,

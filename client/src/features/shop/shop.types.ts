@@ -69,7 +69,6 @@ export interface GetMyShopResponse {
   data: Shop[];
 }
 export interface UpdateShopProfilePayload {
-  name?: string;
   description?: string;
   logo?: string;
   banner?: string;

@@ -7,6 +7,8 @@ import {
   CreditCard,
   MapPin,
   Package,
+  Printer,
+  FileText,
   Phone,
   RefreshCw,
   ShoppingBag,
@@ -50,6 +52,7 @@ export const ShopOrderDetailPage = () => {
   const updateStatus = useUpdateShopOrderStatus();
   const markShipped = useMarkShopOrderShipped();
   const [shipmentForm, setShipmentForm] = useState({ carrier: "", trackingNumber: "", trackingUrl: "", note: "" });
+  const [printDocument, setPrintDocument] = useState<"packing-slip" | "invoice" | null>(null);
 
   // Extract order object from response safely
   const order = data?.data ?? data;
@@ -149,6 +152,11 @@ const nextStatus = nextStatusMap[order.status];
     });
   };
 
+  const printOrderDocument = (documentType: "packing-slip" | "invoice") => {
+    setPrintDocument(documentType);
+    window.setTimeout(() => window.print(), 100);
+  };
+
   const {
     id,
     status,
@@ -164,6 +172,44 @@ const nextStatus = nextStatusMap[order.status];
 
   return (
     <div className="space-y-6 p-6 max-w-6xl mx-auto animate-in fade-in duration-300">
+      <style>{`
+        .print-only { display: none; }
+        @media print {
+          body * { visibility: hidden !important; }
+          .print-only, .print-only * { visibility: visible !important; }
+          .print-only { display: block !important; position: fixed !important; inset: 0 !important; }
+        }
+      `}</style>
+      {printDocument && (
+        <div className="print-only fixed inset-0 z-[100] bg-white p-8 text-slate-950">
+          <div className="mx-auto max-w-3xl">
+            <div className="flex items-start justify-between border-b-2 border-slate-900 pb-5">
+              <div className="flex items-center gap-3">
+                {order.shop?.profile?.logo && <img src={order.shop.profile.logo} alt="" className="h-14 w-14 object-contain" />}
+                <div>
+                  <h1 className="text-2xl font-black">{order.shop?.profile?.name || "Your Store"}</h1>
+                  <p className="text-sm text-slate-500">{printDocument === "invoice" ? "Order Invoice" : "Packing Slip"}</p>
+                </div>
+              </div>
+              <div className="text-right text-sm">
+                <p className="font-bold">Order #{id.slice(-8).toUpperCase()}</p>
+                <p>{new Date(createdAt).toLocaleDateString()}</p>
+                <div className="mt-2 h-8 w-40 bg-[repeating-linear-gradient(90deg,#111_0,#111_2px,transparent_2px,transparent_5px)]" aria-label={`Order barcode ${id}`} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-8 border-b py-6 text-sm">
+              <div><p className="mb-1 text-xs font-bold uppercase text-slate-500">Ship to</p><p className="font-bold">{shippingAddress?.fullName}</p><p>{shippingAddress?.address}</p><p>{shippingAddress?.city}, {shippingAddress?.country} {shippingAddress?.postalCode}</p><p>{shippingAddress?.phone}</p></div>
+              <div><p className="mb-1 text-xs font-bold uppercase text-slate-500">Customer</p><p>{order.customer?.name}</p><p>{order.customer?.email}</p><p className="mt-3"><strong>Status:</strong> {status}</p></div>
+            </div>
+            <table className="mt-6 w-full border-collapse text-sm">
+              <thead><tr className="border-b-2 border-slate-900 text-left"><th className="py-2">Item / SKU</th><th className="py-2">Variant</th><th className="py-2 text-center">Qty</th><th className="py-2 text-right">Amount</th></tr></thead>
+              <tbody>{items.map((item: any) => <tr key={item.id} className="border-b"><td className="py-3"><strong>{item.product?.name}</strong><br /><span className="text-xs text-slate-500">SKU: {item.variant?.sku || item.product?.sku || "—"}</span></td><td className="py-3">{getVariantName(item.variant) || "—"}</td><td className="py-3 text-center">{item.quantity}</td><td className="py-3 text-right">${(Number(item.unitPrice) * item.quantity).toFixed(2)}</td></tr>)}</tbody>
+            </table>
+            <div className="mt-6 flex justify-end"><div className="w-56 space-y-2 text-right text-sm"><p className="flex justify-between"><span>Subtotal</span><strong>${Number(totalAmount).toFixed(2)}</strong></p><p className="flex justify-between text-base"><span>Total</span><strong>${Number(totalAmount).toFixed(2)}</strong></p></div></div>
+            {order.shop?.profile?.returnsPolicy && <p className="mt-10 border-t pt-4 text-xs text-slate-500"><strong>Returns policy:</strong> {order.shop.profile.returnsPolicy}</p>}
+          </div>
+        </div>
+      )}
       {/* Top Header Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -194,6 +240,12 @@ const nextStatus = nextStatusMap[order.status];
         </Button>
       </div>
       <div className="flex flex-wrap items-center gap-3">
+        <Button variant="outline" onClick={() => printOrderDocument("packing-slip")}>
+          <Printer className="mr-2 h-4 w-4" /> Print Packing Slip
+        </Button>
+        <Button variant="outline" onClick={() => printOrderDocument("invoice")}>
+          <FileText className="mr-2 h-4 w-4" /> Generate Invoice
+        </Button>
  {nextStatus && (
   <Button
     onClick={handleStatusChange}

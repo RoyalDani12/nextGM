@@ -31,6 +31,8 @@ interface ShopProfileEditDialogProps {
   shop: Shop;
 }
 
+type ShopProfileForm = UpdateShopProfilePayload & { name: string };
+
 export const ShopProfileEditDialog = ({
   shop,
 }: ShopProfileEditDialogProps) => {
@@ -38,7 +40,7 @@ export const ShopProfileEditDialog = ({
 
   const [open, setOpen] = useState(false);
 
-  const [form, setForm] = useState<UpdateShopProfilePayload>({
+  const [form, setForm] = useState<ShopProfileForm>({
     name: "",
     description: "",
     phone: "",
@@ -67,7 +69,7 @@ export const ShopProfileEditDialog = ({
   }, [shop]);
 
   const handleChange = (
-    field: keyof UpdateShopProfilePayload,
+    field: keyof ShopProfileForm,
     value: string
   ) => {
     setForm((prev) => ({
@@ -79,11 +81,12 @@ export const ShopProfileEditDialog = ({
  const handleSubmit = (e: React.FormEvent) => {
   e.preventDefault();
 
+  const { name: _name, ...profileFields } = form;
   const payload = Object.fromEntries(
-    Object.entries(form).filter(
+    Object.entries(profileFields).filter(
       ([_, value]) => value !== undefined && value !== null && value.trim() !== ""
-    )
-  );
+    ),
+  ) as UpdateShopProfilePayload;
 
   updateProfile.mutate(
     {
@@ -188,11 +191,12 @@ const handleBannerUpload = async (
               <Input
                 id="shop-name"
                 value={form.name ?? ""}
-                onChange={(e) =>
-                  handleChange("name", e.target.value)
-                }
-                placeholder="Enter shop name"
+                readOnly
+                className="bg-muted"
               />
+              <p className="text-xs text-muted-foreground">
+                Shop names are managed separately and cannot be changed here.
+              </p>
             </div>
 
             <div className="space-y-2">

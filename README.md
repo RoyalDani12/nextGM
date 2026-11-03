@@ -1,4 +1,4 @@
-# Nexions
+# NextGM
 
 ## Multi-tenant commerce infrastructure for modern marketplaces
 
@@ -15,10 +15,9 @@ The platform is designed around three connected experiences:
 - **Super admins** govern users, shops, categories, reviews, refunds, and
   platform operations from a dedicated control center.
 
-> **Project status:** Core customer commerce, seller operations, returns and
-> refunds, notifications, Stripe payments, super-admin workflows, and seller
-> analytics are implemented. Inventory and stock reservation is the next major
-> production feature.
+> **Project status:** Core customer commerce, seller operations, inventory
+> reservations, returns and refunds, notifications, Stripe payments,
+> super-admin workflows, and seller analytics are implemented.
 
 ---
 
@@ -290,7 +289,7 @@ Default local URLs:
 
 | Service | URL |
 | --- | --- |
-| Client | `http://localhost:5173` |
+| Client | `http://localhost:3000` |
 | API | `http://localhost:5000` |
 | API base | `http://localhost:5000/api/v1` |
 | Swagger UI | `http://localhost:5000/api-docs` |
@@ -327,8 +326,14 @@ EMAIL_FROM="Nexions <noreply@example.com>"
 
 STRIPE_SECRET_KEY=sk_test_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
+PLATFORM_COMMISSION_RATE=0.10
 
-CLIENT_URL=http://localhost:5173
+CLIENT_URL=http://localhost:3000
+ALLOWED_ORIGINS=http://localhost:3000
+
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_REDIRECT_URI=http://localhost:5000/api/v1/auth/google/callback
 ```
 
 ### Client
@@ -337,6 +342,9 @@ CLIENT_URL=http://localhost:5173
 VITE_API_URL=http://localhost:5000/api/v1
 VITE_STRIPE_PUBLISHABLE_KEY=pk_test_xxx
 ```
+
+Copy these values to `client/.env` before starting Vite. The client cannot
+send authentication requests without `VITE_API_URL`.
 
 Use Stripe test keys for local HTTP development. Live Stripe.js integrations
 must be served over HTTPS.
@@ -443,29 +451,25 @@ Before deploying a release:
 
 ## Roadmap
 
-### Next: inventory and stock management
+### Next: inventory operations
 
-The next production feature is a reliable inventory domain:
+The next production improvements build on the reservation domain:
 
 - Available, reserved, committed, damaged, and unavailable quantities
 - Variant-level stock tracking and SKU support
-- Atomic reservations during checkout
-- Expiration and release of abandoned reservations
-- Stock restoration after cancellation or refund
 - Seller inventory dashboard and stock history
 - Low-stock notifications
 - Admin inventory visibility
 
 ### Following priorities
 
-1. Inventory and stock reservation
-2. Seller fulfillment and shipping operations
-3. Address book and saved checkout addresses
-4. Support tickets and customer disputes
-5. Seller notification center improvements
-6. Profit, shipping-cost, and payout analytics
-7. Storefront event tracking and conversion analytics
-8. Deployment observability and expanded integration coverage
+1. Seller fulfillment and shipping operations
+2. Address book and saved checkout addresses
+3. Support tickets and customer disputes
+4. Seller notification center improvements
+5. Profit, shipping-cost, and payout analytics
+6. Storefront event tracking and conversion analytics
+7. Deployment observability and expanded integration coverage
 
 ---
 

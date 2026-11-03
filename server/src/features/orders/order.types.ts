@@ -55,15 +55,21 @@ export interface GetCustomerOrdersOptions {
 }
 
 export interface GetOrdersQuery {
-    status?: OrderStatus
-    page?:   number
-    limit?:  number
+    status?: OrderStatus;
+    page?: number;
+    limit?: number;
+    search?: string;
+    startDate?: string;
+    endDate?: string;
 }
 
 
 export type GetShopOrdersOptions = {
     shopId: string;
     status?: OrderStatus;
+    search?: string;
+    startDate?: string | Date;
+    endDate?: string | Date;
     skip: number;
     take: number;
 };

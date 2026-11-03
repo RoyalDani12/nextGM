@@ -95,7 +95,10 @@ export const orderDocs = {
       "security": [{ "bearerAuth": [] }],
       "parameters": [
         { "name": "shopId", "in": "path", "required": true, "schema": { "type": "string" } },
-        { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["ALL", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"] } },
+        { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["ALL", "PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "REFUNDED"] } },
+        { "name": "search", "in": "query", "schema": { "type": "string" }, "description": "Search by customer name, email, order ID, or tracking number" },
+        { "name": "startDate", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Start of date range (YYYY-MM-DD)" },
+        { "name": "endDate", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "End of date range (YYYY-MM-DD)" },
         { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
         { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } }
       ],

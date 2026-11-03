@@ -20,7 +20,13 @@ import {
   uploadToCloudinary,
   type UploadResourceType,
 } from "../upload/upload.api";
-import { getShopOrdersRequest, getShopOrderByIdRequest, markShopOrderShippedRequest, updateShopOrderStatusRequest } from "../order/order.api";
+import {
+  getShopOrdersRequest,
+  getShopOrderByIdRequest,
+  markShopOrderShippedRequest,
+  updateShopOrderStatusRequest,
+  type GetShopOrdersParams,
+} from "../order/order.api";
 
 import type { CreateShopPayload, UpdateShopProfilePayload, UpdateShopLegalInfoPayload } from "./shop.types";
 
@@ -162,10 +168,13 @@ export const useCloseShop = () => {
   });
 };
 
-export const useShopOrders = (shopId: string) => {
+export const useShopOrders = (
+  shopId: string,
+  params?: GetShopOrdersParams
+) => {
   return useQuery({
-    queryKey: ["shop-orders", shopId],
-    queryFn: () => getShopOrdersRequest(shopId),
+    queryKey: ["shop-orders", shopId, params],
+    queryFn: () => getShopOrdersRequest(shopId, params),
     enabled: !!shopId,
   });
 };
@@ -204,9 +213,12 @@ export const useUpdateShopOrderStatus = () => {
       ),
 
     onSuccess: (_, variables) => {
-      // Refresh orders list
+      // Refresh orders list and dashboard analytics
       queryClient.invalidateQueries({
         queryKey: ["shop-orders", variables.shopId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["shop-analytics", variables.shopId],
       });
 
       // Refresh current order detail
@@ -235,6 +247,7 @@ export const useMarkShopOrderShipped = () => {
     }) => markShopOrderShippedRequest(shopId, orderId, shipment),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["shop-orders", variables.shopId] });
+      queryClient.invalidateQueries({ queryKey: ["shop-analytics", variables.shopId] });
       queryClient.invalidateQueries({ queryKey: ["shop-order", variables.shopId, variables.orderId] });
       queryClient.invalidateQueries({ queryKey: ["customer-order", variables.orderId] });
       queryClient.invalidateQueries({ queryKey: ["customer-order"] });
