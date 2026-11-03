@@ -28,6 +28,14 @@ export const createGoogleUser = async (data: { name: string; email: string; pass
     });
 };
 
+export const activateVerifiedGoogleUser = async (id: string) => {
+    return prisma.user.update({
+        where: { id },
+        data: { isEmailVerified: true, status: "ACTIVE" },
+        select: { id: true, name: true, email: true, password: true, role: true, status: true, isEmailVerified: true, passwordChangedAt: true },
+    });
+};
+
 
 export const createUserWithVerification = async (
     data: RegisterDto & { hashedPassword: string },
@@ -163,17 +171,23 @@ export const findUserById = async (id: string) => {
     });
 };
   
-// delete the old token and  create new one
+// delete the old token and create new one
 export const rotateRefreshToken = async (
-    oldToken: string,
+    oldTokenId: string,
     userId: string,
     newHashedToken: string,
+    deviceInfo?: DeviceInfo,
 ) => {
     return prisma.$transaction(async (tx) => {
         const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+        const oldRecord = await tx.refreshToken.findUnique({
+            where: { id: oldTokenId },
+            select: { ipAddress: true, userAgent: true, deviceName: true },
+        });
+
         // delete old one
         await tx.refreshToken.deleteMany({
-            where: { id: oldToken },
+            where: { id: oldTokenId },
         });
 
         // create new one
@@ -182,6 +196,9 @@ export const rotateRefreshToken = async (
                 userId,
                 token: newHashedToken,
                 expiresAt: new Date(Date.now() + SEVEN_DAYS_MS),
+                ipAddress: deviceInfo?.ipAddress ?? oldRecord?.ipAddress,
+                userAgent: deviceInfo?.userAgent ?? oldRecord?.userAgent,
+                deviceName: deviceInfo?.deviceName ?? oldRecord?.deviceName,
             },
         });
     });

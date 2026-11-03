@@ -18,6 +18,7 @@ import {
     resetPasswordAndRevoke,
     findUserById,
     createGoogleUser,
+    activateVerifiedGoogleUser,
 } from "./auth.repository.js";
 import { hashPassword, verifyPassword } from "../../utils/auth.utils.js";
 import { emailQueue } from "../../infrastructure/queue/queue.client.js";
@@ -72,6 +73,8 @@ export const googleLoginService = async (profile: { email: string; name: string 
             name: profile.name ?? profile.email.split("@")[0],
             password: await hashPassword(crypto.randomBytes(32).toString("hex")),
         });
+    } else if (!user.isEmailVerified || user.status === "PENDING") {
+        user = await activateVerifiedGoogleUser(user.id);
     }
     if (user.status !== "ACTIVE") throw new AppError("This account is not available for sign in.", 403);
     const accessToken = generateAccessToken(user.id, user.role);
@@ -124,12 +127,18 @@ export const loginService = async (userData: LoginDto,deviceInfo:DeviceInfo) => 
         throw new AppError("Invalid password or Email", 401);
     }
 
-    // check the email is verified or not
+    // Verify password first to prevent user enumeration and timing leaks
+    const isPasswordValid = await verifyPassword(userData.password, user.password);
 
+    if (!isPasswordValid) {
+        throw new AppError("Invalid password or Email", 401);
+    }
+
+    // Possession of valid credentials established: now enforce account state policies
     if (!user.isEmailVerified) {
         throw new AppError("Please verify your email before logging in.", 403);
     }
-   if (user.status === "DELETED") {
+    if (user.status === "DELETED") {
         throw new AppError("Account no longer exists.", 403)
     }
 
@@ -152,13 +161,6 @@ export const loginService = async (userData: LoginDto,deviceInfo:DeviceInfo) => 
             message:"Your account is deactivated",
             reactivationKey
         }
-    }
-    // compare password
-
-    const isPasswordValid = await verifyPassword(userData.password, user.password);
-
-    if (!isPasswordValid) {
-        throw new AppError("Invalid Email or Password", 401);
     }
 
     const accessToken = generateAccessToken(user.id, user.role);
@@ -277,8 +279,10 @@ export const resendVerificationService = async (email: string): Promise<{ messag
             message: RESEND_MESSAGE,
         };
     }
-    if (user.status == "SUSPENDED") {
-        throw new AppError("Account suspended. Please contact support.", 403);
+    if (user.status === "SUSPENDED" || user.status === "DELETED") {
+        return {
+            message: RESEND_MESSAGE,
+        };
     }
 
     // delete old verification
@@ -315,8 +319,8 @@ export const forgotPasswordService = async (email: string) => {
         return { message: RESEND_MESSAGE };
     }
 
-    if (user.status == "SUSPENDED") {
-        throw new AppError("Account Suspended .", 403);
+    if (user.status === "SUSPENDED" || user.status === "DELETED") {
+        return { message: RESEND_MESSAGE };
     }
 
     await deletePasswordResetTokens(user.id);

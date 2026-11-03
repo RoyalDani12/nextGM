@@ -270,6 +270,6 @@ export const googleCallbackController = asyncHandler(async (req: Request, res: R
 
   const ip = req.ip ?? req.socket.remoteAddress ?? "unknown";
   const result = await googleLoginService({ email: profile.email, name: profile.name ?? "Google user" }, { ipAddress: ip, userAgent: req.headers["user-agent"] ?? "", deviceName: parseDeviceName(req.headers["user-agent"] ?? "") });
-  res.cookie("refreshToken", result.refreshToken, { httpOnly: true, secure: env.NODE_ENV === "production", sameSite: "strict", maxAge: 7 * 24 * 60 * 60 * 1000 });
+  res.cookie("refreshToken", result.refreshToken, { httpOnly: true, secure: env.NODE_ENV === "production", sameSite: "lax", maxAge: 7 * 24 * 60 * 60 * 1000 });
   res.redirect(`${env.CLIENT_URL}/role-redirect`);
 });
