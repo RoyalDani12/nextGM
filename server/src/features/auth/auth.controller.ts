@@ -15,6 +15,10 @@ import { loginService,
 import { env } from "../../config/env.js";
 import { AppError } from "../../middleware/appError.js";
 import crypto from "crypto";
+import { findRefreshToken, deleteRefreshToken } from "./auth.repository.js";
+import { verifyAccessToken } from "./token.service.js";
+import { deleteUserSession } from "../../infrastructure/cache/session.cache.js";
+import { AccessTokenPayload } from "../../types/auth.types.js";
 
 export const registerController = asyncHandler(async (req: Request, res: Response) => {
 
@@ -128,31 +132,53 @@ export const refreshTokenController = asyncHandler( async (req:Request,res:Respo
 
 
 // logout controller
-export const logoutController = asyncHandler( async(req:Request,res:Response)=>{
-     
-  
-  const token = req.cookies.refreshToken
-  const userId  = req.user!.id
+export const logoutController = asyncHandler(async (req: Request, res: Response) => {
+  const token = req.cookies?.refreshToken;
+  let userId = req.user?.id;
 
-  // if no cookie user is already logout still return 200
-  if( token ){
-     await logoutService(userId,token)
+  if (!userId && req.headers.authorization?.startsWith("Bearer ")) {
+    try {
+      const accessToken = req.headers.authorization.split(" ")[1];
+      if (accessToken) {
+        const decoded = verifyAccessToken(accessToken) as AccessTokenPayload | null;
+        if (decoded?.userId) {
+          userId = decoded.userId;
+        }
+      }
+    } catch {
+      // Ignored for logout — expired/invalid access tokens should still allow session termination
+    }
   }
-    
-  // clear cookie 
-  res.clearCookie("refreshToken",{
-    httpOnly:true,
-    secure:env.NODE_ENV ==="production",
-    sameSite:"strict"
-  })
+
+  if (token) {
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    if (!userId) {
+      const existingToken = await findRefreshToken(hashedToken);
+      if (existingToken) {
+        userId = existingToken.userId;
+      }
+    }
+    if (userId) {
+      await logoutService(userId, token);
+    } else {
+      await deleteRefreshToken(hashedToken);
+    }
+  } else if (userId) {
+    await deleteUserSession(userId);
+  }
+
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: env.NODE_ENV === "production",
+    sameSite: "strict",
+  });
 
   res.status(200).json({
-    success:true,
-    statusCode:200,
-    message:"Logged out successfully."
-  })
-
-})
+    success: true,
+    statusCode: 200,
+    message: "Logged out successfully.",
+  });
+});
 
 
 // resend verification controller

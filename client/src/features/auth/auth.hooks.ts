@@ -43,7 +43,7 @@ export const useLogout = () => {
 
     return useMutation({
         mutationFn: logoutRequest,
-        onSuccess: () => {
+        onSettled: () => {
             queryClient.clear();
             clearAuth();
             navigate("/login");

@@ -59,8 +59,6 @@ router.post('/refresh-token',
   )
 
 router.post('/logout',
-  //  authLimiter,
-   authenticate,
    logoutController
 )
 
