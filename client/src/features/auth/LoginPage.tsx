@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { loginSchema, type LoginFormValues } from "./auth.schema";
-import { useLogin } from "./auth.hooks";
+import { useLogin, useReactivateAccount } from "./auth.hooks";
 import { useMergeCart } from "../cart/cart.hook";
 import { clearGuestCart, getGuestCartItems } from "../cart/guest-cart";
 import { isDeactivatedResponse, type LoginResponse } from "./auth.types";
@@ -51,6 +51,7 @@ export default function LoginPage() {
   });
 
   const login = useLogin();
+  const reactivate = useReactivateAccount();
   const mergeCart = useMergeCart();
 
   const onSubmit = (values: LoginFormValues) => {
@@ -92,7 +93,7 @@ export default function LoginPage() {
     });
   };
 
-  const deactivated = login.data && isDeactivatedResponse(login.data);
+  const deactivated = login.data && isDeactivatedResponse(login.data) ? login.data : null;
   const loginErrorMessage = (() => {
     const error = login.error;
     if (typeof error === "object" && error && "response" in error) {
@@ -197,8 +198,16 @@ export default function LoginPage() {
                     <h3>Account Deactivated</h3>
                   </div>
                   <p className="text-[11px] text-rose-600/80 dark:text-rose-400/80 pl-6">
-                    Please contact support to restore access to your seller panel.
+                    Your account can be restored using this one-time recovery key.
                   </p>
+                  <Button
+                    type="button"
+                    className="mt-3 w-full rounded-xl bg-rose-600 text-xs font-bold text-white hover:bg-rose-700"
+                    disabled={reactivate.isPending}
+                    onClick={() => reactivate.mutate(deactivated.reactivationKey)}
+                  >
+                    {reactivate.isPending ? "Restoring account..." : "Reactivate account"}
+                  </Button>
                 </div>
               ) : (
                 <>

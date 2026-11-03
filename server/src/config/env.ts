@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import { string, z } from "zod";
+import { z } from "zod";
 dotenv.config();
 
 const envSchema = z.object({
@@ -19,6 +19,7 @@ const envSchema = z.object({
     SMTP_USER: z.string(),
     SMTP_PASS: z.string(),
     CLIENT_URL: z.string().url(),
+    ALLOWED_ORIGINS: z.string().url(),
     DEVICE_LIMIT: z.string().transform(Number),
 
     CLOUDINARY_CLOUD_NAME: z.string().trim().min(1, "Cloudinary Cloud Name is Required."),

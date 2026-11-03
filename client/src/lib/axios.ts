@@ -31,6 +31,7 @@ api.interceptors.response.use(
             || originalRequest.url?.includes("/auth/logout")
             || originalRequest.url?.includes("/auth/forgot-password")
             || originalRequest.url?.includes("/auth/reset-password")
+            || originalRequest.url?.includes("/auth/reactivate")
             || originalRequest.url?.includes("/auth/resend-verification");
 
         if (error.response?.status !== 401 || originalRequest._retry || isAuthEndpoint) {

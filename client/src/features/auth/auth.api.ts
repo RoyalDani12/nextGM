@@ -61,3 +61,8 @@ export const resetPasswordRequest = async (payload:resetPasswordPayload )=>{
     const { data } = await api.post('/auth/reset-password',payload)
     return data
 }
+
+export const reactivateAccountRequest = async (reactivationKey: string) => {
+    const { data } = await api.post("/auth/reactivate", { reactivationKey });
+    return data;
+};

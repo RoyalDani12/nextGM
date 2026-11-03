@@ -95,3 +95,9 @@ export const resetPasswordSchema = z.object({
             .regex(/[^a-zA-Z0-9]/, "Must contain a special character"),
     }),
 });
+
+export const reactivateSchema = z.object({
+    body: z.object({
+        reactivationKey: z.string().length(64, "Invalid reactivation key"),
+    }),
+});

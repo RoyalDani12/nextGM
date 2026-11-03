@@ -19,6 +19,7 @@ import { findRefreshToken, deleteRefreshToken } from "./auth.repository.js";
 import { verifyAccessToken } from "./token.service.js";
 import { deleteUserSession } from "../../infrastructure/cache/session.cache.js";
 import { AccessTokenPayload } from "../../types/auth.types.js";
+import { reactivateAccountService } from "../users/user.service.js";
 
 export const registerController = asyncHandler(async (req: Request, res: Response) => {
 
@@ -235,7 +236,30 @@ export const resetPasswordController = asyncHandler( async(req:Request,res:Respo
     statusCode:200,
     message:result.message
    })
+
 })
+
+export const reactivateAccountController = asyncHandler(async (req: Request, res: Response) => {
+  const { reactivationKey } = req.body;
+  const result = await reactivateAccountService(reactivationKey);
+
+  res.cookie("refreshToken", result.refreshToken, {
+    httpOnly: true,
+    secure: env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  res.status(200).json({
+    success: true,
+    statusCode: 200,
+    message: result.message,
+    data: {
+      accessToken: result.accessToken,
+      user: result.user,
+    },
+  });
+});
 
 export const googleAuthController = asyncHandler(async (_req: Request, res: Response) => {
   const state = crypto.randomBytes(32).toString("hex");

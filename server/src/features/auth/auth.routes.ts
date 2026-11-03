@@ -12,6 +12,7 @@ import {
   resetPasswordController,
   googleAuthController,
   googleCallbackController,
+  reactivateAccountController,
 } from "./auth.controller.js";
 
 import { 
@@ -20,7 +21,8 @@ import {
   loginSchema,
   resendVerificationSchema, 
   forgotPasswordSchema, 
-  resetPasswordSchema} 
+  resetPasswordSchema,
+  reactivateSchema}
   from "./auth.schema.js";
 import { validate } from "../../middleware/validate.middleware.js";
 import {
@@ -84,6 +86,12 @@ router.post('/reset-password',
   passwordResetLimiter,
   validate(resetPasswordSchema),
   resetPasswordController
+)
+
+router.post('/reactivate',
+  authLimiter,
+  validate(reactivateSchema),
+  reactivateAccountController
 )
 
 export default router;

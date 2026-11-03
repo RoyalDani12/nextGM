@@ -1,7 +1,8 @@
 import cors from "cors";
+import { env } from "./env.js";
 
 export const corsConfig = cors({
-  origin: process.env.ALLOWED_ORIGINS,
+  origin: env.ALLOWED_ORIGINS,
   credentials: true,
   methods: ["GET", "POST", "DELETE", "PATCH", "PUT"],
 });
