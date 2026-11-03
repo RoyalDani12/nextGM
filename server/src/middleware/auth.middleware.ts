@@ -49,8 +49,8 @@ export const authenticate = asyncHandler(
             user = dbUser;
         }
         if (user.passwordChangedAt) {
-            const changeTime = new Date(user.passwordChangedAt).getTime();
-            if (changeTime > tokenIssuedAt) {
+            const passwordChangeSec = Math.floor(new Date(user.passwordChangedAt).getTime() / 1000);
+            if (passwordChangeSec > decoded.iat) {
                 throw new AppError("Password recently changed.Please login again.", 401);
             }
         }

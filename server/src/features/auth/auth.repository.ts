@@ -250,10 +250,13 @@ export const resetPasswordAndRevoke = async (
     hashedPassword: string,
 ) => {
     return prisma.$transaction(async (tx) => {
-        // update password
+        // update password and invalidate all existing active access tokens
         await tx.user.update({
             where: { id: userId },
-            data: { password: hashedPassword },
+            data: {
+                password: hashedPassword,
+                passwordChangedAt: new Date(),
+            },
         });
 
         // mark token as used
