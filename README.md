@@ -1,179 +1,437 @@
 # NextGM
 
-## Multi-tenant commerce infrastructure for modern marketplaces
+## Multi-tenant marketplace infrastructure
 
-Nexions is a full-stack SaaS commerce platform for operating a marketplace with
-independent sellers, shared customers, unified checkout, seller workspaces, and
-super-admin governance.
+<p align="center">
+  <img src="https://skillicons.dev/icons?i=ts,react,vite,tailwind,nodejs,express,postgres,prisma,redis,stripe&theme=dark" alt="NextGM Technology Stack" />
+</p>
 
-The platform is designed around three connected experiences:
+<p align="center">
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/React_19-20232A?style=flat-square&logo=react&logoColor=61DAFB" alt="React 19" />
+  <img src="https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS_v4-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white" alt="Tailwind CSS v4" />
+  <img src="https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js" />
+  <img src="https://img.shields.io/badge/Express_5-000000?style=flat-square&logo=express&logoColor=white" alt="Express 5" />
+  <img src="https://img.shields.io/badge/PostgreSQL-316192?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL" />
+  <img src="https://img.shields.io/badge/Prisma-2D3748?style=flat-square&logo=prisma&logoColor=white" alt="Prisma" />
+  <img src="https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white" alt="Redis" />
+  <img src="https://img.shields.io/badge/BullMQ-FF4438?style=flat-square&logo=redis&logoColor=white" alt="BullMQ" />
+  <img src="https://img.shields.io/badge/Stripe-635BFF?style=flat-square&logo=stripe&logoColor=white" alt="Stripe" />
+  <img src="https://img.shields.io/badge/Vitest-6E9F18?style=flat-square&logo=vitest&logoColor=white" alt="Vitest" />
+</p>
 
-- **Customers** discover products, manage carts and wishlists, pay for
-  multi-shop orders, track deliveries, and request returns.
-- **Sellers** operate isolated storefronts, manage products and orders, review
-  analytics, configure payouts, and process return requests.
-- **Super admins** govern users, shops, categories, reviews, refunds, and
-  platform operations from a dedicated control center.
+NextGM is a full-stack, multi-tenant commerce platform for international
+marketplaces. It connects customers, independent sellers, and platform
+operators through one secure commerce system:
 
-> **Project status:** Core customer commerce, seller operations, inventory
-> reservations, returns and refunds, notifications, Stripe payments,
-> super-admin workflows, and seller analytics are implemented.
+- **Customers** discover products, manage carts and wishlists, check out across
+  multiple shops, pay through Stripe, track orders, and request returns.
+- **Sellers** operate isolated storefronts, manage catalog and inventory,
+  fulfill orders, configure payouts, respond to reviews, and monitor analytics.
+- **Super admins** govern users, shops, categories, reviews, refunds, payouts,
+  support, and marketplace performance.
+
+The platform is designed for correctness at the boundaries that matter most in
+commerce: tenant isolation, payment ownership, inventory concurrency, webhook
+idempotency, money reconciliation, and recoverable asynchronous work.
+
+> **Release position:** Core customer commerce, seller operations, inventory
+> reservations, returns, Stripe payments, refunds, notifications, payout
+> workflows, admin governance, and analytics are implemented. Production
+> deployment still requires environment-specific infrastructure, monitoring,
+> payment-provider verification, and the release gates in this document.
 
 ---
 
 ## Contents
 
-- [Product capabilities](#product-capabilities)
+- [Capabilities](#capabilities)
 - [Architecture](#architecture)
-- [Technology](#technology)
+- [Core workflows](#core-workflows)
+- [Money and payment design](#money-and-payment-design)
+- [Inventory and order consistency](#inventory-and-order-consistency)
+- [Redis and asynchronous processing](#redis-and-asynchronous-processing)
+- [Security model](#security-model)
 - [Repository structure](#repository-structure)
+- [Technology](#technology)
 - [Requirements](#requirements)
 - [Local development](#local-development)
-- [Environment variables](#environment-variables)
+- [Environment configuration](#environment-configuration)
 - [Database and migrations](#database-and-migrations)
-- [Application routes](#application-routes)
-- [Testing and validation](#testing-and-validation)
-- [Security model](#security-model)
-- [Production checklist](#production-checklist)
-- [Roadmap](#roadmap)
+- [API and application routes](#api-and-application-routes)
+- [Testing and release validation](#testing-and-release-validation)
+- [Production deployment](#production-deployment)
+- [Operational runbooks](#operational-runbooks)
+- [Known limitations and next hardening](#known-limitations-and-next-hardening)
 - [Contributing](#contributing)
 
 ---
 
-## Product capabilities
+## Capabilities
 
-### Customer experience
+### Customer commerce
 
-- Marketplace browsing with search, categories, sorting, and filters
-- Product details, variants, image galleries, ratings, and reviews
-- Multi-shop cart with shop-grouped presentation
-- Guest-friendly wishlist behavior with authenticated persistence
-- Unified checkout for items from multiple shops
-- Stripe Elements payment experience
-- Order history, order details, delivery progress, and cancellation
-- Return requests, evidence uploads, status history, and cancellation
-- In-app notifications with deep links
-- Account profile, password, preferences, and session management
+- Marketplace home page with search, categories, sorting, filters, availability,
+  price, rating, and product type controls.
+- Responsive marketplace navigation with location-aware delivery country
+  display and graceful locale/timezone fallback.
+- Product pages with image galleries, variants, pricing, stock, ratings,
+  reviews, wishlist actions, and related products.
+- Cart grouping by shop, coupon application, shipping method selection, and
+  multi-shop checkout.
+- Checkout ownership enforcement: an authenticated customer can create a
+  payment intent only for their own checkout.
+- Stripe Elements payment flow with test/live mode separation requirements,
+  idempotent PaymentIntent creation, and webhook-driven confirmation.
+- Customer order history, order details, status history, shipment tracking,
+  cancellation, invoices, and delivery progress.
+- Returns with request reasons, evidence, status transitions, resolutions, and
+  customer/seller communication.
+- Account registration, email verification, login, password reset, Google OAuth,
+  session management, account deactivation, and one-time account reactivation.
+- Notification center, notification preferences, saved profile data, and
+  support contact flows.
 
-### Seller workspace
+### Seller operations
 
-- Multi-tenant shop creation and shop selection
-- Shop profile, branding, contact, legal, publishing, and status settings
-- Product and variant management
-- Product images, pricing, status, and stock fields
-- Order list, order detail, status transitions, carrier, and tracking updates
-- Coupon and discount management
-- Review moderation and seller replies
-- Return request queue and return detail workflow
-- Stripe Connect onboarding, wallet balance, and withdrawals
-- Visual analytics for revenue, orders, fulfillment, customers, products,
-  returns, cancellations, and inventory signals
-- Seller notifications and operational shortcuts
+- Shop creation, selection, profile and branding settings, contact information,
+  legal verification data, publishing status, and employee access.
+- Product CRUD, variants, images, pricing, categories, status, SKU data, and
+  inventory controls.
+- Atomic stock reservations at product or variant level with conditional
+  `stock >= quantity` updates.
+- Reservation expiry and release, cancellation restoration, and commit behavior
+  tied to the order lifecycle.
+- Low-stock and out-of-stock filters with inline stock adjustment.
+- Seller order queue, order detail, status transitions, shipment carrier and
+  tracking updates, printable packing slips, and browser-generated invoices.
+- Coupons, reviews and seller replies, returns queue, refund-related workflows,
+  and seller notifications.
+- Stripe Connect onboarding, seller wallets, wallet transactions, payout
+  requests, and payout status visibility.
+- Seller analytics for revenue, orders, customers, products, fulfillment,
+  returns, cancellations, and inventory signals.
 
-### Super-admin control center
+### Super-admin governance
 
-- Platform dashboard with a dedicated responsive shell
-- User list, user details, and account administration
-- Shop list, shop details, approval, and moderation
-- Platform category taxonomy management
-- Review visibility moderation
-- Returns and refunds queue
-- Stripe refund initiation with webhook reconciliation
-- Notifications, profile menu, and secure logout
+- Platform overview with KPI cards, revenue and user-growth charts, order
+  health, top shops, and user growth.
+- Full order analytics with date ranges, lifecycle pipeline cards, status
+  breakdown, order-over-time chart, shop performance, and geographic demand.
+- User administration, account status controls, user details, and audit views.
+- Shop approval, suspension, closure, reopening, legal verification, risk flags,
+  admin notes, health details, and shop-level governance.
+- Category taxonomy management, product moderation, review visibility controls,
+  return queues, refund initiation, payout administration, and support tickets.
+- Audit and activity logging for operational accountability.
 
 ### Platform foundations
 
-- TypeScript across the client and server
-- Prisma migrations with PostgreSQL
-- JWT access tokens and rotating refresh sessions
-- Role-based access for customers, shop owners, shop employees, and super admins
-- Shop-scoped authorization with enumeration-safe `404` responses
-- Zod request validation
-- Redis-backed rate limiting and BullMQ background jobs
-- Structured request logging and request IDs
-- Cloudinary media uploads
-- Stripe webhook verification and idempotent payment processing
+- TypeScript across client and server.
+- REST API versioned under `/api/v1`.
+- PostgreSQL as the source of truth through Prisma migrations.
+- Redis-backed sessions, rate limiting, and BullMQ queues.
+- Stripe payment, refund, Connect, and webhook integrations.
+- Cloudinary media storage and SMTP transactional email.
+- Structured Pino logging, request IDs, Helmet, CORS, validation, and centralized
+  error handling.
 
 ---
 
 ## Architecture
 
-```text
-┌──────────────────────────────────────────────────────────────┐
-│ React + Vite client                                          │
-│ Marketplace · Customer portal · Seller workspace · Admin     │
-└─────────────────────────────┬────────────────────────────────┘
-                              │ REST / JSON
-┌─────────────────────────────▼────────────────────────────────┐
-│ Express + TypeScript API                                     │
-│ auth · users · shops · products · cart · orders · payment     │
-│ returns · analytics · notifications · coupons · admin         │
-└──────────────┬──────────────────┬──────────────────┬──────────┘
-               │                  │                  │
-        PostgreSQL / Prisma      Redis             Stripe
-        source of truth          cache/jobs        payments/webhooks
-                                                   Connect/payouts
-               │                  │
-               └──────────────┬───┘
-                              ▼
-                       BullMQ worker
-                       email and async jobs
+### System design
+
+```mermaid
+flowchart LR
+    Browser["React + Vite client"] -->|REST / JSON + cookies| API["Express API"]
+    API --> Auth["Auth and tenant middleware"]
+    API --> Domains["Feature modules"]
+    Domains --> DB[("PostgreSQL / Prisma")]
+    Domains --> Redis[("Redis")]
+    Domains --> Stripe["Stripe"]
+    Domains --> Media["Cloudinary"]
+    Domains --> Mail["SMTP"]
+    Redis --> Queues["BullMQ queues"]
+    Queues --> Worker["Dedicated worker process"]
+    Worker --> Mail
+    Worker --> Media
+    Worker --> DB
+    Stripe -->|signed webhooks| API
 ```
 
-### Multi-tenancy
+### Server boundaries
 
-Each shop is a tenant. Shop-owned queries are scoped by both `shopId` and the
-authenticated owner. The `authorizeShopAccess` middleware intentionally
-returns `404` when a shop does not exist or does not belong to the current
-seller, preventing shop enumeration.
+The server is organized by business domain rather than by transport concern:
 
-### Checkout and payment flow
+```text
+server/src/
+├── features/
+│   ├── auth/          identity, sessions, OAuth, reactivation
+│   ├── users/         profiles, preferences, sessions
+│   ├── shop/          tenant settings and seller access
+│   ├── product/       catalog, variants, inventory-facing product data
+│   ├── cart/          cart and cart-item operations
+│   ├── orders/        checkout, orders, reservations, shipment state
+│   ├── payment/       PaymentIntents, webhooks, refunds
+│   ├── payouts/       Connect onboarding and seller withdrawals
+│   ├── returns/       returns and resolutions
+│   ├── analytics/     seller analytics
+│   ├── admin/         platform governance and admin analytics
+│   ├── notification/  notifications and preferences
+│   ├── coupon/        coupon validation and usage
+│   ├── category/      category taxonomy
+│   ├── engagement/    wishlist and reviews
+│   ├── support/       support tickets and email
+│   └── uploads/       signed/media upload workflows
+├── infrastructure/
+│   ├── cache/         Redis clients and session cache
+│   ├── queue/         BullMQ queues, workers, and expiry sweeps
+│   └── storage/       Cloudinary and S3 integrations
+├── middleware/        auth, roles, tenant access, validation, limits
+├── config/            environment, database, CORS, Helmet, logging, Swagger
+└── scripts/           seeds and operational checks
+```
 
-1. The customer submits a cart containing products from one or more shops.
-2. The API creates one checkout and separate shop orders in a transaction.
-3. Stripe creates one PaymentIntent for the checkout total.
-4. The Stripe webhook is verified and processed idempotently.
-5. Orders and wallet ledger entries are reconciled from webhook state.
-6. Refund requests are reconciled through Stripe refund webhooks.
+### Database domains
 
-The server remains the source of truth for totals, permissions, payment state,
-order state, and refund state.
+The Prisma schema contains the primary commerce, identity, and governance
+records, including:
+
+- Identity: `User`, `UserProfile`, `RefreshToken`, verification and reset
+  records.
+- Tenancy: `Shop`, `ShopProfile`, employees, legal documents, risk flags,
+  wallets, and wallet transactions.
+- Catalog: `Product`, `ProductVariant`, `ProductImage`, `Category`, and product
+  relationships.
+- Commerce: `Cart`, `CartItem`, `Checkout`, `Order`, `OrderItem`,
+  `ShippingAddress`, `OrderShipment`, and status history.
+- Money: `Payment`, `PaymentMethod`, `WebhookEvent`, platform wallet, shop
+  wallet, and ledger transactions.
+- Inventory: `InventoryReservation` with lifecycle status and expiry metadata.
+- Trust and operations: returns, reviews, coupons, notifications, audit logs,
+  activity logs, and support tickets.
 
 ---
 
-## Technology
+## Core workflows
 
-### Client
+### Customer checkout
 
-| Technology | Role |
+```mermaid
+sequenceDiagram
+    participant C as Customer
+    participant UI as Client
+    participant API as Orders API
+    participant DB as PostgreSQL
+    participant S as Stripe
+    participant WH as Webhook API
+
+    C->>UI: Submit cart, address, coupons, shipping
+    UI->>API: POST /orders/checkout
+    API->>DB: Transaction: validate, reserve stock, create checkout/orders
+    DB-->>API: Pending checkout and shop orders
+    API-->>UI: Checkout identifier
+    UI->>API: POST /payment/intent
+    API->>API: Verify checkout.customerId
+    API->>S: Create/reuse idempotent PaymentIntent
+    S-->>API: Client secret
+    API-->>UI: Client secret
+    C->>S: Confirm payment with Stripe Elements
+    S->>WH: Signed payment_intent.succeeded
+    WH->>DB: Idempotent payment/order confirmation
+    WH-->>C: Notification and updated order state
+```
+
+Important invariants:
+
+1. The server calculates totals from trusted product and variant prices.
+2. Checkout ownership is verified before a PaymentIntent is created.
+3. Inventory reservation and order creation happen in one database transaction.
+4. Stripe webhooks, not the browser redirect, finalize payment state.
+5. Duplicate webhook events are ignored through persisted event handling.
+6. Payment intent creation uses a persisted idempotency key.
+
+### Refund and return reconciliation
+
+```mermaid
+flowchart TD
+    Return["Return/refund request"] --> Review["Admin or authorized seller review"]
+    Review --> Pending["Order = REFUND_PENDING"]
+    Pending --> Stripe["Stripe refund"]
+    Stripe --> Webhook["Signed charge.refunded webhook"]
+    Webhook --> Event["Persist/check webhook event"]
+    Event --> Ledger["Finalize payment, order, return, wallet ledger"]
+    Ledger --> Notify["Notify customer and seller"]
+    Stripe -->|failure| Restore["Restore previous order state"]
+```
+
+The webhook resolves the payment record to its order ID. This prevents a
+checkout identifier from being passed into order-state reconciliation and keeps
+admin-initiated refunds compatible with asynchronous Stripe delivery.
+
+### Account reactivation
+
+Login can return a reactivation flow for deactivated accounts. The client
+submits the one-time reactivation key to `POST /api/v1/auth/reactivate`; the
+server validates and consumes the Redis-backed key, restores the account state,
+and issues a fresh authenticated session. Reactivation keys must not be logged
+or exposed in analytics.
+
+---
+
+## Money and payment design
+
+### Source of truth
+
+- Product and variant prices are read from PostgreSQL during checkout.
+- Checkout and order totals are persisted as decimal values.
+- Stripe receives an integer amount in the smallest currency unit; the current
+  implementation creates USD PaymentIntents from the server-calculated total.
+- The browser never decides the payable amount.
+- Payment state is reconciled from signed Stripe webhooks.
+
+### Platform money flow
+
+```text
+Customer payment
+        │
+        ▼
+Stripe PaymentIntent
+        │ payment_intent.succeeded
+        ▼
+Checkout + shop orders confirmed
+        │
+        ├── platform commission → PlatformWallet / platform ledger
+        ├── seller share        → ShopWallet / wallet ledger
+        └── fulfillment         → seller order and shipment workflow
+```
+
+The configured `PLATFORM_COMMISSION_RATE` is a decimal fraction, for example
+`0.10` for ten percent. Production finance teams should reconcile the
+application ledger with Stripe balance transactions and Connect reports before
+launching at scale.
+
+### Stripe requirements
+
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and the client publishable key
+  must belong to the same Stripe account and mode.
+- `pk_test` must pair with the matching account's `sk_test`; live keys must
+  likewise match.
+- Production Stripe.js pages must use HTTPS.
+- Mount the webhook endpoint with a raw JSON body before `express.json()`.
+- Configure the Stripe endpoint to
+  `/api/v1/payment/webhooks/stripe`.
+- Test successful payments, failed payments, duplicate webhooks, refunds,
+  Connect account updates, and delayed webhook delivery in staging.
+
+NextGM does not store raw card numbers. Stripe Elements handles payment details;
+the application stores provider identifiers and reconciled payment state.
+
+---
+
+## Inventory and order consistency
+
+Checkout uses transactional, conditional reservation:
+
+```sql
+UPDATE ProductVariant
+SET stock = stock - :quantity
+WHERE id = :variantId
+  AND stock >= :quantity;
+```
+
+The same guard exists for product-level stock. A zero-row update is treated as
+insufficient stock and aborts the transaction. Every successful reservation
+creates an `InventoryReservation` record containing:
+
+- product and optional variant
+- order
+- quantity
+- expiry time
+- lifecycle status
+
+Reservation expiration runs through BullMQ. Cancellation and expiry restore
+stock; successful payment commits the reservation. Concurrency tests verify
+that two simultaneous buyers cannot reserve the final unit twice.
+
+Sellers should still use variant-level stock for products with meaningful
+options such as size, color, or configuration.
+
+---
+
+## Redis and asynchronous processing
+
+Redis is used in two modes:
+
+1. **Fast API Redis connection**
+   - user session cache
+   - rate limiting integrations and short-lived state
+   - fail-fast commands with bounded timeouts
+   - database fallback when the cache is unavailable
+2. **BullMQ queue connection**
+   - blocking worker commands
+   - retries and delayed jobs
+   - independent worker process
+
+Configured queues:
+
+| Queue | Responsibility |
 | --- | --- |
-| React | UI framework |
-| Vite | Development server and production bundler |
-| TypeScript | Static typing |
-| React Router | Application routing |
-| TanStack React Query | Server state and caching |
-| Zustand | Client authentication state |
-| Tailwind CSS | UI styling |
-| Radix UI and shadcn/ui | Accessible UI primitives |
-| Recharts | Seller analytics visualizations |
-| Stripe React | Payment Elements |
-| Zod | Form and input validation |
+| `emails` | transactional and support email jobs |
+| `image-cleanup` | asynchronous media cleanup |
+| `accountPurgeQueue` | deferred account purge work |
+| `order-expiration` | reservation/order expiration sweeps |
+| `notifications` | asynchronous user notifications |
 
-### Server
+The worker is started separately with `npm run worker`. The order-expiration
+sweep is scheduled every five minutes. Redis is required for reliable queue
+processing; a Redis outage must be treated as an operational incident even
+though some API paths can use a database fallback.
 
-| Technology | Role |
-| --- | --- |
-| Node.js and TypeScript | Runtime and application code |
-| Express | HTTP API |
-| Prisma | ORM and migrations |
-| PostgreSQL | Primary database |
-| Redis | Rate limiting, caching, and queues |
-| BullMQ | Background jobs |
-| Stripe | Payments, Connect, refunds, and webhooks |
-| Cloudinary | Media storage and delivery |
-| Zod | Runtime request validation |
-| Pino | Structured logging |
-| Vitest and Supertest | Automated tests |
+---
+
+## Security model
+
+### Authentication and sessions
+
+- Passwords are hashed with bcrypt.
+- Access tokens are short-lived JWTs (15 minutes in the current implementation).
+- Refresh tokens are signed separately and stored/revoked per device.
+- Password changes invalidate older access sessions.
+- A configurable device limit prevents unbounded refresh sessions.
+- Deactivated and suspended accounts are blocked by authentication middleware.
+- Production cookies use `httpOnly`, `secure`, and `sameSite` protections.
+
+### Authorization and tenant isolation
+
+- Authentication, role authorization, super-admin authorization, and shop-access
+  middleware are separate controls.
+- Seller operations are scoped to the requested shop and authenticated owner or
+  employee access.
+- Unauthorized shop access uses enumeration-resistant `404` responses.
+- Payment intent creation verifies the checkout customer identity.
+- Admin routes are not a substitute for seller authorization; both boundaries
+  are checked where applicable.
+
+### API and data protection
+
+- Zod schemas reject unknown and invalid request fields.
+- General, authentication, login, verification, password-reset, notification,
+  and heavy-endpoint rate limits are configured.
+- Helmet adds security response headers.
+- CORS allows the configured client origin and credentials only.
+- Stripe signatures are verified against the raw request body.
+- Centralized error handling returns request IDs for support correlation.
+- Secrets are loaded from environment variables, never from source files.
+- Structured logs should be scrubbed of tokens, passwords, client secrets,
+  webhook payload secrets, and personal data not needed for operations.
+
+Security review before each international launch should include tenant
+enumeration, IDOR, payment ownership, webhook replay, coupon abuse, stock
+overselling, refresh-token revocation, upload abuse, rate-limit bypass, and
+PII/logging checks.
 
 ---
 
@@ -183,33 +441,42 @@ order state, and refund state.
 .
 ├── client/
 │   ├── src/
-│   │   ├── features/
-│   │   │   ├── admin/              # Admin APIs and hooks
-│   │   │   ├── auth/               # Authentication screens and state
-│   │   │   ├── cart/               # Cart and guest cart behavior
-│   │   │   ├── customer/           # Customer orders and wishlist
-│   │   │   ├── marketplace/        # Storefront and product discovery
-│   │   │   ├── order/              # Checkout and order confirmation
-│   │   │   ├── payment/            # Stripe payment UI
-│   │   │   ├── returns/            # Customer and seller returns
-│   │   │   ├── shop/               # Seller dashboard and analytics
-│   │   │   ├── users/              # Profile and account settings
-│   │   │   └── pages/superAdmin/   # Super-admin pages and shell
-│   │   ├── components/ui/          # Shared UI primitives
-│   │   ├── routes/                 # Route composition and guards
-│   │   └── store/                  # Zustand stores
+│   │   ├── features/       # marketplace, customer, seller, payment, admin
+│   │   ├── components/     # shared UI and accessible primitives
+│   │   ├── routes/         # public and protected route composition
+│   │   └── store/          # client authentication and UI state
+│   ├── .env.example
 │   └── package.json
 ├── server/
 │   ├── prisma/
-│   │   ├── schema.prisma           # Database schema
-│   │   └── migrations/             # Versioned migrations
+│   │   ├── schema.prisma
+│   │   └── migrations/
 │   ├── src/
-│   │   ├── features/               # Domain modules
-│   │   ├── middleware/             # Auth, validation, access, limits
-│   │   └── scripts/                # Seed and operational scripts
+│   │   ├── features/
+│   │   ├── infrastructure/
+│   │   ├── middleware/
+│   │   ├── config/
+│   │   └── scripts/
+│   ├── .env.example
 │   └── package.json
 └── README.md
 ```
+
+---
+
+## Technology
+
+| Layer | Technologies |
+| --- | --- |
+| Client | React 19, Vite, TypeScript, React Router, TanStack Query, Zustand |
+| UI | Tailwind CSS, Radix/shadcn primitives, Lucide, Recharts |
+| API | Node.js, Express 5, TypeScript, Zod |
+| Persistence | PostgreSQL, Prisma, versioned migrations |
+| Cache/jobs | Redis, ioredis, BullMQ |
+| Money | Stripe Payments, Stripe Connect, signed webhooks |
+| Media/email | Cloudinary, SMTP/Nodemailer |
+| Quality | Vitest, Supertest, ESLint, TypeScript builds |
+| Operations | Pino structured logs, Swagger UI, request IDs |
 
 ---
 
@@ -218,24 +485,21 @@ order state, and refund state.
 - Node.js 18 or newer
 - PostgreSQL 14 or newer
 - Redis 7 or newer
-- Stripe test account and Stripe CLI for local webhooks
-- Cloudinary account for media uploads
-- SMTP provider for transactional email
+- Stripe account and Stripe CLI for local webhook testing
+- Cloudinary account for product and evidence media
+- SMTP provider for verification, reset, support, and notification email
+- HTTPS termination and a managed secrets solution for production
 
 ---
 
 ## Local development
 
-### 1. Clone the repository
+### Install
 
 ```bash
-git clone https://github.com/RoyalDani12/saas-multi-tenant-commerce-platform.git
-cd saas-multi-tenant-commerce-platform
-```
+git clone https://github.com/RoyalDani12/nextGM.git
+cd nextGM
 
-### 2. Install dependencies
-
-```bash
 cd server
 npm install
 
@@ -243,49 +507,56 @@ cd ../client
 npm install
 ```
 
-### 3. Configure environment variables
-
-Create `server/.env` and `client/.env` using the examples below. Never commit
-real credentials, webhook secrets, or production connection strings.
-
-### 4. Prepare the database
-
-From `server/`:
+### Configure
 
 ```bash
+cp server/.env.example server/.env
+cp client/.env.example client/.env
+```
+
+Fill every required value before starting the API. The server validates its
+environment at startup and exits when required configuration is missing or
+invalid.
+
+### Prepare PostgreSQL
+
+```bash
+cd server
 npx prisma generate
 npx prisma migrate dev
 ```
 
-For a deployed environment, use the non-destructive command:
+For an already-deployed database, use:
 
 ```bash
 npx prisma migrate deploy
 ```
 
-### 5. Start the services
+Never use `migrate reset` against a shared or production database.
 
-Open separate terminals:
+### Start services
+
+Use separate terminals:
 
 ```bash
-# Terminal 1: API
+# API
 cd server
 npm run dev
 
-# Terminal 2: background worker
+# Background workers
 cd server
 npm run worker
 
-# Terminal 3: client
+# Client
 cd client
 npm run dev
 
-# Terminal 4: Stripe webhook forwarding
+# Stripe webhook forwarding
 cd server
 npm run stripe:listen
 ```
 
-Default local URLs:
+Local endpoints:
 
 | Service | URL |
 | --- | --- |
@@ -296,33 +567,33 @@ Default local URLs:
 
 ---
 
-## Environment variables
+## Environment configuration
 
-### Server
+### Server variables
+
+The authoritative schema is `server/src/config/env.ts`; keep deployment
+configuration aligned with it.
 
 ```env
 NODE_ENV=development
 PORT=5000
 
-DATABASE_URL=postgresql://postgres:password@localhost:5432/nexions_dev
+DATABASE_URL=postgresql://user:password@localhost:5432/nextgm
 REDIS_URL=redis://localhost:6379
 
-JWT_SECRET=replace_with_a_long_random_secret
-JWT_ACCESS_EXPIRES_IN=15m
-JWT_REFRESH_EXPIRES_IN=7d
-BCRYPT_ROUNDS=12
+JWT_SECRET=replace-with-a-long-random-secret
+JWT_REFRESH_SECRET=replace-with-a-different-long-random-secret
 DEVICE_LIMIT=5
 ORDER_RESERVATION_TTL_MINUTES=15
 
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-
 SMTP_HOST=smtp.example.com
 SMTP_PORT=587
-SMTP_USER=your_user
-SMTP_PASS=your_password
-EMAIL_FROM="Nexions <noreply@example.com>"
+SMTP_USER=your-user
+SMTP_PASS=your-password
+
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
 
 STRIPE_SECRET_KEY=sk_test_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
@@ -331,159 +602,250 @@ PLATFORM_COMMISSION_RATE=0.10
 CLIENT_URL=http://localhost:3000
 ALLOWED_ORIGINS=http://localhost:3000
 
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_REDIRECT_URI=http://localhost:5000/api/v1/auth/google/callback
 ```
 
-### Client
+### Client variables
 
 ```env
 VITE_API_URL=http://localhost:5000/api/v1
 VITE_STRIPE_PUBLISHABLE_KEY=pk_test_xxx
 ```
 
-Copy these values to `client/.env` before starting Vite. The client cannot
-send authentication requests without `VITE_API_URL`.
-
-Use Stripe test keys for local HTTP development. Live Stripe.js integrations
-must be served over HTTPS.
+Do not commit either `.env` file. Use a secret manager in production. Keep
+Stripe publishable and secret keys in the same account and mode.
 
 ---
 
-## Application routes
+## Database and migrations
 
-The client route map is composed in `client/src/routes/AppRoutes.tsx`.
+### Migration lifecycle and client generation
 
-| Area | Representative routes |
+```bash
+cd server
+
+# Generate Prisma client
+npx prisma generate
+
+# Apply migrations locally in development
+npx prisma migrate dev
+```
+
+For already-deployed environments (staging, production, CI):
+
+```bash
+npx prisma migrate deploy
+```
+
+> [!WARNING]
+> Never run `prisma migrate reset` against shared, staging, or production databases.
+
+### Database seeding
+
+To populate development environments with initial admin accounts, test sellers, categories, and sample products:
+
+```bash
+cd server
+npx tsx src/scripts/seedAll.ts
+```
+
+---
+
+## API and application routes
+
+### Client route areas
+
+| Area | Routes |
 | --- | --- |
 | Marketplace | `/`, `/marketplace`, `/products/:productId`, `/shops/:slug` |
 | Customer | `/orders`, `/orders/:orderId`, `/returns`, `/wishlist`, `/settings` |
 | Checkout | `/cart`, `/checkout`, `/payment/:checkoutId` |
 | Seller | `/dashboard/shop/:shopId`, `/products`, `/orders`, `/returns`, `/analytics` |
-| Super admin | `/superadmin`, `/superadmin/users`, `/superadmin/shops`, `/superadmin/returns` |
+| Admin | `/superadmin`, `/superadmin/users`, `/superadmin/shops`, `/superadmin/returns` |
 
-The API is versioned under `/api/v1`. Important domains include:
+### API domains
 
-- `/auth`
-- `/users`
-- `/shops`
-- `/products`
-- `/cart`
-- `/orders`
-- `/payment`
-- `/payouts`
-- `/returns`
-- `/notifications`
-- `/analytics`
-- `/admin`
+All API routes are under `/api/v1`:
 
-Interactive API documentation is available at `/api-docs` when the server is
-running.
+`auth` · `users` · `shops` · `uploads` · `products` · `categories` · `cart` ·
+`orders` · `payment` · `payouts` · `admin` · `notifications` · `returns` ·
+`analytics` · `support` · `coupons`
+
+Stripe's webhook endpoint is:
+
+```text
+POST /api/v1/payment/webhooks/stripe
+```
+
+Interactive API documentation is available at `/api-docs` when enabled by the
+running server.
 
 ---
 
-## Testing and validation
+## Testing and release validation
 
-Run the smallest relevant command while developing, then run all gates before
-releasing:
+Run focused tests during development, then all release gates:
 
 ```bash
-# Client type-check and production build
+# Client
 cd client
+npm run lint
 npm run build
 
-# Client lint
-npm run lint
-
-# Server type-check/build
+# Server
 cd ../server
 npm run build
-
-# Server tests
 npm test -- --run
 ```
 
-The current release validation includes a passing client build, server build,
-and server test suite. Vite may report a bundle-size warning; this is a
-performance follow-up item, not a build failure.
+High-value regression coverage includes:
+
+- checkout/payment ownership isolation
+- atomic inventory reservation under concurrency
+- reservation expiry and cancellation restoration
+- payment and refund webhook idempotency
+- account authentication and reactivation
+- admin order analytics calculations
+- seller/admin workflow authorization
+
+Before release, also perform staging acceptance tests for registration,
+verification, OAuth, password reset, checkout, Stripe success/failure, delayed
+webhooks, refunds, cancellation, returns, payouts, uploads, and tenant
+isolation.
 
 ---
 
-## Security model
+## Production deployment
 
-- Passwords are hashed with bcrypt.
-- Access is role-based and protected by authentication middleware.
-- Refresh sessions are rotated and can be revoked per device or globally.
-- Sensitive input is validated with Zod before reaching domain services.
-- Shop access checks both tenant identity and ownership.
-- Unauthorized shop access returns `404` to avoid tenant enumeration.
-- Stripe webhook signatures are verified against the raw request body.
-- Payment and refund processing is designed to be idempotent.
-- Rate limiting protects authentication, notification, and general API traffic.
-- Helmet and CORS are enabled at the API boundary.
-- Secrets are read from environment variables and must not be committed.
+### Recommended topology
 
-Security-sensitive changes should be tested against both an authorized tenant
-and an unauthorized tenant before release.
+```text
+CDN / WAF / TLS
+        │
+        ├── Static client deployment
+        └── Load balancer
+                ├── API replicas
+                └── Worker replicas
 
----
+Managed PostgreSQL ── backups, PITR, replicas
+Managed Redis ─────── persistence, alarms, TLS
+Stripe / Cloudinary / SMTP
+```
 
-## Production checklist
+### Required release gates
 
-Before deploying a release:
-
-- [ ] Use managed PostgreSQL and Redis with backups and monitoring.
+- [ ] Use managed PostgreSQL and Redis with backups, encryption, and alerts.
 - [ ] Run `npx prisma migrate deploy` against the intended database.
-- [ ] Set strong production secrets and verify secret rotation procedures.
-- [ ] Configure production CORS and HTTPS-only cookies.
-- [ ] Configure Stripe live keys, Connect settings, and webhook endpoints.
-- [ ] Run the worker process independently from the API process.
-- [ ] Confirm Cloudinary upload restrictions and SMTP delivery.
-- [ ] Exercise login, checkout, payment webhook, cancellation, returns, and refunds
-      in staging.
-- [ ] Verify tenant isolation with multiple seller accounts.
-- [ ] Confirm health checks, structured logs, alerts, and error tracking.
-- [ ] Review database backups and rollback procedures.
-- [ ] Build and serve the client over HTTPS.
+- [ ] Verify migration status and database connectivity before opening traffic.
+- [ ] Configure production `CLIENT_URL` and the single allowed CORS origin.
+- [ ] Use strong, unique JWT secrets and document rotation procedures.
+- [ ] Serve the client and API through HTTPS.
+- [ ] Configure Stripe live keys, Connect settings, and signed webhooks.
+- [ ] Verify live/test key account alignment with a real staging payment.
+- [ ] Run API and worker as separate independently monitored processes.
+- [ ] Configure Cloudinary upload limits, transformations, and access policy.
+- [ ] Configure SMTP SPF, DKIM, DMARC, bounce handling, and delivery alerts.
+- [ ] Enable centralized logs, metrics, tracing, error reporting, and alerts.
+- [ ] Verify backup restoration and rollback procedures.
+- [ ] Test graceful shutdown and queue retry behavior.
+- [ ] Verify no secrets, tokens, client secrets, or card data appear in logs.
+- [ ] Complete tenant-isolation and payment-ownership security testing.
+
+### International-market readiness
+
+Before expanding beyond the initial market, define and test:
+
+- supported currencies, decimal precision, tax/VAT/GST responsibility, and
+  invoice requirements
+- country-specific payment methods and Stripe availability
+- shipping zones, delivery promises, returns windows, and carrier contracts
+- address validation, phone number formatting, language, timezone, and locale
+- privacy, cookie, consumer-protection, data-retention, and deletion policies
+- seller KYC/KYB, sanctions screening, payout timing, and dispute handling
+- chargeback ownership, reserve policy, and finance reconciliation
+- regional data residency and subprocessors
+
+The current checkout PaymentIntent implementation is USD-based. International
+currency, tax, and legal behavior must be explicitly designed before marketing
+the platform as globally compliant.
 
 ---
 
-## Roadmap
+## Operational runbooks
 
-### Next: inventory operations
+### Checkout returns HTTP 500
 
-The next production improvements build on the reservation domain:
+1. Check API logs using the request ID.
+2. Confirm PostgreSQL migrations are deployed:
+   `npx prisma migrate status`.
+3. Confirm `InventoryReservation` exists and Redis is available.
+4. Check stock, order, and transaction errors before retrying.
+5. Never manually decrement stock without reconciling reservations.
 
-- Available, reserved, committed, damaged, and unavailable quantities
-- Variant-level stock tracking and SKU support
-- Seller inventory dashboard and stock history
-- Low-stock notifications
-- Admin inventory visibility
+### Payment client-secret mismatch
 
-### Following priorities
+1. Confirm client `VITE_STRIPE_PUBLISHABLE_KEY` and server
+   `STRIPE_SECRET_KEY` use the same Stripe account.
+2. Confirm both are test keys or both are live keys.
+3. Confirm the client is using the current PaymentIntent client secret.
+4. Inspect the server PaymentIntent ID, not the browser response alone.
+5. Rotate exposed credentials immediately; never paste secret keys into issues,
+   chat, logs, or source control.
 
-1. Seller fulfillment and shipping operations
-2. Address book and saved checkout addresses
-3. Support tickets and customer disputes
-4. Seller notification center improvements
-5. Profit, shipping-cost, and payout analytics
-6. Storefront event tracking and conversion analytics
-7. Deployment observability and expanded integration coverage
+### Missing or delayed webhooks
+
+1. Check Stripe delivery history and signature failures.
+2. Confirm the route receives raw JSON before `express.json()`.
+3. Check `STRIPE_WEBHOOK_SECRET` and endpoint mode.
+4. Inspect persisted webhook event/idempotency records.
+5. Reconcile payment, checkout, order, and wallet state before replaying.
+
+### Redis or worker outage
+
+1. Check Redis connectivity, memory, TLS, and authentication.
+2. Inspect failed and delayed BullMQ jobs.
+3. Keep the API available only for operations whose consistency guarantees
+   remain valid without queues.
+4. Restore the worker before relying on reservation expiry, notifications,
+   account purge, or image cleanup.
+
+---
+
+## Known limitations and next hardening
+
+These are intentional follow-up items, not undocumented assumptions:
+
+1. **Currency and tax model:** checkout currently creates USD PaymentIntents;
+   multi-currency pricing, tax calculation, and regional invoices require a
+   dedicated finance design.
+2. **CORS configuration:** the current environment schema accepts one allowed
+   origin. Multi-region frontends need an explicit allow-list implementation.
+3. **Observability:** structured logs and request IDs exist, but production
+   teams still need external metrics, tracing, alerting, and log retention.
+4. **Shipping integrations:** the current system stores shipment methods and
+   tracking data; carrier label generation and rate aggregation are future
+   integrations.
+5. **Compliance operations:** KYC/KYB, tax reporting, GDPR/CCPA workflows, and
+   regional consumer-law policies require operational ownership beyond code.
+6. **End-to-end coverage:** unit and integration coverage exists for core
+   security, payment, inventory, and admin workflows; browser-level checkout
+   testing should be added to the deployment pipeline.
 
 ---
 
 ## Contributing
 
 1. Create a focused branch from `main`.
-2. Keep changes scoped to one feature or fix.
-3. Preserve tenant isolation and server-side authorization.
-4. Add or update tests for behavior changes.
-5. Run the client build, server build, and relevant tests.
-6. Use clear conventional commit messages.
-7. Open a pull request with the behavior, validation, and migration impact
-   clearly described.
+2. Preserve tenant isolation, server-side authorization, and money invariants.
+3. Add tests for behavior changes and migrations for schema changes.
+4. Update this README when workflows, environment variables, or operations
+   change.
+5. Run client lint/build, server build, and relevant tests.
+6. Never commit secrets, production data, or copied payment credentials.
+7. Open a pull request describing behavior, security impact, migration impact,
+   and validation evidence.
 
-Nexions is maintained as a production-focused commerce platform: correctness,
-security, tenant isolation, and reliable payment state take priority over
-short-term UI shortcuts.
+NextGM prioritizes reliable money movement, safe multi-tenancy, clear
+operational ownership, and a professional customer experience over shortcuts.
