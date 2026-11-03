@@ -1298,8 +1298,6 @@ export const getOrderAnalyticsAdmin = async (filters: OrderAnalyticsFilters = {}
             where,
             _count: { _all: true },
             _sum: { totalAmount: true },
-            orderBy: { _count: { _all: "desc" } },
-            take: 10,
         }),
         prisma.order.findMany({
             where: {
@@ -1340,13 +1338,16 @@ export const getOrderAnalyticsAdmin = async (filters: OrderAnalyticsFilters = {}
     const orderFulfillmentRate = totalOrders > 0 ? Number(((deliveredOrders / totalOrders) * 100).toFixed(1)) : 100;
 
     // 2. Orders by Shop
-    const shopIds = topShopsRaw.map((s) => s.shopId);
+    const sortedTopShops = [...topShopsRaw]
+        .sort((a, b) => (b._count._all || 0) - (a._count._all || 0))
+        .slice(0, 10);
+    const shopIds = sortedTopShops.map((s) => s.shopId);
     const shopProfiles = await prisma.shop.findMany({
         where: { id: { in: shopIds } },
         select: { id: true, slug: true, profile: { select: { name: true, logo: true } } },
     });
     const shopMap = new Map(shopProfiles.map((s) => [s.id, s]));
-    const ordersByShop = topShopsRaw.map((s) => {
+    const ordersByShop = sortedTopShops.map((s) => {
         const sh = shopMap.get(s.shopId);
         return {
             shopId: s.shopId,
