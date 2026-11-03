@@ -13,11 +13,76 @@ import { MarketplaceMobileMenu } from "../components/MarketplaceMobileMenu";
 import { NotificationDropdown } from "@/features/notification/NotificationDropdown";
 
 type CartGroup = { items: Array<{ quantity: number }> };
+type DeliveryLocation = { countryCode: string; countryName: string };
+type ReverseGeocodeResponse = { countryCode?: string; countryName?: string };
+
+const timezoneCountries: Record<string, DeliveryLocation> = {
+  "Africa/Addis_Ababa": { countryCode: "ET", countryName: "Ethiopia" },
+  "Africa/Cairo": { countryCode: "EG", countryName: "Egypt" },
+  "Africa/Johannesburg": { countryCode: "ZA", countryName: "South Africa" },
+  "Africa/Lagos": { countryCode: "NG", countryName: "Nigeria" },
+  "Africa/Nairobi": { countryCode: "KE", countryName: "Kenya" },
+  "America/Chicago": { countryCode: "US", countryName: "United States" },
+  "America/Denver": { countryCode: "US", countryName: "United States" },
+  "America/Los_Angeles": { countryCode: "US", countryName: "United States" },
+  "America/New_York": { countryCode: "US", countryName: "United States" },
+  "Asia/Dubai": { countryCode: "AE", countryName: "United Arab Emirates" },
+  "Asia/Kolkata": { countryCode: "IN", countryName: "India" },
+  "Asia/Tokyo": { countryCode: "JP", countryName: "Japan" },
+  "Australia/Sydney": { countryCode: "AU", countryName: "Australia" },
+  "Europe/Berlin": { countryCode: "DE", countryName: "Germany" },
+  "Europe/London": { countryCode: "GB", countryName: "United Kingdom" },
+  "Europe/Paris": { countryCode: "FR", countryName: "France" },
+};
+
+function getFallbackDeliveryLocation(): DeliveryLocation {
+  const locale = navigator.languages?.[0] || navigator.language;
+  const localeRegion = locale?.match(/[-_]([A-Z]{2})$/i)?.[1]?.toUpperCase();
+
+  if (localeRegion) {
+    try {
+      const countryName = new Intl.DisplayNames([locale], { type: "region" }).of(localeRegion);
+      if (countryName) return { countryCode: localeRegion, countryName };
+    } catch {
+      // Fall through to the timezone mapping when region names are unavailable.
+    }
+  }
+
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return timezoneCountries[timezone] || { countryCode: "US", countryName: "United States" };
+}
+
+async function detectDeliveryLocation(signal: AbortSignal): Promise<DeliveryLocation> {
+  if (!navigator.geolocation) throw new Error("Geolocation is not supported by this browser.");
+
+  const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: false,
+      maximumAge: 300000,
+      timeout: 10000,
+    });
+  });
+  const { latitude, longitude } = position.coords;
+  const response = await fetch(
+    `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`,
+    { signal },
+  );
+  if (!response.ok) throw new Error(`Reverse geocoding failed with status ${response.status}.`);
+  const location = (await response.json()) as ReverseGeocodeResponse;
+  if (!location.countryCode || !location.countryName) throw new Error("Reverse geocoding returned no country.");
+  return { countryCode: location.countryCode.toUpperCase(), countryName: location.countryName };
+}
+
+function countryFlag(countryCode: string) {
+  return countryCode.replace(/[A-Z]/g, (letter) => String.fromCodePoint(letter.charCodeAt(0) + 127397));
+}
 
 export const MarketplaceNavbar = () => {
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [deliveryLocation, setDeliveryLocation] = useState<DeliveryLocation | null>(null);
+  const [locationSource, setLocationSource] = useState<"locating" | "detected" | "fallback">("locating");
 
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
@@ -40,6 +105,22 @@ export const MarketplaceNavbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    detectDeliveryLocation(controller.signal)
+      .then((location) => {
+        setDeliveryLocation(location);
+        setLocationSource("detected");
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        console.warn("Precise delivery location detection failed; using browser fallback.", error);
+        setDeliveryLocation(getFallbackDeliveryLocation());
+        setLocationSource("fallback");
+      });
+    return () => controller.abort();
+  }, []);
+
   return (
     <header className="sticky top-0 z-50 flex w-full flex-col select-none border-b border-slate-200 bg-white font-sans antialiased shadow-sm">
       {/* Top Banner Strip */}
@@ -55,7 +136,7 @@ export const MarketplaceNavbar = () => {
 
       {/* Main Navbar Bar */}
       <div className={`w-full transition-all duration-300 ${isScrolled ? "bg-white/95 py-2 backdrop-blur-xl" : "bg-white py-3"}`}>
-        <div className="mx-auto flex max-w-7xl items-center justify-start gap-6 px-4 sm:px-6 lg:justify-between lg:px-8">
+        <div className="flex w-full items-center justify-start gap-6 px-4 sm:px-6 lg:justify-between lg:px-10">
           <MarketplaceMobileMenu
             isAuthenticated={isAuthenticated}
             user={user}
@@ -88,6 +169,17 @@ export const MarketplaceNavbar = () => {
             wishlistItemCount={wishlistItemCount}
             onWishlist={() => navigate("/wishlist")}
           />
+
+          <div className="hidden shrink-0 items-center gap-2 border-l border-slate-200 pl-5 text-left lg:flex" title={deliveryLocation ? `Delivery location: ${deliveryLocation.countryName}` : "Detecting your delivery location"}>
+            <span className="text-[10px] font-medium leading-none text-slate-500">Deliver to:</span>
+            {deliveryLocation ? (
+              <span className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
+                <span aria-hidden="true" className="text-base leading-none">{countryFlag(deliveryLocation.countryCode)}</span>
+                {deliveryLocation.countryCode}
+                {locationSource === "fallback" && <span className="sr-only">estimated</span>}
+              </span>
+            ) : <span className="text-xs font-semibold text-slate-400">Detecting…</span>}
+          </div>
 
 
           {/* Mobile Cart Button */}

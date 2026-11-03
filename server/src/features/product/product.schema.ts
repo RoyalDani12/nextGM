@@ -67,6 +67,9 @@ export const getShopProductsSchema = z.object({
         status: z
             .enum(["DRAFT", "ACTIVE", "ARCHIVED"])
             .optional(),
+        stockFilter: z
+            .enum(["ALL", "IN_STOCK", "LOW_STOCK", "OUT_OF_STOCK"])
+            .optional(),
 
         page: z
             .string()

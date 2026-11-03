@@ -1,72 +1,153 @@
-import { BadgeCheck, Check, ChevronLeft, ChevronRight, CircleDollarSign, PackageCheck, RotateCcw, SlidersHorizontal, Sparkles, Star } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  BadgeCheck,
+  Check,
+  ChevronDown,
+  CircleDollarSign,
+  PackageCheck,
+  RotateCcw,
+  SlidersHorizontal,
+  Star,
+} from "lucide-react";
 import type { MarketplaceCategory } from "../marketplace.api";
-import type { CatalogFilters } from "./marketplace.filters";
+import { activeFilterCount, type CatalogFilters } from "./marketplace.filters";
+import { CategoryFilterPanel } from "./CategoryFilterPanel";
 
-type Props = { categories: MarketplaceCategory[]; filters: CatalogFilters; onChange: (next: CatalogFilters) => void; onReset: () => void };
-const categoryTones = ["bg-orange-50 text-orange-700", "bg-amber-50 text-amber-700", "bg-emerald-50 text-emerald-700", "bg-slate-100 text-slate-700"];
+type Props = {
+  categories: MarketplaceCategory[];
+  filters: CatalogFilters;
+  onChange: (next: CatalogFilters) => void;
+  onReset: () => void;
+};
 
-function FilterStep({ number, title, hint, children }: { number: string; title: string; hint: string; children: React.ReactNode }) {
-  return <section className="border-t border-slate-100 py-4 first:border-t-0 first:pt-0"><div className="flex items-start gap-3"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-orange-100 text-[11px] font-extrabold text-orange-700">{number}</span><div><h3 className="text-sm font-extrabold text-slate-900">{title}</h3><p className="mt-0.5 text-xs leading-4 text-slate-500">{hint}</p></div></div><div className="mt-3">{children}</div></section>;
+function FilterDropdown({
+  label,
+  value,
+  children,
+}: {
+  label: string;
+  value?: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div ref={containerRef} className="group relative">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-bold text-slate-700 shadow-sm transition hover:border-orange-300 hover:text-orange-700"
+      >
+        <span>{label}</span>
+        {value && <span className="max-w-32 truncate text-xs font-semibold text-orange-600">{value}</span>}
+        <ChevronDown className={`ml-auto size-4 text-slate-400 transition ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && <div
+        onClick={(event) => {
+          const target = event.target as HTMLElement;
+          if (target.closest("button") || target.closest("label")) setOpen(false);
+        }}
+        className="absolute left-0 top-[calc(100%+0.5rem)] z-30 min-w-64 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl shadow-slate-900/10"
+      >
+        {children}
+      </div>}
+    </div>
+  );
 }
 
 export function MarketplaceFilterSidebar({ categories, filters, onChange, onReset }: Props) {
-  const parent = categories.find((item) => item.slug === filters.categorySlug || item.children.some((child) => child.slug === filters.categorySlug));
-  const displayedCategories = parent?.children || categories;
-  const activeCount = [filters.categorySlug, filters.minPrice, filters.maxPrice, filters.minRating, filters.inStockOnly, filters.verifiedShopsOnly, filters.type].filter(Boolean).length;
-  const preset = (minPrice?: string, maxPrice?: string) => onChange({ ...filters, minPrice, maxPrice });
-  const categoryLabel = parent ? parent.name : "All departments";
+  const count = activeFilterCount(filters);
+  const parent = categories.find(
+    (item) => item.slug === filters.categorySlug || item.children.some((child) => child.slug === filters.categorySlug),
+  );
+  const selectedCategory = parent?.children.find((child) => child.slug === filters.categorySlug) || parent;
+  const categoryLabel = selectedCategory?.name || "All categories";
+  const priceLabel = filters.minPrice || filters.maxPrice
+    ? `$${filters.minPrice || "0"} – $${filters.maxPrice || "∞"}`
+    : undefined;
+  const ratingLabel = filters.minRating ? `${filters.minRating}★ & up` : undefined;
+  const typeLabel = filters.type === "PHYSICAL" ? "Physical" : filters.type === "DIGITAL" ? "Digital" : undefined;
 
-  return <aside className="sticky top-5 hidden h-[calc(100vh-2.5rem)] w-72 shrink-0 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 font-sans shadow-sm lg:block">
-    <header className="rounded-xl border border-orange-100 bg-gradient-to-br from-orange-50 via-white to-slate-50 p-3.5"><div className="flex items-start justify-between gap-2"><div><h2 className="flex items-center gap-2 text-base font-extrabold text-slate-950"><SlidersHorizontal className="size-4 text-orange-600" /> Filter results</h2><p className="mt-1 text-xs leading-4 text-slate-500">Use the steps below to narrow your matches.</p></div>{activeCount > 0 && <span className="rounded-full bg-orange-500 px-2 py-1 text-[10px] font-extrabold text-white">{activeCount} applied</span>}</div><div className="mt-3 flex items-center justify-between"><span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-500"><Sparkles className="size-3 text-orange-500" /> Start broad, then refine</span>{activeCount > 0 && <button onClick={onReset} className="text-xs font-bold text-orange-600 hover:text-orange-700 hover:underline"><RotateCcw className="mr-1 inline size-3" />Clear all</button>}</div></header>
-
-    <div className="mt-4 px-1">
-      <FilterStep number="1" title="Shop by department" hint="Open a department to browse its categories.">
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          {parent ? (
-            <>
-              <button onClick={() => onChange({ ...filters, categorySlug: undefined })} className="flex min-h-11 w-full items-center gap-2 border-b border-orange-100 bg-orange-50 px-3 text-left text-xs font-extrabold text-orange-800 transition hover:bg-orange-100">
-                <ChevronLeft className="size-4" />
-                <span>All departments</span>
-              </button>
-              <div className="border-b border-slate-100 bg-slate-50/70 px-3 py-2.5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">Browsing</p>
-                <p className="mt-0.5 truncate text-sm font-extrabold text-slate-900">{categoryLabel}</p>
-              </div>
-            </>
-          ) : (
-            <div className="border-b border-slate-100 bg-slate-50/70 px-3 py-2.5">
-              <p className="text-xs font-bold text-slate-600">Departments</p>
-              <p className="mt-0.5 text-[11px] text-slate-400">Select one to see what is inside</p>
-            </div>
-          )}
-          <div className="divide-y divide-slate-100">
-            {displayedCategories.map((category, index) => {
-              const selected = filters.categorySlug === category.slug;
-              const hasChildren = category.children.length > 0;
-              return <button key={category.id} onClick={() => onChange({ ...filters, categorySlug: selected ? undefined : category.slug })} className={`group flex min-h-[3.75rem] w-full items-center gap-3 px-3 text-left transition ${selected ? "bg-orange-50" : "hover:bg-slate-50"}`}>
-                <span className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-black ${selected ? "bg-orange-500 text-white" : categoryTones[index % categoryTones.length]}`}>{category.icon || category.name.charAt(0)}</span>
-                <span className="min-w-0 flex-1">
-                  <span className={`block truncate text-xs font-extrabold ${selected ? "text-orange-800" : "text-slate-800"}`}>{category.name}</span>
-                  <span className="mt-0.5 block text-[11px] text-slate-400">{category.productCount} products</span>
-                </span>
-                {selected && <Check className="size-4 text-orange-600" />}
-                {!selected && hasChildren && <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Browse</span>}
-                {!selected && !hasChildren && <ChevronRight className="size-4 text-slate-300 transition group-hover:translate-x-0.5" />}
-              </button>;
-            })}
-          </div>
+  return (
+    <section className="relative z-20 mb-6 hidden rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4 lg:block">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="mr-1 flex items-center gap-2 text-sm font-black text-slate-900">
+          <span className="flex size-9 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
+            <SlidersHorizontal className="size-4" />
+          </span>
+          Filters
+          {count > 0 && <span className="rounded-full bg-orange-500 px-2 py-0.5 text-[10px] text-white">{count}</span>}
         </div>
-      </FilterStep>
 
-      <FilterStep number="2" title="Set your budget" hint="Optional—enter a range or choose a quick amount.">
-        <div className="grid grid-cols-2 gap-2"><label className="relative"><span className="sr-only">Minimum price</span><CircleDollarSign className="absolute left-2.5 top-2.5 size-4 text-slate-400" /><input value={filters.minPrice || ""} onChange={(e) => onChange({ ...filters, minPrice: e.target.value || undefined })} inputMode="decimal" placeholder="Min" className="h-9 w-full rounded-lg border border-slate-200 pl-8 pr-2 text-xs outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"/></label><label className="relative"><span className="sr-only">Maximum price</span><CircleDollarSign className="absolute left-2.5 top-2.5 size-4 text-slate-400" /><input value={filters.maxPrice || ""} onChange={(e) => onChange({ ...filters, maxPrice: e.target.value || undefined })} inputMode="decimal" placeholder="Max" className="h-9 w-full rounded-lg border border-slate-200 pl-8 pr-2 text-xs outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"/></label></div><div className="mt-2 flex flex-wrap gap-1.5">{[[undefined, "50", "Under $50"], ["50", "200", "$50–$200"], ["200", undefined, "$200+"]].map(([min, max, label]) => <button key={label} onClick={() => preset(min, max)} className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700">{label}</button>)}</div>
-      </FilterStep>
+        <FilterDropdown label="Category" value={categoryLabel}>
+          <CategoryFilterPanel categories={categories} selectedSlug={filters.categorySlug} onSelect={(categorySlug) => onChange({ ...filters, categorySlug })} className="w-80" />
+        </FilterDropdown>
 
-      <FilterStep number="3" title="Choose what matters" hint="Use reviews and seller options for confidence.">
-        <div className="space-y-1">{[4, 3, 2].map((rating) => <button key={rating} onClick={() => onChange({ ...filters, minRating: filters.minRating === rating ? undefined : rating })} className={`flex min-h-9 w-full items-center gap-2 rounded-lg px-2 text-xs font-semibold transition ${filters.minRating === rating ? "bg-amber-50 text-amber-800" : "hover:bg-slate-50 text-slate-600"}`}><span className="flex text-amber-400">{Array.from({ length: rating }).map((_, index) => <Star key={index} className="size-3 fill-current" />)}</span><span>& up</span>{filters.minRating === rating && <span className="ml-auto text-[10px] font-bold">Selected</span>}</button>)}</div><div className="mt-2 space-y-1 border-t border-slate-100 pt-2">{([ ["inStockOnly", "Ready to ship", PackageCheck], ["verifiedShopsOnly", "Verified sellers", BadgeCheck] ] as const).map(([key, label, FeatureIcon]) => { const checked = Boolean(filters[key]); return <label key={key} className={`flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-2 text-xs font-semibold transition ${checked ? "bg-orange-50 text-orange-700" : "text-slate-600 hover:bg-slate-50"}`}><input className="sr-only" type="checkbox" checked={checked} onChange={(e) => onChange({ ...filters, [key]: e.target.checked || undefined })}/><span className={`flex size-5 items-center justify-center rounded border ${checked ? "border-orange-500 bg-orange-500 text-white" : "border-slate-300 bg-white"}`}>{checked ? "✓" : <FeatureIcon className="size-3 text-slate-400" />}</span>{label}</label>; })}</div>
-      </FilterStep>
+        <FilterDropdown label="Price" value={priceLabel}>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="relative"><span className="sr-only">Minimum price</span><CircleDollarSign className="absolute left-2.5 top-2.5 size-4 text-slate-400" /><input value={filters.minPrice || ""} onChange={(event) => onChange({ ...filters, minPrice: event.target.value || undefined })} placeholder="Min" className="h-10 w-full rounded-xl border border-slate-200 pl-8 text-sm outline-none focus:border-orange-400" /></label>
+            <label className="relative"><span className="sr-only">Maximum price</span><CircleDollarSign className="absolute left-2.5 top-2.5 size-4 text-slate-400" /><input value={filters.maxPrice || ""} onChange={(event) => onChange({ ...filters, maxPrice: event.target.value || undefined })} placeholder="Max" className="h-10 w-full rounded-xl border border-slate-200 pl-8 text-sm outline-none focus:border-orange-400" /></label>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {[[undefined, "50", "Under $50"], ["50", "200", "$50–$200"], ["200", undefined, "$200+"]].map(([min, max, label]) => (
+              <button key={label} onClick={() => onChange({ ...filters, minPrice: min, maxPrice: max })} className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700">{label}</button>
+            ))}
+          </div>
+        </FilterDropdown>
 
-      <FilterStep number="4" title="Product type" hint="Choose physical goods or digital products."><div className="grid grid-cols-3 gap-1.5">{[[undefined, "All"], ["PHYSICAL", "Physical"], ["DIGITAL", "Digital"]].map(([value, label]) => <button key={label} onClick={() => onChange({ ...filters, type: value as CatalogFilters["type"] })} className={`min-h-8 rounded-lg px-1 text-[11px] font-bold transition ${filters.type === value ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>{label}</button>)}</div></FilterStep>
-    </div>
-  </aside>;
+        <FilterDropdown label="Rating" value={ratingLabel}>
+          <div className="space-y-1">
+            {[4, 3, 2].map((rating) => (
+              <button key={rating} onClick={() => onChange({ ...filters, minRating: filters.minRating === rating ? undefined : rating })} className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-bold ${filters.minRating === rating ? "bg-amber-50 text-amber-800" : "hover:bg-slate-50"}`}>
+                <span className="flex text-amber-400">{Array.from({ length: rating }).map((_, index) => <Star key={index} className="size-3.5 fill-current" />)}</span>
+                {rating} & up
+                {filters.minRating === rating && <Check className="ml-auto size-4" />}
+              </button>
+            ))}
+          </div>
+        </FilterDropdown>
+
+        <FilterDropdown label="Availability" value={filters.inStockOnly || filters.verifiedShopsOnly ? "Selected" : undefined}>
+          <div className="space-y-1">
+            {([["inStockOnly", "Ready to ship", PackageCheck], ["verifiedShopsOnly", "Verified sellers", BadgeCheck]] as const).map(([key, label, Icon]) => (
+              <label key={key} className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold hover:bg-slate-50">
+                <input type="checkbox" checked={Boolean(filters[key])} onChange={(event) => onChange({ ...filters, [key]: event.target.checked || undefined })} className="size-4 accent-orange-500" />
+                <Icon className="size-4 text-orange-500" /> {label}
+              </label>
+            ))}
+          </div>
+        </FilterDropdown>
+
+        <FilterDropdown label="Type" value={typeLabel}>
+          <div className="grid grid-cols-3 gap-2">
+            {[[undefined, "All"], ["PHYSICAL", "Physical"], ["DIGITAL", "Digital"]].map(([value, label]) => (
+              <button key={label} onClick={() => onChange({ ...filters, type: value as CatalogFilters["type"] })} className={`rounded-xl border px-3 py-2 text-xs font-bold ${filters.type === value ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 hover:border-orange-300"}`}>{label}</button>
+            ))}
+          </div>
+        </FilterDropdown>
+
+        {count > 0 && <button onClick={onReset} className="ml-auto inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-sm font-bold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"><RotateCcw className="size-4" /> Clear all</button>}
+      </div>
+    </section>
+  );
 }

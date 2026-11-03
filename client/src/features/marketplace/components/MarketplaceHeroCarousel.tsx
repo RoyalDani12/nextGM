@@ -24,7 +24,7 @@ export function MarketplaceHeroCarousel({ products, categories, onCategory }: { 
   }, [paused]);
 
   return (
-    <section className="mx-auto max-w-7xl px-4 pt-5 sm:px-6 lg:px-8">
+    <section className="w-full px-4 pt-5 sm:px-6 lg:px-10">
       <div className={`relative min-h-[300px] overflow-hidden rounded-2xl bg-gradient-to-br ${slide.theme} transition-[background] duration-700 ease-out sm:min-h-[330px]`} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
         <div className="absolute -right-20 -top-24 h-80 w-80 rounded-full bg-white/35 blur-2xl" />
         <div className="absolute -bottom-32 left-[42%] h-72 w-72 rounded-full bg-white/25 blur-3xl" />

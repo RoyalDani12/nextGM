@@ -135,6 +135,7 @@ export const getShopProductsService = async (
     const { products, total } = await getShopProductsRepository({
         shopId,
         status: query.status,
+        stockFilter: query.stockFilter,
         skip,
         take: limit,
         sort,

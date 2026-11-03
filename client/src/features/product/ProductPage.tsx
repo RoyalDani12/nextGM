@@ -39,6 +39,7 @@ export default function ProductPage() {
    const [search, setSearch] = useState("");
    const [page, setPage] = useState(1);
    const [limit, setLimit] = useState(20);
+   const [stockFilter, setStockFilter] = useState<"ALL" | "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK">("ALL");
 
    // DIALOG STATES
    const [createOpen, setCreateOpen] = useState(false);
@@ -71,6 +72,8 @@ export default function ProductPage() {
          setPage={setPage}
          limit={limit}
          setLimit={setLimit}
+         stockFilter={stockFilter}
+         setStockFilter={setStockFilter}
          createOpen={createOpen}
          setCreateOpen={setCreateOpen}
          editingProduct={editingProduct}
@@ -87,6 +90,8 @@ interface ProductPageContentProps {
    setPage: React.Dispatch<React.SetStateAction<number>>;
    limit: number;
    setLimit: React.Dispatch<React.SetStateAction<number>>;
+   stockFilter: "ALL" | "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK";
+   setStockFilter: React.Dispatch<React.SetStateAction<"ALL" | "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK">>;
    createOpen: boolean;
    setCreateOpen: React.Dispatch<React.SetStateAction<boolean>>;
    editingProduct: Product | null;
@@ -101,6 +106,8 @@ function ProductPageContent({
    setPage,
    limit,
    setLimit,
+   stockFilter,
+   setStockFilter,
    createOpen,
    setCreateOpen,
    editingProduct,
@@ -110,6 +117,7 @@ function ProductPageContent({
       page,
       limit,
       search: search.trim() || undefined,
+      stockFilter,
    });
 
    const createProduct = useCreateProduct(shopId);
@@ -148,6 +156,10 @@ function ProductPageContent({
          productId,
          status,
       });
+   };
+   const handleStockChange = async (productId: string, stock: number) => {
+      if (!Number.isInteger(stock) || stock < 0) return;
+      await updateProduct.mutateAsync({ productId, payload: { stock } });
    };
 
    if (isLoading) return <ProductsLoading />;
@@ -202,6 +214,19 @@ function ProductPageContent({
                setPage(1);
             }}
          />
+         <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold text-slate-500">Inventory:</span>
+            {([
+               ["ALL", "All"],
+               ["IN_STOCK", "In Stock"],
+               ["LOW_STOCK", "Low Stock"],
+               ["OUT_OF_STOCK", "Out of Stock"],
+            ] as const).map(([value, label]) => (
+               <button key={value} type="button" onClick={() => { setStockFilter(value); setPage(1); }} className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${stockFilter === value ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-orange-300"}`}>
+                  {label}
+               </button>
+            ))}
+         </div>
 
          {pagination.total === 0 && !search ? (
             <EmptyProducts onAdd={() => setCreateOpen(true)} />
@@ -224,8 +249,10 @@ function ProductPageContent({
                         onEdit={setEditingProduct}
                         onDelete={handleDeleteProduct}
                         onStatusChange={handleStatusChange}
+                        onStockChange={handleStockChange}
                         isDeleting={deleteProduct.isPending}
                         isUpdatingStatus={updateProductStatus.isPending}
+                        isUpdatingStock={updateProduct.isPending}
                      />
                   ))}
                </div>

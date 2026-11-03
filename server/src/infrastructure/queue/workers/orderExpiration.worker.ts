@@ -31,9 +31,10 @@ export const orderExpirationWorker = new Worker(
           select :{
             couponId:true,
             customerId:true,
-            items :{
-              select :{ productId:true,variantId:true ,quantity:true}
-            }
+            inventoryReservations: {
+              where: { status: "ACTIVE" },
+              select: { id: true, productId: true, variantId: true, quantity: true },
+            },
           }
         })
 
@@ -47,18 +48,27 @@ export const orderExpirationWorker = new Worker(
         }
 
         await Promise.all(
-          order.items.map((item)=>
-          item.variantId
-             ? tx.productVariant.update ({
-              where: { id: item.variantId },
-              data:{ stock: { increment :item.quantity}}
-             })
-             : tx.product.update({
-              where: { id: item.productId },
-              data: { stock :{ increment: item.quantity }}
-             })
-            )
-        )
+          order.inventoryReservations.map((reservation) =>
+            reservation.variantId
+              ? tx.productVariant.update({
+                  where: { id: reservation.variantId },
+                  data: { stock: { increment: reservation.quantity } },
+                })
+              : tx.product.update({
+                  where: { id: reservation.productId },
+                  data: { stock: { increment: reservation.quantity } },
+                }),
+          ),
+        );
+        if (order.inventoryReservations.length) {
+          await tx.inventoryReservation.updateMany({
+            where: {
+              id: { in: order.inventoryReservations.map(({ id }) => id) },
+              status: "ACTIVE",
+            },
+            data: { status: "RELEASED" },
+          });
+        }
 
         await tx.orderStatusHistory.create({
           data:{

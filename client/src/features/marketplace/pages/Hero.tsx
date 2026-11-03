@@ -59,6 +59,7 @@ export default function Hero() {
 
   const heroProducts = products.slice(0, 3);
   const compactHeroProduct = products[0];
+  const showLegacyHero = false;
   const runSearch = (event: FormEvent) => {
     event.preventDefault();
     const query = searchInput.trim();
@@ -69,7 +70,7 @@ export default function Hero() {
   };
 
   return <div className="min-h-screen bg-slate-50 text-slate-900">
-    {false && <section aria-hidden="true">
+    {showLegacyHero && <section aria-hidden="true">
       <div className="hero-grid absolute inset-0 opacity-40" />
       <div className="hero-orb hero-orb-one" /><div className="hero-orb hero-orb-two" /><div className="hero-orb hero-orb-three" />
       <div className="relative mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.06fr_.94fr] lg:gap-16">
@@ -107,7 +108,7 @@ export default function Hero() {
         </div>
       </div>
     </section>}
-    {false && <section className="compact-hero relative isolate h-[320px] overflow-hidden text-white sm:h-[350px] lg:h-[370px]">
+    {showLegacyHero && <section className="compact-hero relative isolate h-[320px] overflow-hidden text-white sm:h-[350px] lg:h-[370px]">
       <div className="absolute inset-0 bg-gradient-to-r from-[#111827] via-[#18223c] to-[#31233a]" />
       <div className="compact-hero-glow absolute -right-16 -top-24 hidden h-[430px] w-[430px] rounded-full lg:block" />
       <div className="absolute inset-y-0 right-0 hidden w-[48%] lg:block">
@@ -125,10 +126,10 @@ export default function Hero() {
       </div>
     </section>}
     <MarketplaceHeroCarousel products={products} categories={categories} onCategory={(slug) => changeFilters({ ...filters, categorySlug: slug })} />
-    <main id="marketplace-products" className="mx-auto max-w-7xl px-4 py-6 pb-24 lg:px-8 lg:pb-8">
+    <main id="marketplace-products" className="w-full px-4 py-6 pb-24 sm:px-6 lg:px-10 lg:pb-8">
       <PromotionCarousel onSelect={setSelectedProductId} />
-      <div className="mb-5 flex gap-2 overflow-x-auto pb-1 lg:hidden">{categories.map((category) => <button key={category.id} onClick={() => changeFilters({ ...filters, categorySlug: category.slug })} className={`shrink-0 rounded-full border px-3 py-2 text-xs font-bold ${filters.categorySlug === category.slug ? "border-slate-950 bg-slate-950 text-white" : "bg-white"}`}>{category.icon} {category.name}</button>)}</div>
-      <div className="flex gap-8"><MarketplaceFilterSidebar categories={categories} filters={filters} onChange={changeFilters} onReset={reset}/><div className="min-w-0 flex-1">
+      <MarketplaceFilterSidebar categories={categories} filters={filters} onChange={changeFilters} onReset={reset}/>
+      <div className="min-w-0">
         <div className="border-b border-slate-200 pb-4"><nav className="mb-3 flex flex-wrap gap-1 text-xs text-slate-500"><span>Marketplace</span>{breadcrumb.map((item) => <span key={item.id}>› <button onClick={() => changeFilters({ ...filters, categorySlug: item.slug })} className="hover:text-orange-600">{item.name}</button></span>)}</nav><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="flex items-center gap-2 text-xl font-black"><ShoppingBag className="size-5"/> {breadcrumb.at(-1)?.name || "All products"}</h2><p className="mt-1 text-sm text-slate-500">Showing {total ? `1–${products.length} of ${total}` : "0"} products</p></div><div className="hidden items-center gap-2 md:flex"><label className="text-xs font-bold text-slate-500">Sort</label><select value={selectedSort} onChange={(event) => { const [sort, order] = event.target.value.split(":"); changeFilters({ ...filters, sort: sort as CatalogFilters["sort"], order: order as CatalogFilters["order"] }); }} className="h-9 rounded border bg-white px-2 text-xs">{sortOptions.map((item) => <option key={item.label} value={`${item.sort}:${item.order}`}>{item.label}</option>)}</select><div className="flex rounded border p-0.5"><button onClick={() => setView("grid")} aria-label="Grid view" className={`rounded p-1.5 ${view === "grid" ? "bg-slate-900 text-white" : ""}`}><Grid2X2 className="size-4"/></button><button onClick={() => setView("list")} aria-label="List view" className={`rounded p-1.5 ${view === "list" ? "bg-slate-900 text-white" : ""}`}><List className="size-4"/></button></div></div></div></div>
         {activeChips.length > 0 && <div className="mt-4 flex flex-wrap items-center gap-2"><span className="text-xs font-bold text-slate-500">Active:</span>{activeChips.map((chip) => <button key={chip.label} onClick={chip.clear} className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700">{chip.label}<X className="size-3"/></button>)}<button onClick={reset} className="ml-1 text-xs font-bold text-slate-600 hover:text-slate-950"><RotateCcw className="mr-1 inline size-3"/>Clear all</button></div>}
         <div className="mt-5 flex flex-wrap gap-2 lg:hidden"><button onClick={() => changeFilters({ ...filters, type: filters.type === "PHYSICAL" ? undefined : "PHYSICAL" })} className={`rounded-full px-3 py-1.5 text-xs font-bold ${filters.type === "PHYSICAL" ? "bg-slate-950 text-white" : "bg-white border"}`}>Physical</button><button onClick={() => changeFilters({ ...filters, type: filters.type === "DIGITAL" ? undefined : "DIGITAL" })} className={`rounded-full px-3 py-1.5 text-xs font-bold ${filters.type === "DIGITAL" ? "bg-slate-950 text-white" : "bg-white border"}`}>Digital</button><button onClick={() => changeFilters({ ...filters, minRating: filters.minRating === 4 ? undefined : 4 })} className={`rounded-full px-3 py-1.5 text-xs font-bold ${filters.minRating === 4 ? "bg-slate-950 text-white" : "bg-white border"}`}><Star className="mr-1 inline size-3 fill-amber-400 text-amber-400"/>4★ & up</button><SlidersHorizontal className="ml-auto mt-1 size-4 text-slate-400"/></div>
@@ -147,7 +148,7 @@ export default function Hero() {
             </Button>
           </div>
         )}
-      </div></div>
+      </div>
     </main><MobileFilterSheet categories={categories} filters={filters} total={total} onChange={changeFilters} onReset={reset}/><ProductDetailView productId={selectedProductId} isOpen={Boolean(selectedProductId)} onClose={() => setSelectedProductId(null)}/>
   </div>;
 }

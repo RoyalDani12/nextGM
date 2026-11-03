@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { Image as ImageIcon, Pencil, ArrowUpRight } from "lucide-react";
+import { Image as ImageIcon, Pencil, ArrowUpRight, Save } from "lucide-react";
+import { useState } from "react";
 import type { Product, ProductStatus } from "@/features/product/product.types";
 
 interface ProductCardProps {
@@ -8,8 +9,10 @@ interface ProductCardProps {
   onEdit?: (product: Product) => void;
   onDelete?: (productId: string, productName: string) => void;
   onStatusChange?: (productId: string, status: ProductStatus) => void;
+  onStockChange?: (productId: string, stock: number) => void;
   isDeleting?: boolean;
   isUpdatingStatus?: boolean;
+  isUpdatingStock?: boolean;
 }
 
 const getImageUrl = (img: any): string | null => {
@@ -25,6 +28,8 @@ export default function ProductCard({
   product,
   shopId,
   onEdit,
+  onStockChange,
+  isUpdatingStock,
 }: ProductCardProps) {
   const navigate = useNavigate();
   const productId = product.id || (product as any)._id;
@@ -43,6 +48,7 @@ export default function ProductCard({
   };
 
   const isActive = product.status === "ACTIVE";
+  const [stock, setStock] = useState(String(product.stock ?? 0));
 
   return (
     <div 
@@ -133,6 +139,11 @@ export default function ProductCard({
               ${Number(product.basePrice ?? 0).toFixed(2)}
             </span>
             <StockBadge stock={Number(product.stock ?? 0)} />
+          </div>
+          <div className="flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
+            <label htmlFor={`stock-${productId}`} className="text-[11px] font-semibold text-slate-500">Stock</label>
+            <input id={`stock-${productId}`} type="number" min="0" value={stock} onChange={(event) => setStock(event.target.value)} className="h-8 min-w-0 flex-1 rounded-lg border border-slate-200 px-2 text-xs font-bold outline-none focus:border-orange-400" />
+            {onStockChange && <button type="button" disabled={isUpdatingStock || Number(stock) === Number(product.stock)} onClick={() => onStockChange(productId, Number(stock))} className="flex size-8 items-center justify-center rounded-lg bg-slate-900 text-white disabled:cursor-not-allowed disabled:opacity-40" aria-label="Save stock"><Save className="size-3.5" /></button>}
           </div>
 
           {product.sku && (

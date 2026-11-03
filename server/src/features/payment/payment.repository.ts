@@ -184,6 +184,14 @@ export const confirmPaymentWithEventLog = async (
             }
         }
 
+        await tx.inventoryReservation.updateMany({
+            where: {
+                orderId: { in: checkout.orders.map((order) => order.id) },
+                status: "ACTIVE",
+            },
+            data: { status: "COMMITTED" },
+        });
+
         // Platform Wallet
         if (totalPlatformFee > 0) {
             let platformWallet = await tx.platformWallet.findFirst();
@@ -235,8 +243,17 @@ export const confirmRefundWithEventLog = async (
             return { alreadyProcessed: false as const, orderStateMismatch: true as const };
         }
 
+        const order = await tx.order.findUnique({
+            where: { id: orderId },
+            select: { checkoutId: true, customerId: true, shopId: true, totalAmount: true },
+        });
+
+        if (!order) {
+            throw new Error("Order not found");
+        }
+
         await tx.payment.updateMany({
-            where: { checkoutId: orderId, status: "COMPLETED" },
+            where: { checkoutId: order.checkoutId, status: "COMPLETED" },
             data: { status: "REFUNDED" },
         });
 
@@ -260,22 +277,55 @@ export const confirmRefundWithEventLog = async (
                 })),
             });
         }
-        const order = await tx.order.findUnique({
-            where: { id: orderId },
-            select: { customerId: true },
-        });
+        const shopWallet = await tx.shopWallet.findUnique({ where: { shopId: order.shopId } });
+        if (shopWallet) {
+            const shopCut = Math.round(Number(order.totalAmount) * 0.9 * 100) / 100;
+            const newBalance = Math.max(0, Number(shopWallet.balance) - shopCut);
+            await tx.shopWallet.update({
+                where: { shopId: order.shopId },
+                data: { balance: newBalance },
+            });
+            await tx.walletTransaction.create({
+                data: {
+                    shopId: order.shopId,
+                    orderId,
+                    type: "DEBIT",
+                    amount: shopCut,
+                    balanceAfter: newBalance,
+                    note: "Customer return refund debit (90%)",
+                },
+            });
+        }
 
         return {
-             alreadyProcessed: false as const, orderStateMismatch: false as const , customerId: order?.customerId
+             alreadyProcessed: false as const, orderStateMismatch: false as const, customerId: order.customerId
             };
     });
 };
 
 export const findPaymentByProviderId = async (providerPaymentId: string) => {
-    return prisma.payment.findUnique({
+    const payment = await prisma.payment.findUnique({
         where: { providerPaymentId },
-        select: { checkoutId: true },
+        select: {
+            checkoutId: true,
+            checkout: {
+                select: {
+                    orders: {
+                        where: { status: "REFUND_PENDING" },
+                        select: { id: true },
+                        take: 1,
+                    },
+                },
+            },
+        },
     });
+
+    return payment
+        ? {
+            checkoutId: payment.checkoutId,
+            orderId: payment.checkout.orders[0]?.id,
+        }
+        : null;
 };
 
 export const executeAdminRefundLedger = async (orderId: string, refundRefId: string = `ref_admin_${Date.now()}`) => {

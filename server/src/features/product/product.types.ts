@@ -20,6 +20,7 @@ export interface CreateProductData {
 export interface GetShopProductsOptions {
     shopId:  string
     status?: "DRAFT" | "ACTIVE" | "ARCHIVED"
+    stockFilter?: "ALL" | "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK"
     skip:    number
     take:    number
     sort:    string
@@ -28,6 +29,7 @@ export interface GetShopProductsOptions {
 
 export interface GetShopProductsQuery {
     status?: "DRAFT" | "ACTIVE" | "ARCHIVED"
+    stockFilter?: "ALL" | "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK"
     page?:   number
     limit?:  number
     sort?:   string

@@ -16,6 +16,7 @@ import {
 } from "./payment.repository.js";
 import {
     beginRefundRepository,
+    cancelRefundRepository,
 } from "../orders/order.repository.js";
 import { cancelOrderExpiration } from "../../infrastructure/queue/orderExpiration.helpers.js";
 import { notifyUser } from "../notification/notification.service.js";
@@ -26,7 +27,7 @@ export const createPaymentIntentService = async (checkoutId: string, customerId:
     const { prisma } = await import("../../config/db.js");
     const checkout = await prisma.checkout.findUnique({ where: { id: checkoutId } });
 
-    if (!checkout) {
+    if (!checkout || checkout.customerId !== customerId) {
         throw new AppError("Checkout not found.", 404);
     }
 
@@ -205,15 +206,23 @@ const handleChargeRefunded = async (charge: Stripe.Charge, eventId: string, even
         );
         return;
     }
-    const result = await confirmRefundWithEventLog(payment.checkoutId, eventId, eventType);
+    if (!payment.orderId) {
+        logger.error(
+            { checkoutId: payment.checkoutId, paymentIntentId },
+            "No pending order found for refunded payment",
+        );
+        return;
+    }
+
+    const result = await confirmRefundWithEventLog(payment.orderId, eventId, eventType);
 
     if (result?.alreadyProcessed) {
-        logger.info({ checkoutId: payment.checkoutId }, "Duplicate webhook event, skipping");
+        logger.info({ orderId: payment.orderId }, "Duplicate webhook event, skipping");
         return;
     }
     if (result.orderStateMismatch) {
         logger.error(
-            { checkoutId: payment.checkoutId },
+            { orderId: payment.orderId },
             "Order was not REFUND_PENDING when refund webhook arrived — investigate",
         );
         return;
@@ -224,21 +233,26 @@ const handleChargeRefunded = async (charge: Stripe.Charge, eventId: string, even
                 userId: result.customerId,
                 type: "PAYMENT_REFUNDED",
                 title: "Refund processed",
-                body: `Your refund for checkout #${payment.checkoutId} has been processed.`,
+                body: `Your refund for order #${payment.orderId.slice(-8).toUpperCase()} has been processed.`,
             });
         } catch (err) {
-            logger.error({ err, checkoutId: payment.checkoutId }, "Failed to send refund notification");
+            logger.error({ err, orderId: payment.orderId }, "Failed to send refund notification");
         }
     }
 
     logger.info(
-        { checkoutId: payment.checkoutId, chargeId: charge.id },
+        { orderId: payment.orderId, chargeId: charge.id },
         "Order Marked REFUNDED Via Webhook",
     );
 };
 
 export const initiateRefundService = async (orderId: string) => {
     const payment = await findPaymentForRefund(orderId);
+    const pending = await beginRefundRepository(orderId);
+
+    if (!pending.success) {
+        throw new AppError("Order is not eligible for refund.", 400);
+    }
 
     let stripeRefundId = `ref_admin_${Date.now()}`;
 
@@ -251,11 +265,17 @@ export const initiateRefundService = async (orderId: string) => {
             stripeRefundId = refund.id;
             logger.info({ orderId, refundId: refund.id }, "Refund initialized with Stripe successfully");
         } catch (stripeErr: any) {
-            logger.warn({ orderId, err: stripeErr.message }, "Stripe refund API call failed; proceeding with platform ledger refund");
+            await cancelRefundRepository(orderId, pending.previousStatus);
+            logger.error({ orderId, err: stripeErr.message }, "Stripe refund API call failed");
+            throw new AppError("Stripe refund could not be initiated.", 502);
         }
     }
 
-    // Atomically execute full order, return request, and shop wallet debit in database
+    if (payment?.providerPaymentId && !payment.providerPaymentId.startsWith("mock_")) {
+        return { orderId, refundId: stripeRefundId, status: "REFUND_PENDING" };
+    }
+
+    // Local/mock payments have no Stripe webhook, so finalize them immediately.
     const ledgerResult = await executeAdminRefundLedger(orderId, stripeRefundId);
 
     // Notify customer about the issued refund

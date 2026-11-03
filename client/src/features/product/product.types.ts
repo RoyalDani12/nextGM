@@ -75,6 +75,7 @@ export interface FetchProductsParams {
   page?: number;
   limit?: number;
   search?: string;
+  stockFilter?: "ALL" | "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK";
 }
 export interface ProductImageInput {
   url: string;

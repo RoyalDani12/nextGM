@@ -67,12 +67,15 @@ export const createProductRepository = async (data: CreateProductData) => {
 };
 
 export const getShopProductsRepository = async (options: GetShopProductsOptions) => {
-    const { shopId, status, skip, take, sort, order } = options;
+    const { shopId, status, stockFilter, skip, take, sort, order } = options;
 
     const where = {
         shopId,
         deletedAt: null,
         ...(status && { status }),
+        ...(stockFilter === "IN_STOCK" && { stock: { gt: 0 } }),
+        ...(stockFilter === "LOW_STOCK" && { stock: { gt: 0, lte: 5 } }),
+        ...(stockFilter === "OUT_OF_STOCK" && { stock: 0 }),
     };
 
     const [products, total] = await Promise.all([

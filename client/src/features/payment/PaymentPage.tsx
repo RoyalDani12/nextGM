@@ -7,7 +7,13 @@ import { createPaymentIntent } from "./payment.api";
 
 const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 const isLiveStripeKey = typeof publishableKey === "string" && publishableKey.startsWith("pk_live_");
-const isSecureStripeContext = typeof window === "undefined" || window.location.protocol === "https:";
+const isLocalDevelopmentHost =
+  typeof window !== "undefined" &&
+  ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+const isSecureStripeContext =
+  typeof window === "undefined" ||
+  window.location.protocol === "https:" ||
+  isLocalDevelopmentHost;
 const stripePromise =
   publishableKey && (!isLiveStripeKey || isSecureStripeContext)
     ? loadStripe(publishableKey)
@@ -80,6 +86,11 @@ export default function PaymentPage() {
   useEffect(() => {
     if (!checkoutId) {
       setIsLoading(false);
+      return;
+    }
+    if (isLiveStripeKey && !isSecureStripeContext) {
+      setIsLoading(false);
+      setError("Live Stripe payments require HTTPS. Use a secure HTTPS deployment for production payments.");
       return;
     }
     let cancelled = false;
