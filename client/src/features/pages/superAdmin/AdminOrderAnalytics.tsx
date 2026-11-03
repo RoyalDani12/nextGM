@@ -9,19 +9,17 @@ import {
     XCircle,
     RotateCcw,
     TrendingUp,
-    DollarSign,
-    Percent,
     Globe,
     Store,
-    ChevronDown,
-    ChevronUp,
     BarChart3,
     RefreshCw,
     MapPin,
+    ChevronDown,
+    ChevronUp,
 } from "lucide-react";
 import {
-    AreaChart,
-    Area,
+    LineChart,
+    Line,
     PieChart,
     Pie,
     Cell,
@@ -33,7 +31,7 @@ import {
     Legend,
 } from "recharts";
 import { useAdminOrderAnalytics } from "@/features/admin/admin.hooks";
-import type { AdminOrderAnalyticsFilters } from "@/features/admin/admin.api";
+import type { AdminOrderAnalyticsFilters, AdminOrderAnalyticsResponse } from "@/features/admin/admin.api";
 
 const STATUS_COLORS: Record<string, string> = {
     PENDING: "#f59e0b",
@@ -64,14 +62,276 @@ interface AdminOrderAnalyticsProps {
     parentDateTo?: string;
 }
 
+const PERFORMANCE_COLORS = {
+    aov: "#f97316",
+    revenue: "#06b6d4",
+    fulfillment: "#10b981",
+    shipped: "#8b5cf6",
+    cancellation: "#ef4444",
+};
+
+function buildTimeline(points: AdminOrderAnalyticsResponse["ordersOverTime"], range: string) {
+    const pointMap = new Map(points.map((point) => [point.date, point]));
+    const bucketCount = range === "7d" ? 7 : range === "30d" ? 30 : 12;
+    const monthly = range === "12m" || range === "all";
+    const dates = Array.from({ length: bucketCount }, (_, index) => {
+        const date = new Date();
+        date.setDate(1);
+        if (monthly) date.setMonth(date.getMonth() - (bucketCount - index - 1));
+        else date.setDate(date.getDate() - (bucketCount - index - 1));
+        return date;
+    });
+
+    return dates.map((date) => {
+        const key = monthly
+            ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
+            : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+        const existing = pointMap.get(key);
+        return existing || {
+            date: key,
+            label: monthly
+                ? date.toLocaleString("en-US", { month: "short", year: "2-digit" })
+                : date.toLocaleString("en-US", { month: "short", day: "numeric" }),
+            orders: 0,
+            revenue: 0,
+            netRevenue: 0,
+            delivered: 0,
+            shippedDelivered: 0,
+            cancelled: 0,
+        };
+    });
+}
+
+function OrderPerformanceChart({ analytics, range }: { analytics: AdminOrderAnalyticsResponse; range: string }) {
+    const rawPoints = buildTimeline(analytics.ordersOverTime, range);
+    const derivedPoints = rawPoints.map((point) => ({
+        ...point,
+        aov: point.orders ? point.revenue / point.orders : 0,
+        fulfillment: point.orders ? (point.delivered / point.orders) * 100 : 0,
+        shipped: point.shippedDelivered,
+        cancellation: point.orders ? (point.cancelled / point.orders) * 100 : 0,
+    }));
+    const max = (key: "aov" | "revenue" | "fulfillment" | "shipped" | "cancellation") =>
+        Math.max(...derivedPoints.map((point) => point[key] || 0), 1);
+    const maxima = {
+        aov: max("aov"),
+        revenue: max("revenue"),
+        fulfillment: max("fulfillment"),
+        shipped: max("shipped"),
+        cancellation: max("cancellation"),
+    };
+    const points = derivedPoints.map((point) => ({
+        ...point,
+        aovIndex: (point.aov / maxima.aov) * 100,
+        revenueIndex: (point.netRevenue / maxima.revenue) * 100,
+        fulfillmentIndex: (point.fulfillment / maxima.fulfillment) * 100,
+        shippedIndex: (point.shipped / maxima.shipped) * 100,
+        cancellationIndex: (point.cancellation / maxima.cancellation) * 100,
+    }));
+    const latest = [...points].reverse().find((point) => point.orders > 0) || points[points.length - 1];
+    const rangeLabel = range === "all" ? "All time" : range === "12m" ? "Last 12 months" : `Last ${range.replace("d", " days")}`;
+    const metrics = latest ? [
+        { label: "Avg Order Value", value: formatCurrency(latest.aov), color: PERFORMANCE_COLORS.aov, key: "aovIndex" },
+        { label: "Net Revenue", value: formatCurrency(latest.netRevenue), color: PERFORMANCE_COLORS.revenue, key: "revenueIndex" },
+        { label: "Fulfillment", value: `${latest.fulfillment.toFixed(1)}%`, color: PERFORMANCE_COLORS.fulfillment, key: "fulfillmentIndex" },
+        { label: "Shipped + Delivered", value: `${latest.shipped.toLocaleString()} units`, color: PERFORMANCE_COLORS.shipped, key: "shippedIndex" },
+        { label: "Cancellation", value: `${latest.cancellation.toFixed(1)}%`, color: PERFORMANCE_COLORS.cancellation, key: "cancellationIndex" },
+    ] as const : [];
+
+    return (
+        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+            <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-orange-50/40 p-5">
+                <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                    <div><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange-600">Performance trends</p><h3 className="mt-1 text-lg font-black tracking-tight text-slate-900">Order Analytics</h3><p className="mt-1 text-xs text-slate-500">A single visual view of value, revenue, fulfillment, delivery, and cancellations.</p></div>
+                    <span className="rounded-full border border-orange-200 bg-white px-3 py-1.5 text-xs font-bold text-orange-700">{rangeLabel}</span>
+                </div>
+                <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                    {metrics.map((metric) => <div key={metric.label} className="rounded-xl border border-white bg-white/80 p-3 shadow-sm"><div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500"><span className="size-2 rounded-full" style={{ backgroundColor: metric.color }} />{metric.label}</div><p className="mt-1.5 text-base font-black text-slate-900">{metric.value}</p></div>)}
+                </div>
+            </div>
+            <div className="p-5">
+                {points.length ? <ResponsiveContainer width="100%" height={310}><LineChart data={points} margin={{ top: 10, right: 12, left: -12, bottom: 0 }}>
+                    <CartesianGrid stroke="#eef2f7" vertical={false} />
+                    <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#94a3b8" }} />
+                    <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tickFormatter={(value) => `${value}%`} tick={{ fontSize: 10, fill: "#94a3b8" }} />
+                    <Tooltip content={<PerformanceTooltip />} />
+                    <Legend verticalAlign="bottom" height={28} iconType="circle" wrapperStyle={{ fontSize: 11, color: "#64748b", paddingTop: 12 }} />
+                    <Line type="monotone" dataKey="aovIndex" name="Avg order value" stroke={PERFORMANCE_COLORS.aov} strokeWidth={2.5} dot={{ r: 3, fill: "#fff", stroke: PERFORMANCE_COLORS.aov, strokeWidth: 2 }} activeDot={{ r: 5 }} />
+                    <Line type="monotone" dataKey="revenueIndex" name="Net revenue" stroke={PERFORMANCE_COLORS.revenue} strokeWidth={2.5} dot={{ r: 3, fill: "#fff", stroke: PERFORMANCE_COLORS.revenue, strokeWidth: 2 }} activeDot={{ r: 5 }} />
+                    <Line type="monotone" dataKey="fulfillmentIndex" name="Fulfillment rate" stroke={PERFORMANCE_COLORS.fulfillment} strokeWidth={2.5} dot={{ r: 3, fill: "#fff", stroke: PERFORMANCE_COLORS.fulfillment, strokeWidth: 2 }} activeDot={{ r: 5 }} />
+                    <Line type="monotone" dataKey="shippedIndex" name="Shipped + delivered" stroke={PERFORMANCE_COLORS.shipped} strokeWidth={2.5} dot={{ r: 3, fill: "#fff", stroke: PERFORMANCE_COLORS.shipped, strokeWidth: 2 }} activeDot={{ r: 5 }} />
+                    <Line type="monotone" dataKey="cancellationIndex" name="Cancellation rate" stroke={PERFORMANCE_COLORS.cancellation} strokeWidth={2.5} dot={{ r: 3, fill: "#fff", stroke: PERFORMANCE_COLORS.cancellation, strokeWidth: 2 }} activeDot={{ r: 5 }} />
+                </LineChart></ResponsiveContainer> : <div className="flex h-[310px] items-center justify-center text-sm text-slate-400">No order trend data for this period</div>}
+                <p className="mt-2 text-center text-[11px] text-slate-400">Lines are indexed to their own maximum so different units remain readable. Hover to see exact values.</p>
+            </div>
+        </div>
+    );
+}
+
+function PerformanceTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { aov: number; netRevenue: number; fulfillment: number; shipped: number; cancellation: number; label: string } }> }) {
+    if (!active || !payload?.length) return null;
+    const point = payload[0].payload;
+    return <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs shadow-lg"><p className="mb-2 font-bold text-slate-900">{point.label}</p><p className="text-orange-600">Avg Order Value: <b>{formatCurrency(point.aov)}</b></p><p className="text-cyan-600">Net Revenue: <b>{formatCurrency(point.netRevenue)}</b></p><p className="text-emerald-600">Fulfillment: <b>{point.fulfillment.toFixed(1)}%</b></p><p className="text-violet-600">Shipped + Delivered: <b>{point.shipped}</b></p><p className="text-rose-600">Cancellation: <b>{point.cancellation.toFixed(1)}%</b></p></div>;
+}
+
+export interface OrderLifecyclePipelineProps {
+    dateFrom?: string;
+    dateTo?: string;
+    activeStatus?: string;
+    onSelectStatus?: (status: string) => void;
+}
+
+export const OrderLifecyclePipeline: React.FC<OrderLifecyclePipelineProps> = ({
+    dateFrom,
+    dateTo,
+    activeStatus,
+    onSelectStatus,
+}) => {
+    const { data: analytics, isLoading } = useAdminOrderAnalytics({
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+        range: dateFrom || dateTo ? undefined : "all",
+    });
+
+    const pending = analytics?.pendingOrders ?? 0;
+    const processing = analytics?.processingOrders ?? 0;
+    const shipped = analytics?.shippedOrders ?? 0;
+    const delivered = analytics?.deliveredOrders ?? 0;
+    const cancelled = analytics?.cancelledOrders ?? 0;
+    const returned = analytics?.returnedOrders ?? 0;
+
+    const cards = [
+        {
+            key: "PENDING",
+            label: "Pending",
+            count: pending,
+            desc: "Awaiting payment",
+            icon: Clock,
+            border: "border-amber-200/70",
+            bg: "bg-amber-50/50",
+            textTitle: "text-amber-800",
+            textCount: "text-amber-950",
+            textDesc: "text-amber-700/80",
+            iconColor: "text-amber-600",
+            activeRing: "ring-2 ring-amber-500 shadow-md",
+        },
+        {
+            key: "PROCESSING",
+            label: "Processing",
+            count: processing,
+            desc: "Packing & fulfillment",
+            icon: Package,
+            border: "border-orange-200/70",
+            bg: "bg-orange-50/50",
+            textTitle: "text-orange-800",
+            textCount: "text-orange-950",
+            textDesc: "text-orange-700/80",
+            iconColor: "text-orange-600",
+            activeRing: "ring-2 ring-orange-500 shadow-md",
+        },
+        {
+            key: "SHIPPED",
+            label: "Shipped",
+            count: shipped,
+            desc: "In transit to buyer",
+            icon: Truck,
+            border: "border-violet-200/70",
+            bg: "bg-violet-50/50",
+            textTitle: "text-violet-800",
+            textCount: "text-violet-950",
+            textDesc: "text-violet-700/80",
+            iconColor: "text-violet-600",
+            activeRing: "ring-2 ring-violet-500 shadow-md",
+        },
+        {
+            key: "DELIVERED",
+            label: "Delivered",
+            count: delivered,
+            desc: "Completed successfully",
+            icon: CheckCircle2,
+            border: "border-emerald-200/70",
+            bg: "bg-emerald-50/50",
+            textTitle: "text-emerald-800",
+            textCount: "text-emerald-950",
+            textDesc: "text-emerald-700/80",
+            iconColor: "text-emerald-600",
+            activeRing: "ring-2 ring-emerald-500 shadow-md",
+        },
+        {
+            key: "CANCELLED",
+            label: "Cancelled",
+            count: cancelled,
+            desc: "Aborted before ship",
+            icon: XCircle,
+            border: "border-rose-200/70",
+            bg: "bg-rose-50/50",
+            textTitle: "text-rose-800",
+            textCount: "text-rose-950",
+            textDesc: "text-rose-700/80",
+            iconColor: "text-rose-600",
+            activeRing: "ring-2 ring-rose-500 shadow-md",
+        },
+        {
+            key: "REFUNDED",
+            label: "Returned",
+            count: returned,
+            desc: "Claims & disputes",
+            icon: RotateCcw,
+            border: "border-slate-200",
+            bg: "bg-slate-50",
+            textTitle: "text-slate-800",
+            textCount: "text-slate-950",
+            textDesc: "text-slate-500",
+            iconColor: "text-slate-600",
+            activeRing: "ring-2 ring-slate-500 shadow-md",
+        },
+    ];
+
+    return (
+        <div>
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">
+                Order Lifecycle Pipeline
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                {cards.map((c) => {
+                    const Icon = c.icon;
+                    const isSelected = activeStatus === c.key;
+                    return (
+                        <div
+                            key={c.key}
+                            onClick={() => onSelectStatus?.(c.key)}
+                            className={`rounded-xl border ${c.border} ${c.bg} p-3.5 transition hover:shadow-xs cursor-pointer ${
+                                isSelected ? c.activeRing : ""
+                            }`}
+                        >
+                            <div className="flex items-center justify-between">
+                                <span className={`text-xs font-bold ${c.textTitle}`}>{c.label}</span>
+                                <Icon className={`size-4 ${c.iconColor}`} />
+                            </div>
+                            <div className={`mt-2 text-xl font-black ${c.textCount}`}>
+                                {isLoading ? (
+                                    <span className="inline-block size-5 animate-pulse rounded bg-slate-200/60" />
+                                ) : (
+                                    c.count.toLocaleString()
+                                )}
+                            </div>
+                            <p className={`text-[11px] ${c.textDesc} mt-0.5`}>{c.desc}</p>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
 export const AdminOrderAnalyticsSection: React.FC<AdminOrderAnalyticsProps> = ({
     shopId,
     parentDateFrom,
     parentDateTo,
 }) => {
     const [range, setRange] = useState<"7d" | "30d" | "90d" | "12m" | "all">("30d");
-    const [isExpanded, setIsExpanded] = useState<boolean>(true);
     const [chartMode, setChartMode] = useState<"both" | "orders" | "revenue">("both");
+    const [isExpanded, setIsExpanded] = useState<boolean>(true);
 
     const filters: AdminOrderAnalyticsFilters = {
         shopId: shopId || undefined,
@@ -177,7 +437,7 @@ export const AdminOrderAnalyticsSection: React.FC<AdminOrderAnalyticsProps> = ({
                         ) : (
                             <>
                                 <ChevronDown size={14} />
-                                <span>Expand ({analytics.totalOrders.toLocaleString()} Orders)</span>
+                                <span>Expand Detailed Analytics</span>
                             </>
                         )}
                     </button>
@@ -185,164 +445,16 @@ export const AdminOrderAnalyticsSection: React.FC<AdminOrderAnalyticsProps> = ({
             </div>
 
             {isExpanded && (
-                <div className="p-5 space-y-6">
-                    {/* ─── Top 4 Core Performance KPI Cards ─────────────────────── */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-                        {/* Total Orders */}
-                        <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-4 text-white shadow-sm">
-                            <div className="flex items-center justify-between text-slate-300 text-xs font-semibold uppercase tracking-wider">
-                                <span>Total Orders</span>
-                                <span className="p-1.5 bg-white/10 rounded-lg text-orange-400">
-                                    <ShoppingCart size={15} />
-                                </span>
-                            </div>
-                            <div className="mt-2 text-2xl md:text-3xl font-black tracking-tight">
-                                {analytics.totalOrders.toLocaleString()}
-                            </div>
-                            <div className="mt-2 flex items-center justify-between text-[11px] text-slate-300 border-t border-white/10 pt-2">
-                                <span>Gross GMV</span>
-                                <span className="font-bold text-white">{formatCurrency(analytics.grossRevenue)}</span>
-                            </div>
-                        </div>
-
-                        {/* Average Order Value (AOV) */}
-                        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs">
-                            <div className="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider">
-                                <span>Avg Order Value (AOV)</span>
-                                <span className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
-                                    <DollarSign size={15} />
-                                </span>
-                            </div>
-                            <div className="mt-2 text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
-                                {formatCurrency(analytics.averageOrderValue)}
-                            </div>
-                            <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 border-t border-slate-100 pt-2">
-                                <span>Net Platform Revenue</span>
-                                <span className="font-bold text-slate-900">{formatCurrency(analytics.netRevenue)}</span>
-                            </div>
-                        </div>
-
-                        {/* Fulfillment Rate */}
-                        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs">
-                            <div className="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider">
-                                <span>Fulfillment Rate</span>
-                                <span className="p-1.5 bg-violet-50 text-violet-600 rounded-lg">
-                                    <TrendingUp size={15} />
-                                </span>
-                            </div>
-                            <div className="mt-2 text-2xl md:text-3xl font-black text-slate-900 tracking-tight flex items-baseline gap-1">
-                                <span>{analytics.orderFulfillmentRate.toFixed(1)}%</span>
-                            </div>
-                            <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 border-t border-slate-100 pt-2">
-                                <span>Shipped + Delivered</span>
-                                <span className="font-bold text-emerald-600">
-                                    {(analytics.shippedOrders + analytics.deliveredOrders).toLocaleString()} units
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Cancellation Rate */}
-                        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs">
-                            <div className="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider">
-                                <span>Cancellation Rate</span>
-                                <span className="p-1.5 bg-rose-50 text-rose-600 rounded-lg">
-                                    <Percent size={15} />
-                                </span>
-                            </div>
-                            <div className="mt-2 text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
-                                {analytics.orderCancellationRate.toFixed(1)}%
-                            </div>
-                            <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 border-t border-slate-100 pt-2">
-                                <span>Refunded Amount</span>
-                                <span className="font-bold text-rose-600">{formatCurrency(analytics.refundedAmount)}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* ─── 6 Status Pipeline Cards ───────────────────────────────── */}
+                <div className="flex flex-col gap-6 p-5">
+                    {/* ─── Performance Trends ──────────────────────────────────── */}
                     <div>
-                        <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">
-                            Order Lifecycle Pipeline
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                            {/* Pending */}
-                            <div className="rounded-xl border border-amber-200/70 bg-amber-50/50 p-3.5 transition hover:shadow-xs">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs font-bold text-amber-800">Pending</span>
-                                    <Clock className="size-4 text-amber-600" />
-                                </div>
-                                <div className="mt-2 text-xl font-black text-amber-950">
-                                    {analytics.pendingOrders.toLocaleString()}
-                                </div>
-                                <p className="text-[11px] text-amber-700/80 mt-0.5">Awaiting payment</p>
-                            </div>
-
-                            {/* Processing */}
-                            <div className="rounded-xl border border-orange-200/70 bg-orange-50/50 p-3.5 transition hover:shadow-xs">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs font-bold text-orange-800">Processing</span>
-                                    <Package className="size-4 text-orange-600" />
-                                </div>
-                                <div className="mt-2 text-xl font-black text-orange-950">
-                                    {analytics.processingOrders.toLocaleString()}
-                                </div>
-                                <p className="text-[11px] text-orange-700/80 mt-0.5">Packing & fulfillment</p>
-                            </div>
-
-                            {/* Shipped */}
-                            <div className="rounded-xl border border-violet-200/70 bg-violet-50/50 p-3.5 transition hover:shadow-xs">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs font-bold text-violet-800">Shipped</span>
-                                    <Truck className="size-4 text-violet-600" />
-                                </div>
-                                <div className="mt-2 text-xl font-black text-violet-950">
-                                    {analytics.shippedOrders.toLocaleString()}
-                                </div>
-                                <p className="text-[11px] text-violet-700/80 mt-0.5">In transit to buyer</p>
-                            </div>
-
-                            {/* Delivered */}
-                            <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/50 p-3.5 transition hover:shadow-xs">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs font-bold text-emerald-800">Delivered</span>
-                                    <CheckCircle2 className="size-4 text-emerald-600" />
-                                </div>
-                                <div className="mt-2 text-xl font-black text-emerald-950">
-                                    {analytics.deliveredOrders.toLocaleString()}
-                                </div>
-                                <p className="text-[11px] text-emerald-700/80 mt-0.5">Completed successfully</p>
-                            </div>
-
-                            {/* Cancelled */}
-                            <div className="rounded-xl border border-rose-200/70 bg-rose-50/50 p-3.5 transition hover:shadow-xs">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs font-bold text-rose-800">Cancelled</span>
-                                    <XCircle className="size-4 text-rose-600" />
-                                </div>
-                                <div className="mt-2 text-xl font-black text-rose-950">
-                                    {analytics.cancelledOrders.toLocaleString()}
-                                </div>
-                                <p className="text-[11px] text-rose-700/80 mt-0.5">Aborted before ship</p>
-                            </div>
-
-                            {/* Returned */}
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 transition hover:shadow-xs">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs font-bold text-slate-800">Returned</span>
-                                    <RotateCcw className="size-4 text-slate-600" />
-                                </div>
-                                <div className="mt-2 text-xl font-black text-slate-950">
-                                    {analytics.returnedOrders.toLocaleString()}
-                                </div>
-                                <p className="text-[11px] text-slate-500 mt-0.5">Claims & disputes</p>
-                            </div>
-                        </div>
+                        <OrderPerformanceChart analytics={analytics} range={range} />
                     </div>
 
                     {/* ─── Orders Over Time & Status Breakdown ───────────────────── */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* Timeline AreaChart (2 cols) */}
-                        <div className="lg:col-span-2 rounded-2xl border border-slate-200/80 p-5 bg-white">
+                        <div className="lg:col-span-2 rounded-2xl border border-slate-200/80 p-5 bg-white shadow-sm">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                                 <div>
                                     <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
@@ -384,21 +496,21 @@ export const AdminOrderAnalyticsSection: React.FC<AdminOrderAnalyticsProps> = ({
                             {analytics.ordersOverTime.length > 0 ? (
                                 <div className="h-72 w-full">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart
+                                        <LineChart
                                             data={analytics.ordersOverTime}
-                                            margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
+                                            margin={{ top: 16, right: 12, left: -8, bottom: 8 }}
                                         >
                                             <defs>
                                                 <linearGradient id="orderVolumeGrad" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.25} />
-                                                    <stop offset="95%" stopColor="#f97316" stopOpacity={0.0} />
+                                                    <stop offset="0%" stopColor="#f97316" stopOpacity={0.95} />
+                                                    <stop offset="100%" stopColor="#fb923c" stopOpacity={0.55} />
                                                 </linearGradient>
                                                 <linearGradient id="orderRevGrad" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.25} />
-                                                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.0} />
+                                                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.95} />
+                                                    <stop offset="100%" stopColor="#a78bfa" stopOpacity={0.55} />
                                                 </linearGradient>
                                             </defs>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#e8eef5" vertical={false} />
                                             <XAxis
                                                 dataKey="label"
                                                 tickLine={false}
@@ -437,32 +549,32 @@ export const AdminOrderAnalyticsSection: React.FC<AdminOrderAnalyticsProps> = ({
                                                 }}
                                                 labelStyle={{ fontWeight: "bold", color: "#0f172a", marginBottom: 4 }}
                                             />
-                                            <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                                            <Legend verticalAlign="bottom" height={28} iconType="circle" wrapperStyle={{ fontSize: 12, paddingTop: 12, color: "#64748b" }} />
                                             {(chartMode === "both" || chartMode === "orders") && (
-                                                <Area
+                                                <Line
                                                     yAxisId="orders"
                                                     type="monotone"
                                                     dataKey="orders"
                                                     name="Orders"
                                                     stroke="#f97316"
-                                                    strokeWidth={2.5}
-                                                    fillOpacity={1}
-                                                    fill="url(#orderVolumeGrad)"
+                                                    strokeWidth={3}
+                                                    dot={{ r: 4, fill: "#fff", stroke: "#f97316", strokeWidth: 2 }}
+                                                    activeDot={{ r: 6, fill: "#f97316", stroke: "#fff", strokeWidth: 2 }}
                                                 />
                                             )}
                                             {(chartMode === "both" || chartMode === "revenue") && (
-                                                <Area
+                                                <Line
                                                     yAxisId="revenue"
                                                     type="monotone"
                                                     dataKey="revenue"
                                                     name="Revenue"
                                                     stroke="#8b5cf6"
-                                                    strokeWidth={2.5}
-                                                    fillOpacity={1}
-                                                    fill="url(#orderRevGrad)"
+                                                    strokeWidth={3}
+                                                    dot={{ r: 4, fill: "#fff", stroke: "#8b5cf6", strokeWidth: 2 }}
+                                                    activeDot={{ r: 6, fill: "#8b5cf6", stroke: "#fff", strokeWidth: 2 }}
                                                 />
                                             )}
-                                        </AreaChart>
+                                        </LineChart>
                                     </ResponsiveContainer>
                                 </div>
                             ) : (

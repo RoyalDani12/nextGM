@@ -1399,7 +1399,7 @@ export const getOrderAnalyticsAdmin = async (filters: OrderAnalyticsFilters = {}
         : 30;
 
     const useMonthly = spanDays > 120;
-    const timeMap = new Map<string, { label: string; date: string; orders: number; revenue: number; delivered: number; cancelled: number }>();
+    const timeMap = new Map<string, { label: string; date: string; orders: number; revenue: number; netRevenue: number; delivered: number; shippedDelivered: number; cancelled: number }>();
 
     for (const o of ordersForTimeline) {
         const d = o.createdAt;
@@ -1411,17 +1411,20 @@ export const getOrderAnalyticsAdmin = async (filters: OrderAnalyticsFilters = {}
             ? d.toLocaleString("en-US", { month: "short", year: "2-digit" })
             : d.toLocaleString("en-US", { month: "short", day: "numeric" });
 
-        const existing = timeMap.get(key) || { label, date: key, orders: 0, revenue: 0, delivered: 0, cancelled: 0 };
+        const existing = timeMap.get(key) || { label, date: key, orders: 0, revenue: 0, netRevenue: 0, delivered: 0, shippedDelivered: 0, cancelled: 0 };
         existing.orders += 1;
         existing.revenue += Number(o.totalAmount || 0);
         if (o.status === "DELIVERED") existing.delivered += 1;
+        if (o.status === "SHIPPED" || o.status === "DELIVERED") existing.shippedDelivered += 1;
         if (o.status === "CANCELLED" || o.status === "EXPIRED") existing.cancelled += 1;
+        if (o.status !== "CANCELLED" && o.status !== "EXPIRED" && o.status !== "REFUNDED") existing.netRevenue += Number(o.totalAmount || 0);
         timeMap.set(key, existing);
     }
 
     const ordersOverTime = Array.from(timeMap.values()).map((pt) => ({
         ...pt,
         revenue: Number(pt.revenue.toFixed(2)),
+        netRevenue: Number(pt.netRevenue.toFixed(2)),
     }));
 
     return {

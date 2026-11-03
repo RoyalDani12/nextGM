@@ -686,7 +686,9 @@ export type AdminOrderTimelinePoint = {
     orders: number;
     revenue: number;
     delivered: number;
+    shippedDelivered: number;
     cancelled: number;
+    netRevenue: number;
 };
 
 export type AdminOrderByShop = {

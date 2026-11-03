@@ -99,19 +99,19 @@ describe("getOrderAnalyticsAdmin", () => {
 
         // 8. Orders over time
         expect(result.ordersOverTime).toHaveLength(2); // 2 distinct dates
-        expect(result.ordersOverTime[0].orders).toBe(2);
-        expect(result.ordersOverTime[0].delivered).toBe(1);
-        expect(result.ordersOverTime[0].cancelled).toBe(1);
+        expect(result.ordersOverTime[0]!.orders).toBe(2);
+        expect(result.ordersOverTime[0]!.delivered).toBe(1);
+        expect(result.ordersOverTime[0]!.cancelled).toBe(1);
 
         // 9. Orders by shop
         expect(result.ordersByShop).toHaveLength(2);
-        expect(result.ordersByShop[0].shopName).toBe("Tech Haven");
-        expect(result.ordersByShop[0].count).toBe(60);
+        expect(result.ordersByShop[0]!.shopName).toBe("Tech Haven");
+        expect(result.ordersByShop[0]!.count).toBe(60);
 
         // 10. Orders by geographical location
         expect(result.ordersByLocation).toHaveLength(2);
-        expect(result.ordersByLocation[0].location).toBe("New York, USA");
-        expect(result.ordersByLocation[0].count).toBe(2);
+        expect(result.ordersByLocation[0]!.location).toBe("New York, USA");
+        expect(result.ordersByLocation[0]!.count).toBe(2);
 
         // 11. Average order value (grossRevenue 9000 / 4 valid orders = 2250)
         expect(result.averageOrderValue).toBe(2250);
