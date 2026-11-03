@@ -1,4 +1,4 @@
-﻿import express from "express";
+import express from "express";
 import { authenticate } from "../../middleware/auth.middleware.js";
 import { authorizeSuperAdmin } from "../../middleware/authorizeSuperAdmin.middleware.js";
 import {
@@ -36,6 +36,7 @@ import {
     refundReturnController,
     listOrdersController,
     getOrderByIdController,
+    getOrderAnalyticsController,
     getPlatformAnalyticsController,
     listPayoutsController,
     getPayoutsSummaryController,
@@ -98,6 +99,7 @@ router.post("/returns/:id/refund", refundReturnController);
 
 // Orders
 router.get("/orders", listOrdersController);
+router.get("/orders/analytics", getOrderAnalyticsController);
 router.get("/orders/:orderId", getOrderByIdController);
 
 // Analytics

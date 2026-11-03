@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Search, Loader2, ChevronLeft, ChevronRight, ShoppingCart, Eye, X } from "lucide-react";
 import { useAdminOrders, useAdminOrderById } from "@/features/admin/admin.hooks";
 import { ModalPortal } from "@/components/ui/ds-components";
+import { AdminOrderAnalyticsSection } from "./AdminOrderAnalytics";
 
 const ORDER_STATUSES = ["", "PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "REFUNDED", "EXPIRED", "REFUND_PENDING"];
 
@@ -66,6 +67,9 @@ export const AdminOrdersPage = () => {
                     {data ? `${data.total.toLocaleString()} total platform orders` : "Loading..."}
                 </p>
             </div>
+
+            {/* Order Analytics Suite */}
+            <AdminOrderAnalyticsSection parentDateFrom={dateFrom} parentDateTo={dateTo} />
 
             {/* Filter Bar */}
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 space-y-3">

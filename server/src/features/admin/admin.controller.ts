@@ -36,6 +36,7 @@ import {
     refundReturnService,
     listOrdersService,
     getOrderByIdAdminService,
+    getOrderAnalyticsAdminService,
     getPlatformAnalyticsService,
     listPayoutsService,
     getPayoutsSummaryService,
@@ -328,6 +329,17 @@ export const listOrdersController = asyncHandler(async (req: Request, res: Respo
 
 export const getOrderByIdController = asyncHandler(async (req: Request, res: Response) => {
     const data = await getOrderByIdAdminService(req.params.orderId as string);
+    res.status(200).json({ success: true, data });
+});
+
+export const getOrderAnalyticsController = asyncHandler(async (req: Request, res: Response) => {
+    const { shopId, dateFrom, dateTo, range } = req.query as Record<string, string>;
+    const data = await getOrderAnalyticsAdminService({
+        shopId,
+        dateFrom,
+        dateTo,
+        range: range as any,
+    });
     res.status(200).json({ success: true, data });
 });
 

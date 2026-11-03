@@ -38,6 +38,8 @@ import {
     setReturnRefundPendingAdmin,
     listOrdersAdmin,
     getOrderByIdAdmin,
+    getOrderAnalyticsAdmin,
+    type OrderAnalyticsFilters,
     getPlatformAnalytics,
     listPayoutsAdmin,
     getPayoutsSummary,
@@ -754,6 +756,9 @@ export const getOrderByIdAdminService = async (id: string) => {
     if (!order) throw new AppError("Order not found", 404);
     return order;
 };
+
+export const getOrderAnalyticsAdminService = (filters: OrderAnalyticsFilters = {}) =>
+    getOrderAnalyticsAdmin(filters);
 
 export const getPlatformAnalyticsService = () => getPlatformAnalytics();
 

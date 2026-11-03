@@ -1211,6 +1211,243 @@ export const getOrderByIdAdmin = async (id: string) => {
     });
 };
 
+export interface OrderAnalyticsFilters {
+    shopId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    range?: "7d" | "30d" | "90d" | "12m" | "all";
+}
+
+export const getOrderAnalyticsAdmin = async (filters: OrderAnalyticsFilters = {}) => {
+    const { shopId, dateFrom, dateTo, range } = filters;
+
+    let startDate: Date | undefined;
+    let endDate: Date | undefined;
+
+    if (dateFrom) {
+        startDate = new Date(dateFrom);
+        if (!isNaN(startDate.getTime())) {
+            startDate.setHours(0, 0, 0, 0);
+        } else {
+            startDate = undefined;
+        }
+    }
+    if (dateTo) {
+        endDate = new Date(dateTo);
+        if (!isNaN(endDate.getTime())) {
+            endDate.setHours(23, 59, 59, 999);
+        } else {
+            endDate = undefined;
+        }
+    }
+
+    if (!startDate && !endDate && range && range !== "all") {
+        endDate = new Date();
+        startDate = new Date();
+        if (range === "7d") {
+            startDate.setDate(endDate.getDate() - 6);
+        } else if (range === "30d") {
+            startDate.setDate(endDate.getDate() - 29);
+        } else if (range === "90d") {
+            startDate.setDate(endDate.getDate() - 89);
+        } else if (range === "12m") {
+            startDate.setFullYear(endDate.getFullYear() - 1);
+        }
+        startDate.setHours(0, 0, 0, 0);
+    }
+
+    const where: any = {
+        deletedAt: null,
+        ...(shopId ? { shopId } : {}),
+        ...((startDate || endDate) ? {
+            createdAt: {
+                ...(startDate ? { gte: startDate } : {}),
+                ...(endDate ? { lte: endDate } : {}),
+            },
+        } : {}),
+    };
+
+    const [ordersByStatus, totalOrders, returnedOrdersCount, allValidOrders, topShopsRaw, ordersWithAddress] = await Promise.all([
+        prisma.order.groupBy({
+            by: ["status"],
+            where,
+            _count: { _all: true },
+            _sum: { totalAmount: true },
+        }),
+        prisma.order.count({ where }),
+        prisma.returnRequest.count({
+            where: {
+                ...(shopId ? { order: { shopId } } : {}),
+                ...((startDate || endDate) ? {
+                    createdAt: {
+                        ...(startDate ? { gte: startDate } : {}),
+                        ...(endDate ? { lte: endDate } : {}),
+                    },
+                } : {}),
+            },
+        }),
+        prisma.order.findMany({
+            where: {
+                ...where,
+                status: { in: ["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"] },
+            },
+            select: { totalAmount: true },
+        }),
+        prisma.order.groupBy({
+            by: ["shopId"],
+            where,
+            _count: { _all: true },
+            _sum: { totalAmount: true },
+            orderBy: { _count: { _all: "desc" } },
+            take: 10,
+        }),
+        prisma.order.findMany({
+            where: {
+                ...where,
+                shippingAddress: { isNot: null },
+            },
+            select: {
+                totalAmount: true,
+                shippingAddress: {
+                    select: { country: true, city: true },
+                },
+            },
+        }),
+    ]);
+
+    const statusMap: Record<string, number> = {};
+    const statusRevenueMap: Record<string, number> = {};
+    for (const item of ordersByStatus) {
+        statusMap[item.status] = item._count._all;
+        statusRevenueMap[item.status] = Number(item._sum.totalAmount || 0);
+    }
+
+    const pendingOrders = statusMap["PENDING"] || 0;
+    const processingOrders = (statusMap["PROCESSING"] || 0) + (statusMap["CONFIRMED"] || 0);
+    const shippedOrders = statusMap["SHIPPED"] || 0;
+    const deliveredOrders = statusMap["DELIVERED"] || 0;
+    const cancelledOrders = (statusMap["CANCELLED"] || 0) + (statusMap["EXPIRED"] || 0);
+    const refundedOrders = statusMap["REFUNDED"] || 0;
+    const returnedOrders = returnedOrdersCount || refundedOrders;
+
+    const grossRevenue = allValidOrders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
+    const refundedAmount = statusRevenueMap["REFUNDED"] || 0;
+    const netRevenue = Math.max(0, grossRevenue - refundedAmount);
+
+    const validOrdersCount = allValidOrders.length;
+    const averageOrderValue = validOrdersCount > 0 ? Number((grossRevenue / validOrdersCount).toFixed(2)) : 0;
+    const orderCancellationRate = totalOrders > 0 ? Number(((cancelledOrders / totalOrders) * 100).toFixed(1)) : 0;
+    const orderFulfillmentRate = totalOrders > 0 ? Number(((deliveredOrders / totalOrders) * 100).toFixed(1)) : 100;
+
+    // 2. Orders by Shop
+    const shopIds = topShopsRaw.map((s) => s.shopId);
+    const shopProfiles = await prisma.shop.findMany({
+        where: { id: { in: shopIds } },
+        select: { id: true, slug: true, profile: { select: { name: true, logo: true } } },
+    });
+    const shopMap = new Map(shopProfiles.map((s) => [s.id, s]));
+    const ordersByShop = topShopsRaw.map((s) => {
+        const sh = shopMap.get(s.shopId);
+        return {
+            shopId: s.shopId,
+            shopName: sh?.profile?.name || sh?.slug || s.shopId,
+            shopSlug: sh?.slug || "",
+            logo: sh?.profile?.logo || null,
+            count: s._count._all,
+            revenue: Number(Number(s._sum.totalAmount || 0).toFixed(2)),
+            percentage: totalOrders > 0 ? Number(((s._count._all / totalOrders) * 100).toFixed(1)) : 0,
+        };
+    });
+
+    // 3. Orders by Geographical Location
+    const locationMap = new Map<string, { country: string; city: string; count: number; revenue: number }>();
+    for (const o of ordersWithAddress) {
+        const country = o.shippingAddress?.country || "Direct";
+        const city = o.shippingAddress?.city || "";
+        const key = city ? `${city}, ${country}` : country;
+        const existing = locationMap.get(key) || { country, city, count: 0, revenue: 0 };
+        existing.count += 1;
+        existing.revenue += Number(o.totalAmount || 0);
+        locationMap.set(key, existing);
+    }
+    const ordersByLocation = Array.from(locationMap.values())
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10)
+        .map((loc) => ({
+            country: loc.country,
+            city: loc.city,
+            location: loc.city ? `${loc.city}, ${loc.country}` : loc.country,
+            count: loc.count,
+            revenue: Number(loc.revenue.toFixed(2)),
+            percentage: totalOrders > 0 ? Number(((loc.count / totalOrders) * 100).toFixed(1)) : 0,
+        }));
+
+    // 4. Orders Over Time (Timeline points)
+    const ordersForTimeline = await prisma.order.findMany({
+        where,
+        select: {
+            createdAt: true,
+            totalAmount: true,
+            status: true,
+        },
+        orderBy: { createdAt: "asc" },
+    });
+
+    const spanDays = startDate && endDate
+        ? Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+        : 30;
+
+    const useMonthly = spanDays > 120;
+    const timeMap = new Map<string, { label: string; date: string; orders: number; revenue: number; delivered: number; cancelled: number }>();
+
+    for (const o of ordersForTimeline) {
+        const d = o.createdAt;
+        const key = useMonthly
+            ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+            : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+        const label = useMonthly
+            ? d.toLocaleString("en-US", { month: "short", year: "2-digit" })
+            : d.toLocaleString("en-US", { month: "short", day: "numeric" });
+
+        const existing = timeMap.get(key) || { label, date: key, orders: 0, revenue: 0, delivered: 0, cancelled: 0 };
+        existing.orders += 1;
+        existing.revenue += Number(o.totalAmount || 0);
+        if (o.status === "DELIVERED") existing.delivered += 1;
+        if (o.status === "CANCELLED" || o.status === "EXPIRED") existing.cancelled += 1;
+        timeMap.set(key, existing);
+    }
+
+    const ordersOverTime = Array.from(timeMap.values()).map((pt) => ({
+        ...pt,
+        revenue: Number(pt.revenue.toFixed(2)),
+    }));
+
+    return {
+        totalOrders,
+        pendingOrders,
+        processingOrders,
+        shippedOrders,
+        deliveredOrders,
+        cancelledOrders,
+        returnedOrders,
+        grossRevenue: Number(grossRevenue.toFixed(2)),
+        netRevenue: Number(netRevenue.toFixed(2)),
+        refundedAmount: Number(refundedAmount.toFixed(2)),
+        averageOrderValue,
+        orderCancellationRate,
+        orderFulfillmentRate,
+        ordersOverTime,
+        ordersByShop,
+        ordersByLocation,
+        ordersByStatus: Object.entries(statusMap).map(([status, count]) => ({
+            status,
+            count,
+            percentage: totalOrders > 0 ? Number(((count / totalOrders) * 100).toFixed(1)) : 0,
+        })),
+    };
+};
+
 // ─────────────────────────────────────────────
 // ANALYTICS (ADMIN)
 // ─────────────────────────────────────────────
@@ -1229,18 +1466,39 @@ export const getPlatformAnalytics = async () => {
             take: 10,
         }),
         prisma.$queryRaw<{ month: string; count: bigint }[]>`
-            SELECT TO_CHAR("createdAt", 'YYYY-MM') as month, COUNT(*) as count
-            FROM "User"
-            WHERE "createdAt" >= ${twelveMonthsAgo}
-            GROUP BY month
-            ORDER BY month ASC
+            WITH months AS (
+                SELECT generate_series(
+                    date_trunc('month', ${twelveMonthsAgo}),
+                    date_trunc('month', CURRENT_DATE),
+                    interval '1 month'
+                ) AS month_start
+            )
+            SELECT TO_CHAR(months.month_start, 'YYYY-MM') AS month,
+                   COUNT("User"."id") AS count
+            FROM months
+            LEFT JOIN "User"
+                ON "User"."createdAt" >= months.month_start
+                AND "User"."createdAt" < months.month_start + interval '1 month'
+            GROUP BY months.month_start
+            ORDER BY months.month_start ASC
         `,
         prisma.$queryRaw<{ month: string; count: bigint; revenue: number }[]>`
-            SELECT TO_CHAR("createdAt", 'YYYY-MM') as month, COUNT(*) as count, COALESCE(SUM("totalAmount"), 0) as revenue
-            FROM "Order"
-            WHERE "createdAt" >= ${twelveMonthsAgo}
-            GROUP BY month
-            ORDER BY month ASC
+            WITH months AS (
+                SELECT generate_series(
+                    date_trunc('month', ${twelveMonthsAgo}),
+                    date_trunc('month', CURRENT_DATE),
+                    interval '1 month'
+                ) AS month_start
+            )
+            SELECT TO_CHAR(months.month_start, 'YYYY-MM') AS month,
+                   COUNT("Order"."id") AS count,
+                   COALESCE(SUM("Order"."totalAmount"), 0) AS revenue
+            FROM months
+            LEFT JOIN "Order"
+                ON "Order"."createdAt" >= months.month_start
+                AND "Order"."createdAt" < months.month_start + interval '1 month'
+            GROUP BY months.month_start
+            ORDER BY months.month_start ASC
         `,
     ]);
 

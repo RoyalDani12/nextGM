@@ -680,6 +680,67 @@ export type AdminProductFilters = {
     limit?: number;
 };
 
+export type AdminOrderTimelinePoint = {
+    date: string;
+    label: string;
+    orders: number;
+    revenue: number;
+    delivered: number;
+    cancelled: number;
+};
+
+export type AdminOrderByShop = {
+    shopId: string;
+    shopName: string;
+    shopSlug: string;
+    logo: string | null;
+    count: number;
+    revenue: number;
+    percentage: number;
+};
+
+export type AdminOrderByLocation = {
+    country: string;
+    city: string;
+    location: string;
+    count: number;
+    revenue: number;
+    percentage: number;
+};
+
+export type AdminOrderStatusBreakdown = {
+    status: string;
+    count: number;
+    percentage: number;
+};
+
+export type AdminOrderAnalyticsResponse = {
+    totalOrders: number;
+    pendingOrders: number;
+    processingOrders: number;
+    shippedOrders: number;
+    deliveredOrders: number;
+    cancelledOrders: number;
+    returnedOrders: number;
+    grossRevenue: number;
+    netRevenue: number;
+    refundedAmount: number;
+    averageOrderValue: number;
+    orderCancellationRate: number;
+    orderFulfillmentRate: number;
+    ordersOverTime: AdminOrderTimelinePoint[];
+    ordersByShop: AdminOrderByShop[];
+    ordersByLocation: AdminOrderByLocation[];
+    ordersByStatus: AdminOrderStatusBreakdown[];
+};
+
+export type AdminOrderAnalyticsFilters = {
+    shopId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    range?: "7d" | "30d" | "90d" | "12m" | "all";
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Extended adminApi
 // ─────────────────────────────────────────────────────────────────────────────
@@ -704,6 +765,10 @@ export const adminApiExtended = {
     },
     getOrderById: async (id: string): Promise<AdminOrderDetail> => {
         const res = await api.get(`${base}/orders/${id}`);
+        return res.data.data;
+    },
+    getOrderAnalytics: async (filters: AdminOrderAnalyticsFilters = {}): Promise<AdminOrderAnalyticsResponse> => {
+        const res = await api.get(`${base}/orders/analytics`, { params: filters });
         return res.data.data;
     },
 

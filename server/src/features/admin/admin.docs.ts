@@ -674,6 +674,23 @@ export const adminDocs = {
       }
     }
   },
+  "/api/v1/admin/orders/analytics": {
+    "get": {
+      "tags": ["Super Admin - Orders"],
+      "summary": "Get comprehensive platform order analytics",
+      "description": "Returns full order analytics including total/pending/processing/shipped/delivered/cancelled/returned counts, timeline, orders by shop, geographical location, AOV, cancellation rate, and fulfillment rate.",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        { "name": "shopId", "in": "query", "schema": { "type": "string" } },
+        { "name": "range", "in": "query", "schema": { "type": "string", "enum": ["7d", "30d", "90d", "12m", "all"] } },
+        { "name": "dateFrom", "in": "query", "schema": { "type": "string", "format": "date" } },
+        { "name": "dateTo", "in": "query", "schema": { "type": "string", "format": "date" } }
+      ],
+      "responses": {
+        "200": { "description": "Order analytics data returned." }
+      }
+    }
+  },
   "/api/v1/admin/orders/{orderId}": {
     "get": {
       "tags": ["Super Admin - Orders"],

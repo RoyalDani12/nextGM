@@ -1,5 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { adminApi, adminApiExtended, type AdminShopFilters, type AdminUserFilters, type AdminReviewFilters, type AdminOrderFilters, type AdminAuditFilters, type AdminCouponFilters, type AdminProductFilters } from "./admin.api";
+import {
+    adminApi,
+    adminApiExtended,
+    type AdminShopFilters,
+    type AdminUserFilters,
+    type AdminReviewFilters,
+    type AdminOrderFilters,
+    type AdminOrderAnalyticsFilters,
+    type AdminAuditFilters,
+    type AdminCouponFilters,
+    type AdminProductFilters,
+} from "./admin.api";
 import { toast } from "react-hot-toast";
 
 export const useAdminStats = () =>
@@ -271,6 +282,13 @@ export const useAdminOrderById = (id: string) =>
         queryKey: ["admin", "orders", id],
         queryFn: () => adminApiExtended.getOrderById(id),
         enabled: !!id,
+    });
+
+export const useAdminOrderAnalytics = (filters?: AdminOrderAnalyticsFilters) =>
+    useQuery({
+        queryKey: ["admin", "orders", "analytics", filters],
+        queryFn: () => adminApiExtended.getOrderAnalytics(filters),
+        staleTime: 60_000,
     });
 
 // ─── Analytics ────────────────────────────────
