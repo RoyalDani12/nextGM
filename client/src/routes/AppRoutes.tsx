@@ -12,6 +12,7 @@ const VerifyEmailNotice      = lazy(() => import("../features/auth/VerifyEmailNo
 const VerifyEmailPage        = lazy(() => import("@/features/auth/VerifyEmailPage"));
 const ForgetPassword         = lazy(() => import("@/features/auth/ForgetPassword").then(m => ({ default: m.ForgetPassword })));
 const ResetPasswordPage      = lazy(() => import("@/features/auth/ResetPasswordPage").then(m => ({ default: m.ResetPasswordPage })));
+const AuthCallbackPage       = lazy(() => import("@/features/auth/AuthCallbackPage"));
 
 // Marketplace / Public
 const Home                   = lazy(() => import("@/features/marketplace/pages/Home").then(m => ({ default: m.Home })));
@@ -97,6 +98,7 @@ export function AppRoutes() {
                 <Route path="/contact" element={<ContactSupportPage />} />
                 <Route path="/help" element={<HelpCenterPage />} />
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/auth/callback" element={<AuthCallbackPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/verify-email-notice" element={<VerifyEmailNotice />} />
                 <Route path="/verify-email" element={<VerifyEmailPage />} />

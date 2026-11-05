@@ -12,6 +12,7 @@ import {
   resetPasswordController,
   googleAuthController,
   googleCallbackController,
+  exchangeTicketController,
   reactivateAccountController,
 } from "./auth.controller.js";
 
@@ -57,6 +58,7 @@ router.post('/login',
 
 router.get("/google", googleAuthController);
 router.get("/google/callback", googleCallbackController);
+router.post("/exchange-ticket", authLimiter, exchangeTicketController);
 
 
 router.post('/refresh-token',
