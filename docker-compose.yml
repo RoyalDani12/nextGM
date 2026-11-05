@@ -32,7 +32,8 @@ services:
       dockerfile: Dockerfile
       target: migration
     env_file:
-      - ./server/.env
+      - path: ./server/.env
+        required: false
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER:-nextgm}:${POSTGRES_PASSWORD:-nextgm_dev_password}@postgres:5432/${POSTGRES_DB:-nextgm}
@@ -46,7 +47,8 @@ services:
       context: ./server
       dockerfile: Dockerfile
     env_file:
-      - ./server/.env
+      - path: ./server/.env
+        required: false
     environment:
       NODE_ENV: production
       PORT: 5000
@@ -72,7 +74,8 @@ services:
       context: ./server
       dockerfile: Dockerfile
     env_file:
-      - ./server/.env
+      - path: ./server/.env
+        required: false
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER:-nextgm}:${POSTGRES_PASSWORD:-nextgm_dev_password}@postgres:5432/${POSTGRES_DB:-nextgm}
