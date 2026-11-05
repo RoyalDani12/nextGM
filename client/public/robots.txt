@@ -1,0 +1,22 @@
+# NextGM Robots.txt
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /how-it-works
+Allow: /help
+Allow: /contact
+Allow: /storefront/
+Allow: /product/
+
+# Block private dashboards, checkout, and API routes from crawling
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /checkout
+Disallow: /payment
+Disallow: /order-confirmation
+Disallow: /orders
+Disallow: /settings
+Disallow: /cart
+Disallow: /api/
+
+Sitemap: https://nextgm-1.onrender.com/sitemap.xml
