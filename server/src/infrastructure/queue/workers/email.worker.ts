@@ -1,6 +1,6 @@
 import { Job, Worker } from "bullmq";
 import { queueRedis } from "../../cache/redis.client.js";
-import { transporter } from "../../../services/email.transporter.js";
+import { sendEmail } from "../../../services/email.transporter.js";
 
 
 export const emailWorker = new Worker("emails",
@@ -9,12 +9,7 @@ export const emailWorker = new Worker("emails",
    async(job:Job)=>{
     const { to,subject,html } = job.data
 
-    await transporter.sendMail({
-      from:`"Nexio" <no-reply@nxeio.com>`,
-      to,
-      subject,
-      html
-    })
+    await sendEmail(to, subject, html);
 
     console.log(`Email sent to ${to} | job: ${job.id}`)
    },

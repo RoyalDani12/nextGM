@@ -9,7 +9,6 @@ import {
   resetPasswordService,
 } from "./auth.services.js";
 import * as authRepo from "./auth.repository.js";
-import { emailQueue } from "../../infrastructure/queue/queue.client.js";
 import { redis } from "../../infrastructure/cache/redis.client.js";
 import * as sessionCache from "../../infrastructure/cache/session.cache.js";
 import * as authUtils from "../../utils/auth.utils.js";
@@ -29,8 +28,9 @@ vi.mock("../../infrastructure/cache/redis.client.js", () => ({
     del: vi.fn().mockResolvedValue(1),
   },
 }));
-vi.mock("../../infrastructure/queue/queue.client.js", () => ({
-  emailQueue: { add: vi.fn().mockResolvedValue({ id: "job_1" }) },
+import { sendEmail } from "../../services/email.transporter.js";
+vi.mock("../../services/email.transporter.js", () => ({
+  sendEmail: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock("../../services/email.templates.js", () => ({
   verificationEmailTemplate: vi.fn(() => ({ subject: "Verify", html: "<p>verify</p>" })),
@@ -62,7 +62,7 @@ describe("Authentication Services Unit & Security Tests", () => {
         })
       ).rejects.toThrow("Email already in use");
 
-      expect(emailQueue.add).not.toHaveBeenCalled();
+      expect(sendEmail).not.toHaveBeenCalled();
     });
 
     it("should register new user and dispatch email verification job", async () => {
@@ -79,9 +79,10 @@ describe("Authentication Services Unit & Security Tests", () => {
       });
 
       expect(result.user.id).toBe("u_1");
-      expect(emailQueue.add).toHaveBeenCalledWith(
-        "verify-email",
-        expect.objectContaining({ to: "new@nexions.io" })
+      expect(sendEmail).toHaveBeenCalledWith(
+        "new@nexions.io",
+        "Verify",
+        "<p>verify</p>"
       );
     });
   });
@@ -310,9 +311,10 @@ describe("Authentication Services Unit & Security Tests", () => {
 
       expect(result.message).toContain("Email verified successfully");
       expect(authRepo.markEmailVerified).toHaveBeenCalledWith("u_1", "v_1");
-      expect(emailQueue.add).toHaveBeenCalledWith(
-        "Welcome-email",
-        expect.objectContaining({ to: "user@nexions.io" })
+      expect(sendEmail).toHaveBeenCalledWith(
+        "user@nexions.io",
+        "Welcome",
+        "<p>welcome</p>"
       );
     });
   });
@@ -323,7 +325,7 @@ describe("Authentication Services Unit & Security Tests", () => {
 
       const result = await forgotPasswordService("notfound@nexions.io");
       expect(result.message).toContain("If this email is registered");
-      expect(emailQueue.add).not.toHaveBeenCalled();
+      expect(sendEmail).not.toHaveBeenCalled();
     });
 
     it("forgotPasswordService should generate token and enqueue email for verified active user", async () => {
@@ -341,9 +343,10 @@ describe("Authentication Services Unit & Security Tests", () => {
 
       expect(result.message).toContain("If this email is registered");
       expect(authRepo.createPasswordResetToken).toHaveBeenCalledWith("u_1", expect.any(String));
-      expect(emailQueue.add).toHaveBeenCalledWith(
-        "reset-password",
-        expect.objectContaining({ to: "user@nexions.io" })
+      expect(sendEmail).toHaveBeenCalledWith(
+        "user@nexions.io",
+        "Reset",
+        "<p>reset</p>"
       );
     });
 
@@ -374,9 +377,10 @@ describe("Authentication Services Unit & Security Tests", () => {
         expect.any(String)
       );
       expect(sessionCache.deleteUserSession).toHaveBeenCalledWith("u_1");
-      expect(emailQueue.add).toHaveBeenCalledWith(
-        "password-reset-success",
-        expect.objectContaining({ to: "user@nexions.io" })
+      expect(sendEmail).toHaveBeenCalledWith(
+        "user@nexions.io",
+        "Success",
+        "<p>success</p>"
       );
     });
   });

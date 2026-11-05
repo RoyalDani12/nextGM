@@ -96,6 +96,7 @@ export const loginController = asyncHandler( async(req:Request,res:Response)=>{
         httpOnly:true,
         secure:isProduction,
         sameSite:isProduction ? "none" : "lax",
+        path:"/",
         maxAge:SEVEN_DAYS
       })
 
@@ -127,6 +128,7 @@ export const refreshTokenController = asyncHandler( async (req:Request,res:Respo
     httpOnly:true,
     secure:isProduction,
     sameSite:isProduction ? "none" : "lax",
+    path:"/",
     maxAge:SEVEN_DAYS
    })
 
@@ -335,6 +337,7 @@ export const googleCallbackController = asyncHandler(async (req: Request, res: R
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
+    path: "/",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
@@ -360,6 +363,7 @@ export const exchangeTicketController = asyncHandler(async (req: Request, res: R
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
+    path: "/",
     maxAge: SEVEN_DAYS,
   });
 
