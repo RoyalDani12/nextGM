@@ -21,7 +21,7 @@ import {
     activateVerifiedGoogleUser,
 } from "./auth.repository.js";
 import { hashPassword, verifyPassword } from "../../utils/auth.utils.js";
-import { emailQueue } from "../../infrastructure/queue/queue.client.js";
+import { sendEmail } from "../../services/email.transporter.js";
 import {
     passwordResetSuccessTemplate,
     resetPasswordEmailTemplate,
@@ -55,12 +55,7 @@ export const registerService = async (userData: RegisterDto) => {
     // get email templates
     const { subject, html } = verificationEmailTemplate(user.name, rawToken);
 
-    // push  email  to job queue
-    await emailQueue.add("verify-email", {
-        to: user.email,
-        subject,
-        html,
-    });
+    await sendEmail(user.email, subject, html);
 
     return { user };
 };
@@ -108,11 +103,7 @@ export const verifyEmailService = async (token: string) => {
     // mark verified and burn the token
     await markEmailVerified(verification.userId, verification.id);
     const { subject, html } = welcomeEmailTemplate(verification.user.email);
-    await emailQueue.add("Welcome-email", {
-        to: verification.user.email,
-        subject,
-        html,
-    });
+    await sendEmail(verification.user.email, subject, html);
 
     return {
         message: "Email verified successfully. You can now log in.",
@@ -295,13 +286,8 @@ export const resendVerificationService = async (email: string): Promise<{ messag
 
     await saveNewResendVerificationToken(user.id, hashedToken);
 
-    // push email to queue
     const { html, subject } = verificationEmailTemplate(user.name, newToken);
-    await emailQueue.add("verify-email", {
-        to: user.email,
-        subject,
-        html,
-    });
+    await sendEmail(user.email, subject, html);
 
     return {
         message: RESEND_MESSAGE,
@@ -331,11 +317,7 @@ export const forgotPasswordService = async (email: string) => {
     await createPasswordResetToken(user.id, hashedToken);
 
     const { html, subject } = resetPasswordEmailTemplate(user.name, rawToken);
-    await emailQueue.add("reset-password", {
-        to: user.email,
-        html,
-        subject,
-    });
+    await sendEmail(user.email, subject, html);
 
     return {
         message: RESEND_MESSAGE,
@@ -378,11 +360,7 @@ export const resetPasswordService = async (token: string, password: string) => {
 
     const { subject, html } = passwordResetSuccessTemplate(resetToken.user.name);
 
-    await emailQueue.add("password-reset-success", {
-        to: resetToken.user.email,
-        subject,
-        html,
-    });
+    await sendEmail(resetToken.user.email, subject, html);
 
     return {
         message: "Password reset successful. Please log in with your new password.",

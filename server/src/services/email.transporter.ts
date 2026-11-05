@@ -11,6 +11,15 @@ export const transporter = nodemailer.createTransport({
   }
 })
 
+export const sendEmail = async (to: string, subject: string, html: string) => {
+  await transporter.sendMail({
+    from: `"Nexio" <${env.SMTP_USER}>`,
+    to,
+    subject,
+    html,
+  });
+};
+
 
 transporter.verify((error)=>{
   if(error){

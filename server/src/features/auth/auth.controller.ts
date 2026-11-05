@@ -88,7 +88,8 @@ export const loginController = asyncHandler( async(req:Request,res:Response)=>{
       res.cookie("refreshToken",result.refreshToken,{
         httpOnly:true,
         secure:env.NODE_ENV === "production",
-        sameSite:"strict",
+        sameSite:"lax",
+        path:"/",
         maxAge:SEVEN_DAYS
       })
 
@@ -118,9 +119,10 @@ export const refreshTokenController = asyncHandler( async (req:Request,res:Respo
    res.cookie("refreshToken",refreshToken,{
     httpOnly:true,
     secure:env.NODE_ENV ==="production",
-    sameSite:"strict",
-    maxAge:SEVEN_DAYS
-   })
+     sameSite:"lax",
+     path:"/",
+     maxAge:SEVEN_DAYS
+    })
 
    res.status(200).json({
     success:true,
@@ -294,6 +296,6 @@ export const googleCallbackController = asyncHandler(async (req: Request, res: R
 
   const ip = req.ip ?? req.socket.remoteAddress ?? "unknown";
   const result = await googleLoginService({ email: profile.email, name: profile.name ?? "Google user" }, { ipAddress: ip, userAgent: req.headers["user-agent"] ?? "", deviceName: parseDeviceName(req.headers["user-agent"] ?? "") });
-  res.cookie("refreshToken", result.refreshToken, { httpOnly: true, secure: env.NODE_ENV === "production", sameSite: "lax", maxAge: 7 * 24 * 60 * 60 * 1000 });
+  res.cookie("refreshToken", result.refreshToken, { httpOnly: true, secure: env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 7 * 24 * 60 * 60 * 1000 });
   res.redirect(`${env.CLIENT_URL}/role-redirect`);
 });
