@@ -66,3 +66,8 @@ export const reactivateAccountRequest = async (reactivationKey: string) => {
     const { data } = await api.post("/auth/reactivate", { reactivationKey });
     return data;
 };
+
+export const exchangeTicketRequest = async (ticket: string) => {
+    const { data } = await api.post("/auth/exchange-ticket", { ticket });
+    return data;
+};

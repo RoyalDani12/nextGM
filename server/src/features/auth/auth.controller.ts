@@ -20,6 +20,12 @@ import { verifyAccessToken } from "./token.service.js";
 import { deleteUserSession } from "../../infrastructure/cache/session.cache.js";
 import { AccessTokenPayload } from "../../types/auth.types.js";
 import { reactivateAccountService } from "../users/user.service.js";
+import {
+  createAuthTicket,
+  consumeAuthTicket,
+  generateOAuthState,
+  verifyOAuthState,
+} from "./auth.ticket.js";
 
 export const registerController = asyncHandler(async (req: Request, res: Response) => {
 
@@ -85,10 +91,11 @@ export const loginController = asyncHandler( async(req:Request,res:Response)=>{
         return
       }
       // save refresh token to cookie
+      const isProduction = env.NODE_ENV === "production";
       res.cookie("refreshToken",result.refreshToken,{
         httpOnly:true,
-        secure:env.NODE_ENV === "production",
-        sameSite:"strict",
+        secure:isProduction,
+        sameSite:isProduction ? "none" : "lax",
         maxAge:SEVEN_DAYS
       })
 
@@ -115,10 +122,11 @@ export const refreshTokenController = asyncHandler( async (req:Request,res:Respo
    const { refreshToken,accessToken} = await refreshTokenService(token)
 
    // again put the token in the cookie
+   const isProduction = env.NODE_ENV === "production";
    res.cookie("refreshToken",refreshToken,{
     httpOnly:true,
-    secure:env.NODE_ENV ==="production",
-    sameSite:"strict",
+    secure:isProduction,
+    sameSite:isProduction ? "none" : "lax",
     maxAge:SEVEN_DAYS
    })
 
@@ -262,8 +270,7 @@ export const reactivateAccountController = asyncHandler(async (req: Request, res
 });
 
 export const googleAuthController = asyncHandler(async (_req: Request, res: Response) => {
-  const state = crypto.randomBytes(32).toString("hex");
-  res.cookie("googleOAuthState", state, { httpOnly: true, secure: env.NODE_ENV === "production", sameSite: "lax", maxAge: 10 * 60 * 1000 });
+  const state = generateOAuthState(env.JWT_SECRET);
   const params = new URLSearchParams({
     client_id: env.GOOGLE_CLIENT_ID,
     redirect_uri: env.GOOGLE_REDIRECT_URI,
@@ -277,23 +284,92 @@ export const googleAuthController = asyncHandler(async (_req: Request, res: Resp
 export const googleCallbackController = asyncHandler(async (req: Request, res: Response) => {
   const { code, state, error } = req.query as { code?: string; state?: string; error?: string };
   const fail = (reason: string) => res.redirect(`${env.CLIENT_URL}/login?googleError=${encodeURIComponent(reason)}`);
-  if (error || !code || !state || state !== req.cookies.googleOAuthState) return fail("Google sign-in was cancelled or could not be verified.");
-  res.clearCookie("googleOAuthState");
+  
+  if (error) {
+    return fail("Google sign-in was cancelled by user.");
+  }
+  
+  if (!code || !state || !verifyOAuthState(state, env.JWT_SECRET)) {
+    return fail("Google sign-in session expired or was invalid. Please try again.");
+  }
 
   const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ code, client_id: env.GOOGLE_CLIENT_ID, client_secret: env.GOOGLE_CLIENT_SECRET, redirect_uri: env.GOOGLE_REDIRECT_URI, grant_type: "authorization_code" }),
+    body: new URLSearchParams({
+      code,
+      client_id: env.GOOGLE_CLIENT_ID,
+      client_secret: env.GOOGLE_CLIENT_SECRET,
+      redirect_uri: env.GOOGLE_REDIRECT_URI,
+      grant_type: "authorization_code",
+    }),
   });
+
   if (!tokenResponse.ok) return fail("Google could not complete the sign-in.");
   const tokens = await tokenResponse.json() as { access_token?: string };
   if (!tokens.access_token) return fail("Google did not return an access token.");
-  const profileResponse = await fetch("https://openidconnect.googleapis.com/v1/userinfo", { headers: { Authorization: `Bearer ${tokens.access_token}` } });
+
+  const profileResponse = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
+    headers: { Authorization: `Bearer ${tokens.access_token}` },
+  });
   const profile = await profileResponse.json() as { email?: string; name?: string; email_verified?: boolean };
-  if (!profileResponse.ok || !profile.email || !profile.email_verified) return fail("A verified Google email address is required.");
+  if (!profileResponse.ok || !profile.email || !profile.email_verified) {
+    return fail("A verified Google email address is required.");
+  }
 
   const ip = req.ip ?? req.socket.remoteAddress ?? "unknown";
-  const result = await googleLoginService({ email: profile.email, name: profile.name ?? "Google user" }, { ipAddress: ip, userAgent: req.headers["user-agent"] ?? "", deviceName: parseDeviceName(req.headers["user-agent"] ?? "") });
-  res.cookie("refreshToken", result.refreshToken, { httpOnly: true, secure: env.NODE_ENV === "production", sameSite: "lax", maxAge: 7 * 24 * 60 * 60 * 1000 });
-  res.redirect(`${env.CLIENT_URL}/role-redirect`);
+  const result = await googleLoginService(
+    { email: profile.email, name: profile.name ?? "Google user" },
+    { ipAddress: ip, userAgent: req.headers["user-agent"] ?? "", deviceName: parseDeviceName(req.headers["user-agent"] ?? "") }
+  );
+
+  // Issue single-use exchange ticket
+  const ticket = await createAuthTicket({
+    accessToken: result.accessToken,
+    refreshToken: result.refreshToken,
+    user: result.user,
+  });
+
+  const isProduction = env.NODE_ENV === "production";
+  res.cookie("refreshToken", result.refreshToken, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  // Redirect to frontend auth callback handler with the single-use ticket
+  res.redirect(`${env.CLIENT_URL}/auth/callback?ticket=${encodeURIComponent(ticket)}`);
+});
+
+export const exchangeTicketController = asyncHandler(async (req: Request, res: Response) => {
+  const { ticket } = req.body as { ticket?: string };
+  if (!ticket) {
+    throw new AppError("Authentication ticket is required", 400);
+  }
+
+  const payload = await consumeAuthTicket(ticket);
+  if (!payload) {
+    throw new AppError("Authentication ticket expired or invalid. Please sign in again.", 401);
+  }
+
+  const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+  const isProduction = env.NODE_ENV === "production";
+
+  res.cookie("refreshToken", payload.refreshToken, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    maxAge: SEVEN_DAYS,
+  });
+
+  res.status(200).json({
+    statusCode: 200,
+    success: true,
+    message: "Google Sign-In completed successfully",
+    data: {
+      accessToken: payload.accessToken,
+      user: payload.user,
+    },
+  });
 });
