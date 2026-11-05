@@ -9,20 +9,21 @@ async function main() {
 
   const defaultPassword = "Password123!";
   const hashedPassword = await bcrypt.hash(defaultPassword, 12);
+  const adminPassword = await bcrypt.hash("admin@1212", 12);
 
-  // 1. SUPER_ADMIN ACCOUNT
+  // 1. SUPER_ADMIN ACCOUNT (admin@gmail.com)
   const superAdmin = await prisma.user.upsert({
-    where: { email: "admin@nextg.com" },
+    where: { email: "admin@gmail.com" },
     update: {
-      password: hashedPassword,
+      password: adminPassword,
       role: "SUPER_ADMIN",
       status: "ACTIVE",
       isEmailVerified: true,
     },
     create: {
       name: "Super Admin",
-      email: "admin@nextg.com",
-      password: hashedPassword,
+      email: "admin@gmail.com",
+      password: adminPassword,
       role: "SUPER_ADMIN",
       status: "ACTIVE",
       isEmailVerified: true,
@@ -271,11 +272,10 @@ async function main() {
   console.log("\n=======================================================");
   console.log("🎉 ALL SEED ACCOUNTS READY WITH FULL CONTROL ACCESS");
   console.log("=======================================================");
-  console.log("Common Password:  Password123!\n");
-  console.log("1. SUPER ADMIN:   admin@nextg.com");
-  console.log("2. SHOP OWNER:    seller@nextg.com (Shop: nextg-tech-store)");
-  console.log("3. CUSTOMER:      customer@nextg.com");
-  console.log("4. DANI DEV:      dani21.dev@gmail.com (Shop: test-class-a)");
+  console.log("1. SUPER ADMIN:   admin@gmail.com (Password: admin@1212)");
+  console.log("2. SHOP OWNER:    seller@nextg.com (Password: Password123!) (Shop: nextg-tech-store)");
+  console.log("3. CUSTOMER:      customer@nextg.com (Password: Password123!)");
+  console.log("4. DANI DEV:      dani21.dev@gmail.com (Password: Password123!) (Shop: test-class-a)");
   console.log("=======================================================\n");
 
   await prisma.$disconnect();
