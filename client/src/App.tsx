@@ -20,10 +20,19 @@ function App() {
 
       const restoreSession = async () => {
          try {
-            const { accessToken } = await refreshTokenRequest();
-            useAuthStore.setState({ accessToken });
-            const user = await getMeRequest();
-            setAuth(user, accessToken);
+            // Use Promise.race with a 10s failsafe so UI never freezes indefinitely
+            const restorePromise = (async () => {
+               const { accessToken } = await refreshTokenRequest();
+               useAuthStore.setState({ accessToken });
+               const user = await getMeRequest();
+               setAuth(user, accessToken);
+            })();
+
+            const timeoutPromise = new Promise((_, reject) =>
+               setTimeout(() => reject(new Error("Session restore timeout")), 10000)
+            );
+
+            await Promise.race([restorePromise, timeoutPromise]);
          } catch {
             // A persisted profile is not proof of a valid server session.
             clearAuth();

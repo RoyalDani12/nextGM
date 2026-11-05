@@ -31,6 +31,8 @@ ENV NODE_ENV=production
 COPY --from=production-dependencies --chown=node:node /app/package.json /app/package-lock.json ./
 COPY --from=production-dependencies --chown=node:node /app/node_modules ./node_modules
 COPY --from=production-dependencies --chown=node:node /app/dist ./dist
+COPY --from=production-dependencies --chown=node:node /app/prisma ./prisma
+COPY --from=production-dependencies --chown=node:node /app/prisma.config.ts ./prisma.config.ts
 
 USER node
 
