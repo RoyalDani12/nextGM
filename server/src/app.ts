@@ -87,6 +87,10 @@ app.get('/',(req ,res)=>{
   res.json({message:"server running successfully"})
 })
 
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 app.use(notFound)
 app.use(errHandler)
 

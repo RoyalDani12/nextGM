@@ -1,0 +1,109 @@
+name: nextgm
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nextgm}
+      POSTGRES_USER: ${POSTGRES_USER:-nextgm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nextgm_dev_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  migrate:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+      target: migration
+    env_file:
+      - ./server/.env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-nextgm}:${POSTGRES_PASSWORD:-nextgm_dev_password}@postgres:5432/${POSTGRES_DB:-nextgm}
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    env_file:
+      - ./server/.env
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-nextgm}:${POSTGRES_PASSWORD:-nextgm_dev_password}@postgres:5432/${POSTGRES_DB:-nextgm}
+      REDIS_URL: redis://redis:6379
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:3000}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+    ports:
+      - "${API_PORT:-5000}:5000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  worker:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    env_file:
+      - ./server/.env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-nextgm}:${POSTGRES_PASSWORD:-nextgm_dev_password}@postgres:5432/${POSTGRES_DB:-nextgm}
+      REDIS_URL: redis://redis:6379
+    command: ["node", "dist/worker.js"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5000/api/v1}
+        VITE_STRIPE_PUBLISHABLE_KEY: ${VITE_STRIPE_PUBLISHABLE_KEY:-}
+    ports:
+      - "${CLIENT_PORT:-3000}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  postgres_data:
+  redis_data:

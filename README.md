@@ -565,6 +565,81 @@ Local endpoints:
 | API base | `http://localhost:5000/api/v1` |
 | Swagger UI | `http://localhost:5000/api-docs` |
 
+### Backend Docker image
+
+The backend Dockerfile provides a production API image, a reusable worker
+command, and a separate Prisma migration target:
+
+```bash
+# Build the API/worker image
+docker build -f server/Dockerfile -t nextgm-api:latest server
+
+# Apply migrations as a one-time release job
+docker build --target migration -f server/Dockerfile -t nextgm-migrate:latest server
+docker run --rm --env-file server/.env nextgm-migrate:latest
+
+# Run the API
+docker run --rm --env-file server/.env \
+  -e NODE_ENV=production \
+  -p 5000:5000 nextgm-api:latest
+
+# Run the worker from the same image
+docker run --rm --env-file server/.env \
+  -e NODE_ENV=production \
+  nextgm-api:latest node dist/worker.js
+```
+
+The API and worker require the same PostgreSQL, Redis, Stripe, Cloudinary,
+SMTP, and authentication configuration. In production, inject these values
+from a secret manager rather than committing or copying `.env` files.
+
+### Full Docker Compose stack
+
+For local development, Compose runs PostgreSQL, Redis, the migration job, API,
+worker, and frontend together:
+
+```bash
+docker compose up --build
+```
+
+Services are available at:
+
+| Service | URL |
+| --- | --- |
+| Frontend | `http://localhost:3000` |
+| API | `http://localhost:5000` |
+| API health | `http://localhost:5000/health` |
+| Swagger UI | `http://localhost:5000/api-docs` |
+
+PostgreSQL and Redis are intentionally reachable only inside the Compose
+network; they are not published to the host.
+
+Compose replaces `localhost` with the internal service names for API-to-service
+traffic:
+
+```text
+DATABASE_URL=postgresql://...@postgres:5432/nextgm
+REDIS_URL=redis://redis:6379
+```
+
+The `migrate` service runs `prisma migrate deploy` once PostgreSQL is healthy.
+The API and worker wait for that job to complete successfully. Persistent
+volumes retain PostgreSQL and Redis data between restarts.
+
+To stop the stack without deleting data:
+
+```bash
+docker compose down
+```
+
+To remove containers and local data volumes:
+
+```bash
+docker compose down -v
+```
+
+Do not use `down -v` against a shared or production environment.
+
 ---
 
 ## Environment configuration

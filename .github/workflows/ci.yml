@@ -1,0 +1,137 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/**"
+      - "fix/**"
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  client:
+    name: Client lint and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_URL: http://localhost:5000/api/v1
+          VITE_STRIPE_PUBLISHABLE_KEY: pk_test_ci_placeholder
+
+  server:
+    name: Server build and tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: nextgm_test
+          POSTGRES_USER: nextgm
+          POSTGRES_PASSWORD: nextgm_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nextgm -d nextgm_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    defaults:
+      run:
+        working-directory: server
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://nextgm:nextgm_test_password@localhost:5432/nextgm_test
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: ci-jwt-secret
+      JWT_REFRESH_SECRET: ci-refresh-secret
+      SMTP_HOST: localhost
+      SMTP_PORT: "2525"
+      SMTP_USER: ci
+      SMTP_PASS: ci
+      CLIENT_URL: http://localhost:3000
+      ALLOWED_ORIGINS: http://localhost:3000
+      DEVICE_LIMIT: "5"
+      CLOUDINARY_CLOUD_NAME: ci
+      CLOUDINARY_API_KEY: ci
+      CLOUDINARY_API_SECRET: ci
+      ORDER_RESERVATION_TTL_MINUTES: "30"
+      STRIPE_SECRET_KEY: sk_test_ci_placeholder
+      STRIPE_WEBHOOK_SECRET: whsec_ci_placeholder
+      PLATFORM_COMMISSION_RATE: "0.1"
+      GOOGLE_CLIENT_ID: ci
+      GOOGLE_CLIENT_SECRET: ci
+      GOOGLE_REDIRECT_URI: http://localhost:3000/auth/callback
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test -- --run
+
+  compose:
+    name: Compose and Docker validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+
+      - name: Build Docker images
+        run: docker compose build
