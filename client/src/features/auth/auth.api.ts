@@ -51,6 +51,11 @@ export const verifyEmailRequest = async(token:string)=>{
   return data
 }
 
+export const resendVerificationRequest = async (email: string) => {
+  const { data } = await api.post<{ success: boolean; statusCode: number; message: string }>("/auth/resend-verification", { email });
+  return data;
+};
+
 
 export const forgetPasswordRequest = async (payload:ForgetPayload)=>{
     const { data } = await api.post('/auth/forgot-password',payload)
