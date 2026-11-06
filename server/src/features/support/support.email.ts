@@ -1,4 +1,4 @@
-import { transporter } from "../../services/email.transporter.js";
+import { sendEmail } from "../../services/email.transporter.js";
 import { env } from "../../config/env.js";
 
 const BRAND_NAME = "Nexions Customer Care";
@@ -9,12 +9,7 @@ const SUPPORT_EMAIL = "support@nexions.io";
  */
 async function dispatchEmail(to: string, subject: string, html: string) {
   try {
-    await transporter.sendMail({
-      from: `"${BRAND_NAME}" <${SUPPORT_EMAIL}>`,
-      to,
-      subject,
-      html,
-    });
+    await sendEmail(to, subject, html, `"${BRAND_NAME}" <${SUPPORT_EMAIL}>`);
     console.log(`[Support Email Sent] to: ${to} | subject: ${subject}`);
   } catch (err: any) {
     console.error(`[Support Email Warning] Could not deliver email to ${to}:`, err?.message || err);
