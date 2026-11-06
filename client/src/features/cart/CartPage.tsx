@@ -11,6 +11,7 @@ import {
   Plus,
   Minus,
   Tag,
+  ArrowLeft,
   ArrowRight,
   Truck,
   Store,
@@ -24,8 +25,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-// import { MarketplaceNavbar } from "@/layouts/MarketplaceNavbar";
-import { MarketplaceNavbar } from "../marketplace/layouts/MarketplaceNavbar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,13 +52,15 @@ export const CartPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background font-sans">
-        <MarketplaceNavbar />
-        <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
-          <div className="flex items-center justify-between">
-            <Skeleton className="h-9 w-48 rounded-lg" />
-            <Skeleton className="h-9 w-28 rounded-lg" />
+      <div className="min-h-screen bg-[#f8fafc] font-sans">
+        <header className="border-b border-slate-200/80 bg-white">
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
+            <Skeleton className="h-8 w-36 rounded-full" />
+            <Skeleton className="h-7 w-20 rounded-lg" />
+            <Skeleton className="h-8 w-20 rounded-lg" />
           </div>
+        </header>
+        <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 space-y-4">
               <Skeleton className="h-28 w-full rounded-2xl" />
@@ -76,8 +77,18 @@ export const CartPage = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background font-sans">
-        <MarketplaceNavbar />
+      <div className="min-h-screen bg-[#f8fafc] font-sans">
+        <header className="border-b border-slate-200/80 bg-white">
+          <div className="mx-auto flex max-w-7xl items-center px-4 py-3.5 sm:px-6 lg:px-8">
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 cursor-pointer"
+            >
+              <ArrowLeft className="size-4" /> Continue Shopping
+            </button>
+          </div>
+        </header>
         <div className="max-w-3xl mx-auto p-8 md:p-12">
           <Alert variant="destructive" className="border-destructive/20 bg-destructive/5 rounded-2xl">
             <AlertCircle className="h-5 w-5" />
@@ -176,36 +187,43 @@ export const CartPage = () => {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-foreground font-sans antialiased">
-      <MarketplaceNavbar />
+      {/* Clean Focused Header (Navbar and cart intro header removed) */}
+      <header className="border-b border-slate-200/80 bg-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 cursor-pointer"
+          >
+            <ArrowLeft className="size-4" />
+            <span>Continue Shopping</span>
+          </button>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Header Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/40">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900">
-              Shopping Cart{" "}
-              <span className="text-muted-foreground font-normal text-xl">
-                ({allItems.length} {allItems.length === 1 ? "item" : "items"})
-              </span>
-            </h1>
-            <p className="text-sm text-slate-500 mt-1">
-              Review your selected items and options before proceeding to checkout.
-            </p>
-          </div>
+          <Link to="/" className="flex items-center gap-2 font-black text-slate-900 tracking-tight text-lg">
+            <span className="flex size-7 items-center justify-center rounded-lg bg-orange-500 text-white text-xs font-bold shadow-xs">
+              NG
+            </span>
+            <span>NextG.</span>
+          </Link>
 
-          {hasItems && (
+          {hasItems ? (
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsClearDialogOpen(true)}
               disabled={isClearing}
-              className="h-9 px-3.5 rounded-xl border border-rose-200 bg-rose-50/80 hover:bg-rose-100 hover:border-rose-300 text-rose-600 font-bold text-xs shadow-2xs hover:shadow-xs active:scale-95 transition-all cursor-pointer self-start sm:self-auto gap-2"
+              className="h-8.5 px-3 rounded-xl border border-rose-200 bg-rose-50/80 hover:bg-rose-100 hover:border-rose-300 text-rose-600 font-bold text-xs shadow-2xs hover:shadow-xs active:scale-95 transition-all cursor-pointer gap-1.5"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="size-3.5" />
               <span>Clear Cart</span>
             </Button>
+          ) : (
+            <div className="w-24 sm:w-28" />
           )}
         </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
         {/* Empty Cart State */}
         {!hasItems ? (
