@@ -70,7 +70,7 @@ export default function Hero() {
     setParams(next, { replace: true });
   };
 
-  return <div className="min-h-screen bg-slate-50 text-slate-900">
+  return <div className="w-full bg-slate-50 text-slate-900">
     {showLegacyHero && <section aria-hidden="true">
       <div className="hero-grid absolute inset-0 opacity-40" />
       <div className="hero-orb hero-orb-one" /><div className="hero-orb hero-orb-two" /><div className="hero-orb hero-orb-three" />
@@ -127,7 +127,7 @@ export default function Hero() {
       </div>
     </section>}
     <MarketplaceHeroCarousel products={products} categories={categories} onCategory={(slug) => changeFilters({ ...filters, categorySlug: slug })} />
-    <main id="marketplace-products" className="w-full px-4 py-6 pb-24 sm:px-6 lg:px-10 lg:pb-8">
+    <main id="marketplace-products" className="w-full px-4 py-6 pb-20 sm:px-6 lg:px-10 lg:pb-16 mb-8">
       <PromotionCarousel onSelect={setSelectedProductId} />
       <MarketplaceFilterSidebar categories={categories} filters={filters} onChange={changeFilters} onReset={reset}/>
       <div className="min-w-0">
@@ -139,16 +139,18 @@ export default function Hero() {
             {Array.from({ length: 8 }).map((_, idx) => (
               <div
                 key={idx}
-                className="rounded-xl border border-slate-100 bg-white p-2.5 flex flex-col justify-between h-[270px] animate-pulse"
+                className="rounded-xl border border-slate-100 bg-white p-2.5 flex flex-col justify-between overflow-hidden shadow-2xs"
               >
-                <div className="aspect-square w-full rounded-lg bg-slate-100" />
-                <div className="space-y-2 mt-2">
-                  <div className="h-3.5 w-4/5 rounded bg-slate-100" />
-                  <div className="h-3 w-1/2 rounded bg-slate-100" />
+                <div className="space-y-2">
+                  <div className="aspect-square w-full max-h-[170px] sm:max-h-[190px] rounded-lg bg-slate-100 animate-pulse" />
+                  <div className="space-y-1.5 px-0.5 pt-1">
+                    <div className="h-3 w-4/5 rounded bg-slate-100 animate-pulse" />
+                    <div className="h-2.5 w-1/2 rounded bg-slate-100 animate-pulse" />
+                  </div>
                 </div>
-                <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-50">
-                  <div className="h-4 w-14 rounded bg-slate-100" />
-                  <div className="h-3.5 w-10 rounded bg-slate-100" />
+                <div className="flex items-center justify-between pt-3 mt-2 border-t border-slate-100/80">
+                  <div className="h-4 w-14 rounded bg-slate-100 animate-pulse" />
+                  <div className="h-3 w-10 rounded bg-slate-100 animate-pulse" />
                 </div>
               </div>
             ))}

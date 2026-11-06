@@ -38,7 +38,7 @@ export default function Footer() {
     };
 
     return (
-        <footer className="bg-slate-900 border-t border-slate-800 text-slate-300 mt-auto">
+        <footer className="relative z-10 w-full bg-slate-900 border-t border-slate-800 text-slate-300 mt-auto">
             {/* Back to top button row */}
             <button 
                 onClick={scrollToTop}
