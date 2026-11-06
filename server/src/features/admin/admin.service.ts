@@ -1,6 +1,6 @@
 import { recordAuditLog } from "./audit.service.js";
 import bcrypt from "bcrypt";
-import { transporter } from "../../services/email.transporter.js";
+import { sendEmail } from "../../services/email.transporter.js";
 import { AppError } from "../../middleware/appError.js";
 import { deleteUserSession } from "../../infrastructure/cache/session.cache.js";
 import { prisma } from "../../config/db.js";
@@ -189,11 +189,10 @@ export const resetUserPasswordService = async (id: string, customPassword?: stri
 
     // Send transactional notification email to user
     try {
-        await transporter.sendMail({
-            from: '"Nexions Security" <support@nexions.io>',
-            to: user.email,
-            subject: "Your Nexions Account Password Has Been Reset",
-            html: `
+        await sendEmail(
+            user.email,
+            "Your Nexions Account Password Has Been Reset",
+            `
             <div style="font-family: sans-serif; max-width: 550px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px;">
                 <h2 style="color: #0f172a; margin-top: 0;">Password Reset by Administrator</h2>
                 <p>Hello <strong>${user.name}</strong>,</p>
@@ -204,7 +203,8 @@ export const resetUserPasswordService = async (id: string, customPassword?: stri
                 <p style="color: #64748b; font-size: 13px;">Please log in using this temporary password and immediately change it in your Account Settings.</p>
             </div>
             `,
-        });
+            '"Nexions Security" <support@nexions.io>'
+        );
     } catch (e: any) {
         console.error("Failed to deliver reset password notification email:", e?.message);
     }
@@ -226,12 +226,12 @@ export const sendUserEmailService = async (id: string, subject: string, message:
     </div>
     `;
 
-    await transporter.sendMail({
-        from: '"Nexions Platform Support" <support@nexions.io>',
-        to: user.email,
+    await sendEmail(
+        user.email,
         subject,
         html,
-    });
+        '"Nexions Platform Support" <support@nexions.io>'
+    );
 
     return { sent: true, to: user.email };
 };
@@ -287,12 +287,12 @@ export const bulkSendUserEmailService = async (userIds: string[], subject: strin
             </div>
             `;
 
-            await transporter.sendMail({
-                from: '"Nexions Platform Support" <support@nexions.io>',
-                to: user.email,
+            await sendEmail(
+                user.email,
                 subject,
                 html,
-            });
+                '"Nexions Platform Support" <support@nexions.io>'
+            );
             deliveredCount++;
         } catch (err: any) {
             console.error(`Failed sending bulk email to ${user.email}:`, err?.message);

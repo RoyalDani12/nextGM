@@ -65,7 +65,8 @@ export const resendVerificationSchema = z.object({
         email: z
             .string()
             .trim()
-            .email("Invalid email address"),
+            .email("Invalid email address")
+            .toLowerCase(),
     }),
 });
 
@@ -75,7 +76,8 @@ export const forgotPasswordSchema = z.object({
         email: z
             .string()
             .trim()
-            .email("Invalid email address"),
+            .email("Invalid email address")
+            .toLowerCase(),
     }),
 });
 

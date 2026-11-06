@@ -24,7 +24,7 @@ export const registerSchema = z.object({
 export type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export const forgotPasswordSchema = z.object({
-   email: z.string().email("Please enter a valid work email address."),
+   email: z.string().trim().email("Please enter a valid work email address.").toLowerCase(),
 });
 
 export type ForgetPasswordFormValue = z.infer<typeof forgotPasswordSchema>

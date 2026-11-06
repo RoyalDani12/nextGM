@@ -13,11 +13,14 @@ const envSchema = z.object({
     REDIS_URL: z.string().url(),
 
     // SMTP
-    SMTP_HOST: z.string(),
-    SMTP_PORT: z.string().transform(Number), // Automatically turns string "587" into number 587
+    SMTP_HOST: z.string().default("smtp.gmail.com"),
+    SMTP_PORT: z.string().default("587").transform(Number), // Automatically turns string "587" into number 587
+    SMTP_USER: z.string().default(""),
+    SMTP_PASS: z.string().default(""),
 
-    SMTP_USER: z.string(),
-    SMTP_PASS: z.string(),
+    // Resend (HTTPS Port 443 - for platforms like Render Free tier that block SMTP)
+    RESEND_API_KEY: z.string().optional(),
+    EMAIL_FROM: z.string().optional(),
     CLIENT_URL: z.string().url(),
     ALLOWED_ORIGINS: z.string().url(),
     DEVICE_LIMIT: z.string().transform(Number),
