@@ -549,7 +549,7 @@ export function ProductDetailView({
                         <div className="flex gap-1" aria-label="Rating">
                           {[1, 2, 3, 4, 5].map((value) => <button key={value} type="button" aria-label={`${value} stars`} onClick={() => setReviewRating(value)}><Star className={`size-5 ${value <= reviewRating ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} /></button>)}
                         </div>
-                        <textarea value={reviewComment} onChange={(event) => setReviewComment(event.target.value)} maxLength={2000} placeholder="Share your experience (optional)" className="min-h-20 w-full rounded-lg border border-slate-200 bg-white p-2 text-xs outline-none focus:border-orange-400" />
+                        <textarea value={reviewComment} onChange={(event) => setReviewComment(event.target.value)} maxLength={2000} placeholder="Share your experience (optional)" className="min-h-20 w-full rounded-lg border border-slate-200 bg-white p-2 text-xs outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20" />
                         <Button type="submit" disabled={saveReview.isPending} size="sm" className="rounded-lg bg-slate-900 text-white hover:bg-slate-700">{saveReview.isPending ? <Loader2 className="mr-2 size-3 animate-spin" /> : <Pencil className="mr-2 size-3" />}{ownReview ? "Update review" : "Submit review"}</Button>
                       </form>
                     )}

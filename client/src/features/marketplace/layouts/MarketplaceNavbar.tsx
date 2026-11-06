@@ -122,15 +122,15 @@ export const MarketplaceNavbar = () => {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 flex w-full flex-col select-none border-b border-slate-200 bg-white font-sans antialiased shadow-sm">
+    <header className="sticky top-0 z-50 flex w-full flex-col select-none border-b border-slate-200 bg-white font-sans antialiased shadow-sm animate-fade-down">
       {/* Top Banner Strip */}
       <div className="w-full border-b border-slate-200 bg-white px-4 py-1.5 text-center text-xs font-semibold tracking-wide text-slate-700">
         <span className="hidden sm:inline">
           Next-Gen Physical E-Commerce Engine.{" "}
-          <strong className="text-orange-400 underline decoration-orange-400/50">Enjoy Zero Fees on Your First Order.</strong>
+          <strong className="text-orange-500 underline decoration-orange-500/40">Enjoy Zero Fees on Your First Order.</strong>
         </span>
         <span className="sm:hidden">
-          Next-Gen E-Commerce • <strong className="text-orange-400 underline decoration-orange-400/50">Zero Fees</strong>
+          Next-Gen E-Commerce • <strong className="text-orange-500 underline decoration-orange-500/40">Zero Fees</strong>
         </span>
       </div>
 
@@ -147,13 +147,13 @@ export const MarketplaceNavbar = () => {
 
           {/* Search Box */}
           <form onSubmit={(event) => { event.preventDefault(); navigate(searchQuery.trim() ? `/?search=${encodeURIComponent(searchQuery.trim())}` : "/"); }} className="hidden xl:flex flex-1 max-w-xl relative group">
-            <Search className="absolute left-4 top-3 size-4 text-slate-400 group-focus-within:text-orange-300 transition-colors" />
+            <Search className="absolute left-4 top-3 size-4 text-slate-400 group-focus-within:text-orange-500 transition-colors" />
             <Input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search physical products, brands, or categories..."
-              className="h-11 w-full rounded-full border-2 border-slate-900 bg-white pl-11 pr-24 text-sm font-medium text-slate-900 shadow-none placeholder:text-slate-500 transition-all focus-visible:border-[#3665f3] focus-visible:ring-2 focus-visible:ring-[#3665f3]/20"
+              className="h-11 w-full rounded-full border-2 border-slate-900 bg-white pl-11 pr-24 text-sm font-medium text-slate-900 shadow-none placeholder:text-slate-500 transition-all focus-visible:border-orange-500 focus-visible:ring-2 focus-visible:ring-orange-500/20"
             />
             <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
               <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-bold text-slate-500 shadow-xs">
@@ -185,7 +185,7 @@ export const MarketplaceNavbar = () => {
           {/* Mobile Cart Button */}
           <button
             onClick={() => navigate("/cart")}
-            className="relative ml-auto flex cursor-pointer items-center justify-center rounded-xl p-2 text-slate-700 transition-all hover:bg-orange-50 hover:text-orange-600 lg:hidden"
+            className="relative ml-auto flex cursor-pointer items-center justify-center rounded-xl p-2 text-slate-700 transition-all hover:bg-orange-50 hover:text-orange-500 lg:hidden"
             aria-label="Shopping cart"
           >
             <ShoppingCart className="size-6" />
@@ -209,7 +209,7 @@ export const MarketplaceNavbar = () => {
                 </Button>
                 <Button
                   onClick={() => navigate("/register")}
-                  className="text-sm font-bold bg-[#3665f3] hover:bg-[#2854d9] text-white h-10 px-5 rounded-full shadow-sm cursor-pointer transition-all"
+                  className="text-sm font-bold bg-orange-500 hover:bg-orange-600 text-white h-10 px-5 rounded-full shadow-md shadow-orange-500/25 cursor-pointer transition-all"
                 >
                   Get Started
                 </Button>
@@ -222,7 +222,7 @@ export const MarketplaceNavbar = () => {
                   aria-label="Open account menu"
                   className="flex items-center gap-2 outline-none group cursor-pointer"
                 >
-                  <div className="size-9 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-[#3665f3] group-hover:border-[#3665f3] transition-all">
+                  <div className="size-9 rounded-full bg-orange-50 border border-orange-200/80 flex items-center justify-center text-orange-500 group-hover:border-orange-500 transition-all">
                     <User className="size-4.5" />
                   </div>
                 </DropdownMenuTrigger>
@@ -234,19 +234,19 @@ export const MarketplaceNavbar = () => {
                   <div className="space-y-0.5 p-1 text-slate-700">
                     <DropdownMenuItem
                       onClick={() => navigate("/account/settings")}
-                      className="cursor-pointer rounded-xl focus:bg-blue-50 focus:text-[#3665f3]"
+                      className="cursor-pointer rounded-xl focus:bg-orange-50 focus:text-orange-600"
                     >
                       <User className="mr-2 size-4 text-slate-400" /> Profile Settings
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => navigate("/shops")}
-                      className="cursor-pointer rounded-xl focus:bg-blue-50 focus:text-[#3665f3]"
+                      className="cursor-pointer rounded-xl focus:bg-orange-50 focus:text-orange-600"
                     >
                       <Package className="mr-2 size-4 text-slate-400" /> See Your Shops
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => navigate("/customer-order")}
-                      className="cursor-pointer rounded-xl focus:bg-blue-50 focus:text-[#3665f3]"
+                      className="cursor-pointer rounded-xl focus:bg-orange-50 focus:text-orange-600"
                     >
                       <Receipt className="mr-2 size-4 text-slate-400" />Your Orders
                     </DropdownMenuItem>
@@ -292,7 +292,7 @@ export const MarketplaceNavbar = () => {
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Search products, brands and categories"
-            className="h-10 w-full rounded-full border border-slate-300 bg-slate-50 pl-11 pr-4 text-sm text-slate-900 placeholder:text-slate-500 focus-visible:border-[#3665f3] focus-visible:ring-2 focus-visible:ring-[#3665f3]/20"
+            className="h-10 w-full rounded-full border border-slate-300 bg-slate-50 pl-11 pr-4 text-sm text-slate-900 placeholder:text-slate-500 focus-visible:border-orange-500 focus-visible:ring-2 focus-visible:ring-orange-500/20"
           />
         </form>
       </div>

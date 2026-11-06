@@ -83,7 +83,7 @@ export const MarketplaceMobileMenu = ({
             />
           </div>
           <span className="text-xl font-black tracking-tight text-slate-900">
-            NextG<span className="text-[#3665f3]">.</span>
+            NextG<span className="text-orange-500">.</span>
           </span>
         </Link>
       </div>
@@ -112,10 +112,10 @@ export const MarketplaceMobileMenu = ({
         <div className="p-4 space-y-4 flex-1">
           {/* User Account / Auth Card */}
           {isAuthenticated && user ? (
-            <div className="rounded-2xl border border-slate-200/70 bg-gradient-to-br from-slate-50 to-blue-50/20 p-3.5 space-y-3 shadow-xs">
+            <div className="rounded-2xl border border-slate-200/70 bg-gradient-to-br from-slate-50 to-orange-50/40 p-3.5 space-y-3 shadow-xs">
               {/* Profile summary */}
               <div className="flex items-center gap-3">
-                <div className="size-11 rounded-full bg-[#3665f3] text-white flex items-center justify-center font-black text-sm shadow-xs shrink-0">
+                <div className="size-11 rounded-full bg-orange-500 text-white flex items-center justify-center font-black text-sm shadow-xs shrink-0 shadow-orange-500/25">
                   {user.name?.[0]?.toUpperCase() || "U"}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -124,7 +124,7 @@ export const MarketplaceMobileMenu = ({
                       {user.name || "My Account"}
                     </p>
                     {user.role && user.role !== "CUSTOMER" && (
-                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-blue-100 text-blue-700">
+                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-orange-100 text-orange-700">
                         {user.role.replace("_", " ")}
                       </span>
                     )}
@@ -171,12 +171,12 @@ export const MarketplaceMobileMenu = ({
                   onClick={() => goTo("/customer-order")}
                   className={`flex flex-col items-center justify-center p-2 rounded-xl bg-white border shadow-2xs transition-colors cursor-pointer ${
                     isActive("/customer-order")
-                      ? "border-blue-200 bg-blue-50/50 text-[#3665f3]"
+                      ? "border-orange-200 bg-orange-50/50 text-orange-600"
                       : "border-slate-200/80 text-slate-700 hover:bg-slate-50"
                   }`}
                 >
                   <div className="size-7 flex items-center justify-center">
-                    <Receipt className="size-4.5 text-blue-600" />
+                    <Receipt className="size-4.5 text-orange-500" />
                   </div>
                   <span className="text-[10px] font-bold text-slate-600 mt-1">Orders</span>
                 </button>
@@ -214,7 +214,7 @@ export const MarketplaceMobileMenu = ({
                 </Button>
                 <Button
                   onClick={() => goTo("/register")}
-                  className="flex-1 h-9 rounded-xl text-xs font-bold bg-[#3665f3] hover:bg-[#2854d9] text-white shadow-xs"
+                  className="flex-1 h-9 rounded-xl text-xs font-bold bg-orange-500 hover:bg-orange-600 text-white shadow-md shadow-orange-500/25"
                 >
                   Join Free
                 </Button>
@@ -232,7 +232,7 @@ export const MarketplaceMobileMenu = ({
               onClick={() => goTo("/")}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 isActive("/")
-                  ? "bg-blue-50 text-[#3665f3] shadow-xs"
+                  ? "bg-orange-50 text-orange-600 shadow-xs"
                   : "text-slate-700 hover:bg-slate-100/70 hover:text-slate-900"
               }`}
             >
@@ -246,7 +246,7 @@ export const MarketplaceMobileMenu = ({
               onClick={() => goTo("/how-it-works")}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 isActive("/how-it-works")
-                  ? "bg-blue-50 text-[#3665f3] shadow-xs"
+                  ? "bg-orange-50 text-orange-600 shadow-xs"
                   : "text-slate-700 hover:bg-slate-100/70 hover:text-slate-900"
               }`}
             >
@@ -262,7 +262,7 @@ export const MarketplaceMobileMenu = ({
                   onClick={() => goTo("/customer-order")}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     isActive("/customer-order")
-                      ? "bg-blue-50 text-[#3665f3] shadow-xs"
+                      ? "bg-orange-50 text-orange-600 shadow-xs"
                       : "text-slate-700 hover:bg-slate-100/70 hover:text-slate-900"
                   }`}
                 >
@@ -276,7 +276,7 @@ export const MarketplaceMobileMenu = ({
                   onClick={() => goTo("/wishlist")}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     isActive("/wishlist")
-                      ? "bg-blue-50 text-[#3665f3] shadow-xs"
+                      ? "bg-orange-50 text-orange-600 shadow-xs"
                       : "text-slate-700 hover:bg-slate-100/70 hover:text-slate-900"
                   }`}
                 >
@@ -294,7 +294,7 @@ export const MarketplaceMobileMenu = ({
                   onClick={() => goTo("/shops")}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     isActive("/shops")
-                      ? "bg-blue-50 text-[#3665f3] shadow-xs"
+                      ? "bg-orange-50 text-orange-600 shadow-xs"
                       : "text-slate-700 hover:bg-slate-100/70 hover:text-slate-900"
                   }`}
                 >
@@ -308,7 +308,7 @@ export const MarketplaceMobileMenu = ({
                   onClick={() => goTo("/account/settings")}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     isActive("/account/settings")
-                      ? "bg-blue-50 text-[#3665f3] shadow-xs"
+                      ? "bg-orange-50 text-orange-600 shadow-xs"
                       : "text-slate-700 hover:bg-slate-100/70 hover:text-slate-900"
                   }`}
                 >
@@ -349,7 +349,7 @@ export const MarketplaceMobileMenu = ({
                       onClick={() => goTo(`/?categorySlug=${parent.slug}`)}
                       className={`flex min-h-8 w-full items-center justify-between rounded-lg px-2.5 text-left text-xs transition-colors ${
                         currentCategorySlug === parent.slug
-                          ? "bg-blue-50 font-bold text-[#3665f3]"
+                          ? "bg-orange-50 font-bold text-orange-600"
                           : "font-semibold text-slate-600 hover:bg-slate-100"
                       }`}
                     >
@@ -363,7 +363,7 @@ export const MarketplaceMobileMenu = ({
                         onClick={() => goTo(`/?categorySlug=${child.slug}`)}
                         className={`flex min-h-8 w-full items-center justify-between rounded-lg px-2.5 text-left text-xs transition-colors ${
                           currentCategorySlug === child.slug
-                            ? "bg-blue-50 font-bold text-[#3665f3]"
+                            ? "bg-orange-50 font-bold text-orange-600"
                             : "font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800"
                         }`}
                       >
@@ -385,13 +385,13 @@ export const MarketplaceMobileMenu = ({
           <div className="pt-2">
             <button
               onClick={() => goTo("/shops/new")}
-              className="w-full flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-blue-600 to-[#3665f3] text-white shadow-xs hover:opacity-95 transition-all cursor-pointer"
+              className="w-full flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-md shadow-orange-500/25 hover:opacity-95 transition-all cursor-pointer"
             >
               <div className="flex items-center gap-2.5">
                 <Store className="size-4.5" />
                 <div className="text-left">
                   <p className="text-xs font-black">Open Your Store</p>
-                  <p className="text-[10px] text-blue-100">Zero fees on first order</p>
+                  <p className="text-[10px] text-orange-100">Zero fees on first order</p>
                 </div>
               </div>
               <ChevronRight className="size-4 opacity-75" />

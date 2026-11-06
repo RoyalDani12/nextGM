@@ -6,8 +6,8 @@ type HeroProduct = { id: string; name: string; images?: Array<{ url?: string }> 
 type Category = { id: string; name: string; slug: string };
 
 const slides = [
-  { eyebrow: "Fresh finds, every day", title: "Big style.\nSmall prices.", body: "Discover independently made pieces and everyday essentials.", cta: "Shop new arrivals", theme: "from-[#d9f6ff] via-[#bcecff] to-[#86cfff]", text: "text-[#132a4f]", button: "bg-[#3665f3] hover:bg-[#2854d9]" },
-  { eyebrow: "Home, tech & more", title: "Find something\nworth keeping.", body: "Good design, useful tech, and the kind of things you will love using.", cta: "Explore picks", theme: "from-[#fff4cf] via-[#ffe6a0] to-[#ffc979]", text: "text-[#3a2500]", button: "bg-[#e65400] hover:bg-[#c94700]" },
+  { eyebrow: "Fresh finds, every day", title: "Big style.\nSmall prices.", body: "Discover independently made pieces and everyday essentials.", cta: "Shop new arrivals", theme: "from-[#fff0e6] via-[#ffd6ba] to-[#ffb076]", text: "text-[#4a1c00]", button: "bg-orange-500 hover:bg-orange-600 shadow-md shadow-orange-500/25" },
+  { eyebrow: "Home, tech & more", title: "Find something\nworth keeping.", body: "Good design, useful tech, and the kind of things you will love using.", cta: "Explore picks", theme: "from-[#fff5eb] via-[#ffe0c2] to-[#ffc89b]", text: "text-[#3a1d00]", button: "bg-orange-600 hover:bg-orange-700 shadow-md shadow-orange-600/25" },
   { eyebrow: "Independent stores", title: "Made closer\nto home.", body: "Shop distinctive brands and support the people building them.", cta: "Meet the makers", theme: "from-[#f4d9ff] via-[#e4c4ff] to-[#b8b5ff]", text: "text-[#2c1748]", button: "bg-[#7a39c5] hover:bg-[#642ba8]" },
 ];
 
@@ -24,7 +24,7 @@ export function MarketplaceHeroCarousel({ products, categories, onCategory }: { 
   }, [paused]);
 
   return (
-    <section className="w-full px-4 pt-5 sm:px-6 lg:px-10">
+    <section className="w-full px-4 pt-5 sm:px-6 lg:px-10 animate-fade-up">
       <div className={`relative min-h-[300px] overflow-hidden rounded-2xl bg-gradient-to-br ${slide.theme} transition-[background] duration-700 ease-out sm:min-h-[330px]`} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
         <div className="absolute -right-20 -top-24 h-80 w-80 rounded-full bg-white/35 blur-2xl" />
         <div className="absolute -bottom-32 left-[42%] h-72 w-72 rounded-full bg-white/25 blur-3xl" />
@@ -40,7 +40,7 @@ export function MarketplaceHeroCarousel({ products, categories, onCategory }: { 
           {[0, 1, 2].map((index) => {
             const product = products[(active + index) % Math.max(products.length, 1)];
             return <div key={`${active}-${index}`} className={`relative overflow-hidden rounded-2xl bg-white/70 shadow-xl shadow-slate-900/10 ${index === 1 ? "h-60 w-44 -translate-y-3" : "h-48 w-36 translate-y-6"}`}>
-              {product?.images?.[0]?.url ? <img src={product.images[0].url} alt={product.name} className="h-full w-full object-cover" /> : <div className={`h-full w-full bg-gradient-to-br ${index === 0 ? "from-white to-sky-200" : index === 1 ? "from-white to-amber-200" : "from-white to-violet-200"}`} />}
+              {product?.images?.[0]?.url ? <img src={product.images[0].url} alt={product.name} className="h-full w-full object-cover" /> : <div className={`h-full w-full bg-gradient-to-br ${index === 0 ? "from-white to-orange-100" : index === 1 ? "from-white to-orange-200" : "from-white to-violet-200"}`} />}
               {index === 1 && product && <p className="absolute inset-x-0 bottom-0 bg-white/90 px-3 py-2 text-xs font-bold text-slate-800 backdrop-blur">{product.name}</p>}
             </div>;
           })}
@@ -54,8 +54,8 @@ export function MarketplaceHeroCarousel({ products, categories, onCategory }: { 
           <button onClick={() => setPaused((value) => !value)} aria-label={paused ? "Play promotions" : "Pause promotions"} className="flex size-9 items-center justify-center rounded-full bg-white/80 text-slate-800 shadow-sm transition hover:scale-105 hover:bg-white">{paused ? <Play className="size-4" /> : <Pause className="size-4" />}</button>
         </div>
       </div>
-      <div className="flex gap-5 overflow-x-auto border-b border-slate-200 py-4 text-sm font-medium text-slate-700 [scrollbar-width:none]">
-        {categories.slice(0, 9).map((category) => <button key={category.id} onClick={() => onCategory(category.slug)} className="shrink-0 transition hover:text-[#3665f3]">{category.name}</button>)}
+      <div className="flex gap-5 overflow-x-auto border-b border-slate-200 py-4 text-sm font-medium text-slate-700 [scrollbar-width:none] animate-fade-up delay-100">
+        {categories.slice(0, 9).map((category) => <button key={category.id} onClick={() => onCategory(category.slug)} className="shrink-0 transition hover:text-orange-500">{category.name}</button>)}
       </div>
     </section>
   );
