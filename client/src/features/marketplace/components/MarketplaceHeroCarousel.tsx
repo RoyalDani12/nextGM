@@ -100,11 +100,11 @@ const desktopSlides = [
 ];
 
 export function MarketplaceHeroCarousel({
-  products,
+  products: _products,
   categories,
   onCategory,
 }: {
-  products: HeroProduct[];
+  products?: HeroProduct[];
   categories: Category[];
   onCategory: (slug: string) => void;
 }) {
@@ -190,14 +190,15 @@ export function MarketplaceHeroCarousel({
     document.getElementById("marketplace-products")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Helper for desktop 3D layered card stack
+  // Helper for desktop 3D layered card stack (curated high quality studio products)
   const getDesktopCard = (index: number) => {
-    const realProd = products[(activeDesktop + index) % Math.max(products.length, 1)];
     const showcaseProd =
-      HERO_SHOWCASE_PRODUCTS[(activeDesktop + index) % HERO_SHOWCASE_PRODUCTS.length];
-    const imageUrl = realProd?.images?.[0]?.url || showcaseProd.image;
-    const name = realProd?.name || showcaseProd.name;
-    return { imageUrl, name };
+      HERO_SHOWCASE_PRODUCTS[(activeDesktop * 2 + index) % HERO_SHOWCASE_PRODUCTS.length];
+    return {
+      imageUrl: showcaseProd.image,
+      name: showcaseProd.name,
+      categorySlug: showcaseProd.categorySlug,
+    };
   };
 
   return (
@@ -316,7 +317,11 @@ export function MarketplaceHeroCarousel({
               return (
                 <div
                   key={`${activeDesktop}-${index}`}
-                  className={`relative overflow-hidden rounded-2xl bg-white/70 shadow-xl shadow-slate-900/10 pointer-events-auto ${
+                  onClick={() => {
+                    onCategory(card.categorySlug);
+                    scrollToCatalog();
+                  }}
+                  className={`relative overflow-hidden rounded-2xl bg-white/70 shadow-xl shadow-slate-900/10 pointer-events-auto cursor-pointer transition-transform hover:scale-105 active:scale-95 ${
                     index === 1 ? "h-60 w-44 -translate-y-3" : "h-48 w-36 translate-y-6"
                   }`}
                 >
