@@ -100,12 +100,12 @@ export default function Hero() {
               {heroProducts[0]?.images?.[0]?.url ? <img src={heroProducts[0]?.images?.[0]?.url} alt={heroProducts[0]?.name} className="h-full w-full object-cover" /> : <div className="hero-product-fallback h-full" />}
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 to-transparent p-5 pt-16"><p className="text-xs font-medium text-slate-300">Curated for you</p><p className="mt-1 font-bold">{heroProducts[0]?.name || "Everyday essentials"}</p></div>
             </div>
-            <div className="hero-product hero-product-small overflow-hidden rounded-[1.65rem] border border-white/20 bg-orange-200 shadow-xl shadow-slate-950/30">
+            <div className="hero-product hero-product-small overflow-hidden rounded-[1.65rem] border border-white/20 bg-orange-100 shadow-xl shadow-slate-950/30">
               {heroProducts[1]?.images?.[0]?.url ? <img src={heroProducts[1]?.images?.[0]?.url} alt={heroProducts[1]?.name} className="h-full w-full object-cover" /> : <div className="hero-product-fallback-alt h-full" />}
             </div>
             <div className="hero-stat rounded-[1.65rem] border border-white/15 bg-white/10 p-5 backdrop-blur-xl"><span className="text-3xl font-black tracking-tight">100%</span><p className="mt-1 text-xs font-medium leading-5 text-slate-300">Independent<br />storefronts</p></div>
           </div>
-          <div className="hero-float-card absolute -bottom-3 -left-2 flex items-center gap-3 rounded-2xl border border-white/15 bg-slate-950/75 p-3 pr-5 shadow-2xl backdrop-blur-xl sm:-left-7"><span className="flex size-10 items-center justify-center rounded-xl bg-orange-400 text-slate-950"><ShoppingBag className="size-5" /></span><span><span className="block text-xs text-slate-400">Made for discovery</span><strong className="text-sm">Find your next thing</strong></span></div>
+          <div className="hero-float-card absolute -bottom-3 -left-2 flex items-center gap-3 rounded-2xl border border-white/15 bg-slate-950/75 p-3 pr-5 shadow-2xl backdrop-blur-xl sm:-left-7"><span className="flex size-10 items-center justify-center rounded-xl bg-orange-500 text-white shadow-sm shadow-orange-500/30"><ShoppingBag className="size-5" /></span><span><span className="block text-xs text-slate-400">Made for discovery</span><strong className="text-sm">Find your next thing</strong></span></div>
         </div>
       </div>
     </section>}
@@ -121,7 +121,7 @@ export default function Hero() {
           <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[.2em] text-orange-300"><span className="h-px w-7 bg-orange-300" /> New season, new finds</p>
           <h1 className="mt-4 text-4xl font-black leading-[.98] tracking-[-.045em] sm:text-5xl">Made for your<br /><span className="text-orange-300">everyday discovery.</span></h1>
           <p className="mt-4 max-w-md text-sm leading-6 text-slate-300 sm:text-base">Explore trusted independent stores and discover products that feel made for you.</p>
-          <div className="mt-6 flex items-center gap-3"><Button onClick={() => document.getElementById("marketplace-products")?.scrollIntoView({ behavior: "smooth" })} className="h-10 rounded-lg bg-orange-400 px-5 font-bold text-slate-950 hover:bg-orange-300">Shop now <ArrowRight className="ml-1.5 size-4" /></Button><span className="hidden items-center gap-1.5 text-xs font-medium text-slate-300 sm:inline-flex"><BadgeCheck className="size-4 text-emerald-300" /> Verified sellers</span></div>
+          <div className="mt-6 flex items-center gap-3"><Button onClick={() => document.getElementById("marketplace-products")?.scrollIntoView({ behavior: "smooth" })} className="h-10 rounded-lg bg-orange-500 px-5 font-bold text-white hover:bg-orange-600 shadow-md shadow-orange-500/25">Shop now <ArrowRight className="ml-1.5 size-4" /></Button><span className="hidden items-center gap-1.5 text-xs font-medium text-slate-300 sm:inline-flex"><BadgeCheck className="size-4 text-emerald-300" /> Verified sellers</span></div>
           <div className="mt-6 flex gap-2 overflow-hidden sm:mt-7">{categories.slice(0, 4).map((category) => <button key={category.id} onClick={() => changeFilters({ ...filters, categorySlug: category.slug })} className="shrink-0 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-slate-100 transition hover:bg-white/20">{category.name}</button>)}</div>
         </div>
       </div>
@@ -155,7 +155,7 @@ export default function Hero() {
                       <span className="text-slate-300">›</span>
                       <button
                         onClick={() => changeFilters({ ...filters, categorySlug: item.slug })}
-                        className="hover:text-blue-600 transition-colors cursor-pointer font-medium"
+                        className="hover:text-orange-500 transition-colors cursor-pointer font-medium"
                       >
                         {item.name}
                       </button>
@@ -163,7 +163,7 @@ export default function Hero() {
                   ))}
                 </nav>
                 <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                  <ShoppingBag className="size-5 text-blue-600" />
+                  <ShoppingBag className="size-5 text-orange-500" />
                   {breadcrumb.at(-1)?.name || "All Products"}
                 </h1>
                 <p className="mt-0.5 text-xs text-slate-500 font-medium">
@@ -185,7 +185,7 @@ export default function Hero() {
                         order: order as CatalogFilters["order"],
                       });
                     }}
-                    className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-2xs focus:border-blue-500 focus:outline-none cursor-pointer"
+                    className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-2xs focus:border-orange-500 focus:outline-none cursor-pointer"
                   >
                     {sortOptions.map((item) => (
                       <option key={item.label} value={`${item.sort}:${item.order}`}>
@@ -229,18 +229,19 @@ export default function Hero() {
                   <button
                     key={chip.label}
                     onClick={chip.clear}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 border border-blue-200/80 px-2.5 py-1 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-colors group cursor-pointer shadow-2xs"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-orange-50 border border-orange-200 px-2.5 py-1 text-xs font-bold text-orange-600 hover:bg-orange-100 transition-colors group cursor-pointer shadow-2xs shadow-orange-500/5"
                   >
                     <span>{chip.label}</span>
-                    <X className="size-3 text-blue-500 group-hover:text-blue-800 transition-colors" />
+                    <X className="size-3 text-orange-500 group-hover:text-orange-700 transition-colors" />
                   </button>
                 ))}
                 <button
                   onClick={reset}
-                  className="ml-1 inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-blue-600 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="ml-auto sm:ml-2 inline-flex items-center gap-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 text-xs font-bold shadow-sm shadow-orange-500/25 hover:shadow-md hover:shadow-orange-500/35 active:scale-95 transition-all cursor-pointer"
+                  title="Clear all active filters"
                 >
-                  <RotateCcw className="size-3" />
-                  Clear All
+                  <RotateCcw className="size-3.5 stroke-[2.5]" />
+                  <span>Clear All</span>
                 </button>
               </div>
             )}
@@ -287,7 +288,7 @@ export default function Hero() {
               </p>
               <button
                 onClick={reset}
-                className="mt-4 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-blue-600 transition-colors cursor-pointer"
+                className="mt-4 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-orange-500 hover:shadow-md hover:shadow-orange-500/25 transition-all cursor-pointer"
               >
                 Clear all filters
               </button>
@@ -320,7 +321,7 @@ export default function Hero() {
                     <button
                       key={product.id}
                       onClick={() => setSelectedProductId(product.id)}
-                      className="flex w-full gap-4 rounded-xl border border-slate-100 bg-white p-3 text-left hover:border-blue-300 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 cursor-pointer"
+                      className="flex w-full gap-4 rounded-xl border border-slate-100 bg-white p-3 text-left hover:border-orange-300 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 cursor-pointer"
                     >
                       <img
                         src={product.images?.[0]?.url}
@@ -352,7 +353,7 @@ export default function Hero() {
                 type="button"
                 onClick={() => fetchNextPage()}
                 disabled={isFetchingNextPage}
-                className="min-w-44 rounded-xl bg-slate-900 hover:bg-blue-600 px-6 py-3 text-xs font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer shadow-md"
+                className="min-w-44 rounded-xl bg-slate-900 hover:bg-orange-500 hover:shadow-md hover:shadow-orange-500/25 px-6 py-3 text-xs font-bold text-white transition-all disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer shadow-md"
               >
                 {isFetchingNextPage && <Loader2 className="mr-2 size-4 animate-spin" />}
                 {isFetchingNextPage ? "Loading products..." : "Load more products"}

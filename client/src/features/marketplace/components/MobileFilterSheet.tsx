@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BadgeCheck, Check, PackageCheck, SlidersHorizontal, Star } from "lucide-react";
+import { BadgeCheck, Check, PackageCheck, RotateCcw, SlidersHorizontal, Star } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import type { MarketplaceCategory } from "../marketplace.api";
 import { activeFilterCount, sortOptions, type CatalogFilters } from "./marketplace.filters";
@@ -29,10 +29,10 @@ export function MobileFilterSheet({
     <div className="fixed inset-x-0 bottom-5 z-40 px-4 lg:hidden pointer-events-none flex justify-center">
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger className="pointer-events-auto flex min-h-12 items-center gap-2.5 rounded-full bg-slate-900 px-6 text-sm font-bold text-white shadow-2xl hover:bg-slate-800 active:scale-95 transition-all border border-slate-700/50 backdrop-blur-md">
-          <SlidersHorizontal className="size-4 text-blue-400" />
+          <SlidersHorizontal className="size-4 text-orange-400" />
           <span>Filters & Sort</span>
           {count > 0 && (
-            <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-black text-white">
+            <span className="rounded-full bg-orange-500 px-2 py-0.5 text-xs font-black text-white shadow-xs">
               {count}
             </span>
           )}
@@ -56,9 +56,10 @@ export function MobileFilterSheet({
               <button
                 type="button"
                 onClick={onReset}
-                className="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-orange-50 border border-orange-200/80 hover:bg-orange-100 text-orange-600 px-2.5 py-1 text-xs font-bold shadow-2xs active:scale-95 transition-all cursor-pointer"
               >
-                Reset All ({count})
+                <RotateCcw className="size-3 text-orange-500" />
+                <span>Reset ({count})</span>
               </button>
             )}
           </SheetHeader>
@@ -80,7 +81,7 @@ export function MobileFilterSheet({
                     order: order as CatalogFilters["order"],
                   });
                 }}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500 focus:bg-white"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3 text-xs font-semibold text-slate-800 outline-none focus:border-orange-500 focus:bg-white"
               >
                 {sortOptions.map((item) => (
                   <option key={item.label} value={`${item.sort}:${item.order}`}>
@@ -117,7 +118,7 @@ export function MobileFilterSheet({
                   }
                   placeholder="Min $"
                   inputMode="decimal"
-                  className="h-10 rounded-xl border border-slate-200 bg-slate-50/70 px-3 text-xs font-semibold outline-none focus:border-blue-500 focus:bg-white"
+                  className="h-10 rounded-xl border border-slate-200 bg-slate-50/70 px-3 text-xs font-semibold outline-none focus:border-orange-500 focus:bg-white"
                 />
                 <input
                   value={filters.maxPrice || ""}
@@ -126,7 +127,7 @@ export function MobileFilterSheet({
                   }
                   placeholder="Max $"
                   inputMode="decimal"
-                  className="h-10 rounded-xl border border-slate-200 bg-slate-50/70 px-3 text-xs font-semibold outline-none focus:border-blue-500 focus:bg-white"
+                  className="h-10 rounded-xl border border-slate-200 bg-slate-50/70 px-3 text-xs font-semibold outline-none focus:border-orange-500 focus:bg-white"
                 />
               </div>
             </div>
@@ -151,11 +152,11 @@ export function MobileFilterSheet({
                       }
                       className={`flex min-h-10 w-full items-center justify-between rounded-xl border px-3 text-xs font-semibold transition-colors ${
                         isSelected
-                          ? "border-blue-300 bg-blue-50 text-blue-700 font-bold"
+                          ? "border-orange-300 bg-orange-50 text-orange-600 font-bold shadow-xs"
                           : "border-slate-200 text-slate-700 hover:bg-slate-50"
                       }`}
                     >
-                      <div className="flex items-center gap-1.5 text-yellow-400">
+                      <div className="flex items-center gap-1.5 text-orange-400">
                         {Array.from({ length: rating }).map((_, i) => (
                           <Star key={i} className="size-3.5 fill-current" />
                         ))}
@@ -163,7 +164,7 @@ export function MobileFilterSheet({
                           {rating}★ & above
                         </span>
                       </div>
-                      {isSelected && <Check className="size-3.5 text-blue-600" />}
+                      {isSelected && <Check className="size-3.5 text-orange-500" />}
                     </button>
                   );
                 })}
@@ -206,7 +207,7 @@ export function MobileFilterSheet({
             <div className="pt-2 border-t border-slate-100 space-y-2">
               <label className="flex min-h-11 items-center justify-between font-semibold text-xs text-slate-800 cursor-pointer">
                 <div className="flex items-center gap-2">
-                  <BadgeCheck className="size-4 text-blue-600" />
+                  <BadgeCheck className="size-4 text-orange-500" />
                   <span>Verified Merchants Only</span>
                 </div>
                 <input
@@ -218,13 +219,13 @@ export function MobileFilterSheet({
                       verifiedShopsOnly: e.target.checked || undefined,
                     })
                   }
-                  className="size-4 rounded accent-blue-600"
+                  className="size-4 rounded accent-orange-500"
                 />
               </label>
 
               <label className="flex min-h-11 items-center justify-between font-semibold text-xs text-slate-800 cursor-pointer">
                 <div className="flex items-center gap-2">
-                  <PackageCheck className="size-4 text-blue-600" />
+                  <PackageCheck className="size-4 text-orange-500" />
                   <span>In Stock (Ready to Ship)</span>
                 </div>
                 <input
@@ -236,7 +237,7 @@ export function MobileFilterSheet({
                       inStockOnly: e.target.checked || undefined,
                     })
                   }
-                  className="size-4 rounded accent-blue-600"
+                  className="size-4 rounded accent-orange-500"
                 />
               </label>
             </div>
@@ -254,7 +255,7 @@ export function MobileFilterSheet({
             <button
               type="button"
               onClick={apply}
-              className="min-h-11 flex-1 rounded-xl bg-slate-900 font-bold text-xs text-white hover:bg-blue-600 active:scale-98 transition-all shadow-md"
+              className="min-h-11 flex-1 rounded-xl bg-orange-500 hover:bg-orange-600 font-bold text-xs text-white active:scale-98 transition-all shadow-md shadow-orange-500/25"
             >
               Show Results ({total})
             </button>

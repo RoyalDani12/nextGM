@@ -195,14 +195,14 @@ export const CartPage = () => {
 
           {hasItems && (
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => setIsClearDialogOpen(true)}
               disabled={isClearing}
-              className="text-red-500 hover:text-red-600 hover:bg-red-50/50 self-start sm:self-auto cursor-pointer font-medium"
+              className="h-9 px-3.5 rounded-xl border border-rose-200 bg-rose-50/80 hover:bg-rose-100 hover:border-rose-300 text-rose-600 font-bold text-xs shadow-2xs hover:shadow-xs active:scale-95 transition-all cursor-pointer self-start sm:self-auto gap-2"
             >
-              <Trash2 className="w-4 h-4 mr-1.5" />
-              Clear all items
+              <Trash2 className="w-4 h-4" />
+              <span>Clear Cart</span>
             </Button>
           )}
         </div>
@@ -222,8 +222,8 @@ export const CartPage = () => {
             </div>
 
             {!isAuthenticated && (
-              <div className="bg-blue-50/60 border border-blue-100 rounded-2xl p-4 text-left flex items-start gap-3">
-                <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+              <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 text-left flex items-start gap-3">
+                <Info className="w-5 h-5 text-slate-500 shrink-0 mt-0.5" />
                 <div className="text-xs space-y-1">
                   <p className="font-semibold text-slate-900">Have an account?</p>
                   <p className="text-slate-600">
@@ -255,8 +255,8 @@ export const CartPage = () => {
             {/* Left Column: Cart Items & Free Shipping Banner */}
             <div className="lg:col-span-8 space-y-6">
               {!isAuthenticated && (
-                <Alert className="bg-blue-50/70 border border-blue-100 text-slate-800 rounded-2xl p-4 flex items-center">
-                  <Info className="h-5 w-5 text-blue-500 shrink-0 mr-3" />
+                <Alert className="bg-slate-50 border border-slate-200/80 text-slate-800 rounded-2xl p-4 flex items-center">
+                  <Info className="h-5 w-5 text-slate-500 shrink-0 mr-3" />
                   <AlertDescription className="text-xs md:text-sm">
                     You're shopping as a guest.{" "}
                     <Link to="/login" className="font-bold text-orange-500 hover:underline">
@@ -316,7 +316,7 @@ export const CartPage = () => {
                       return (
                         <div key={item.id} className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 transition-colors hover:bg-slate-50/40">
                           {/* Image Box */}
-                          <div className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-xl bg-blue-50/40 border border-slate-100 p-2 flex items-center justify-center">
+                          <div className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-xl bg-slate-50 border border-slate-100 p-2 flex items-center justify-center">
                             {item.image ? (
                               <img src={item.image} alt={item.productName} className="w-full h-full object-contain" />
                             ) : (
@@ -430,7 +430,7 @@ export const CartPage = () => {
                         placeholder="Promo Code (e.g. NEXTG)"
                         value={promoCode}
                         onChange={(e) => setPromoCode(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-sm bg-blue-50/20 focus:outline-none focus:ring-2 focus:ring-orange-500/40 uppercase placeholder:normal-case transition-all"
+                        className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-sm bg-slate-50/60 focus:outline-none focus:ring-2 focus:ring-orange-500/40 uppercase placeholder:normal-case transition-all"
                       />
                     </div>
                     <Button type="submit" size="sm" className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl cursor-pointer">

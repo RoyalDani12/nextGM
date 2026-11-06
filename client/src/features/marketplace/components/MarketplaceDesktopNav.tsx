@@ -145,12 +145,12 @@ export const MarketplaceDesktopNav = ({
                           to={link.href}
                           className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-all group"
                         >
-                          <div className="p-2 rounded-lg bg-blue-50 text-[#3665f3] group-hover:bg-[#3665f3] group-hover:text-white transition-all shadow-xs">
+                          <div className="p-2 rounded-lg bg-orange-50 text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-all shadow-xs">
                             <Icon className="size-4" />
                           </div>
 
                           <div>
-                            <div className="text-sm font-semibold text-slate-800 group-hover:text-[#3665f3] transition-colors">
+                            <div className="text-sm font-semibold text-slate-800 group-hover:text-orange-500 transition-colors">
                               {link.name}
                             </div>
 
@@ -166,9 +166,9 @@ export const MarketplaceDesktopNav = ({
               ))}
             </div>
 
-            <div className="relative col-span-4 flex flex-col justify-between overflow-hidden rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-100 p-5 shadow-xl">
+            <div className="relative col-span-4 flex flex-col justify-between overflow-hidden rounded-xl border border-orange-200/80 bg-gradient-to-br from-orange-50 via-white to-orange-100/40 p-5 shadow-xl">
               <div className="space-y-2">
-                <span className="inline-block bg-white border border-blue-200 text-[#3665f3] text-[10px] font-bold uppercase px-2 py-0.5 rounded-full tracking-wide">
+                <span className="inline-block bg-white border border-orange-200 text-orange-600 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full tracking-wide">
                   {EXPLORE_MEGA_MENU.featured.badge}
                 </span>
 
@@ -183,7 +183,7 @@ export const MarketplaceDesktopNav = ({
 
               <Link
                 to={EXPLORE_MEGA_MENU.featured.href}
-                className="mt-4 flex items-center justify-between font-bold text-xs text-[#3665f3] hover:text-[#2854d9] transition-colors group"
+                className="mt-4 flex items-center justify-between font-bold text-xs text-orange-600 hover:text-orange-700 transition-colors group"
               >
                 <span>Browse Collection</span>
                 <ArrowRight className="size-4 transform group-hover:translate-x-1 transition-transform" />
@@ -239,13 +239,13 @@ export const MarketplaceDesktopNav = ({
           <button
             onClick={onCart}
             aria-label="Shopping Cart"
-            className="relative ml-1 flex items-center gap-2 rounded-full px-3 py-2 text-slate-700 transition-all group cursor-pointer hover:bg-blue-50 hover:text-[#3665f3]"
+            className="relative ml-1 flex items-center gap-2 rounded-full px-3 py-2 text-slate-700 transition-all group cursor-pointer hover:bg-orange-50 hover:text-orange-500"
           >
             <div className="relative">
               <ShoppingCart className="size-6 group-hover:scale-105 transition-transform" />
 
               {cartItemCount > 0 && (
-                <span className="absolute -top-1.5 -right-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-orange-500 text-[10px] font-extrabold text-white shadow-sm">
+                <span className="absolute -top-1.5 -right-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-orange-500 text-[10px] font-extrabold text-white shadow-sm shadow-orange-500/30">
                   {cartItemCount}
                 </span>
               )}

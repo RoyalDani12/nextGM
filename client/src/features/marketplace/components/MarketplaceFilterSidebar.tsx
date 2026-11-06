@@ -75,7 +75,7 @@ export function MarketplaceFilterSidebar({
       {/* ── Sidebar Header: Title, Active Count & Reset ── */}
       <div className="pb-4 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 border border-blue-100">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-orange-50 text-orange-500 border border-orange-200/70 shadow-xs shadow-orange-500/10">
             <SlidersHorizontal className="size-4" />
           </div>
           <div>
@@ -86,16 +86,16 @@ export function MarketplaceFilterSidebar({
 
         {count > 0 && (
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700 border border-blue-200/60">
+            <span className="inline-flex items-center rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-bold text-orange-600 border border-orange-200">
               {count} active
             </span>
             <button
               type="button"
               onClick={onReset}
-              className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-blue-600 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 rounded-md bg-slate-100 hover:bg-orange-50 border border-slate-200 hover:border-orange-200 text-slate-700 hover:text-orange-600 px-2 py-1 text-[11px] font-bold shadow-2xs active:scale-95 transition-all cursor-pointer"
               title="Reset all filters"
             >
-              <RotateCcw className="size-3" />
+              <RotateCcw className="size-3 text-orange-500" />
               Reset
             </button>
           </div>
@@ -109,7 +109,7 @@ export function MarketplaceFilterSidebar({
           onClick={() => toggleSection("category")}
           className="flex w-full items-center justify-between py-1 text-left group cursor-pointer"
         >
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-900 group-hover:text-blue-600 transition-colors">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-900 group-hover:text-orange-500 transition-colors">
             Categories
           </span>
           <ChevronDown
@@ -138,11 +138,11 @@ export function MarketplaceFilterSidebar({
           className="flex w-full items-center justify-between py-1 text-left group cursor-pointer"
         >
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-900 group-hover:text-blue-600 transition-colors">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-900 group-hover:text-orange-500 transition-colors">
               Price Range ($)
             </span>
             {isPriceActive && (
-              <span className="size-1.5 rounded-full bg-blue-600" />
+              <span className="size-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
             )}
           </div>
           <ChevronDown
@@ -165,7 +165,7 @@ export function MarketplaceFilterSidebar({
                     value={minPriceInput}
                     onChange={(e) => setMinPriceInput(e.target.value)}
                     placeholder="Min"
-                    className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/70 pl-7 pr-2 text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all font-medium"
+                    className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/70 pl-7 pr-2 text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-100 transition-all font-medium"
                   />
                 </div>
                 <div className="relative">
@@ -177,14 +177,14 @@ export function MarketplaceFilterSidebar({
                     value={maxPriceInput}
                     onChange={(e) => setMaxPriceInput(e.target.value)}
                     placeholder="Max"
-                    className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/70 pl-7 pr-2 text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all font-medium"
+                    className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/70 pl-7 pr-2 text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-100 transition-all font-medium"
                   />
                 </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full h-8 rounded-lg bg-slate-900 hover:bg-blue-600 text-white text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+                className="w-full h-8 rounded-lg bg-slate-900 hover:bg-orange-500 hover:shadow-sm hover:shadow-orange-500/25 text-white text-xs font-bold transition-all cursor-pointer shadow-2xs"
               >
                 Apply Range
               </button>
@@ -211,7 +211,7 @@ export function MarketplaceFilterSidebar({
                     }
                     className={`rounded-md px-2.5 py-1 text-[11px] font-semibold border transition-colors cursor-pointer ${
                       isActive
-                        ? "bg-blue-50 text-blue-700 border-blue-300 font-bold"
+                        ? "bg-orange-50 text-orange-600 border-orange-300 font-bold shadow-xs"
                         : "bg-slate-50/80 text-slate-600 border-slate-200/80 hover:bg-slate-100 hover:text-slate-900"
                     }`}
                   >
@@ -232,11 +232,11 @@ export function MarketplaceFilterSidebar({
           className="flex w-full items-center justify-between py-1 text-left group cursor-pointer"
         >
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-900 group-hover:text-blue-600 transition-colors">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-900 group-hover:text-orange-500 transition-colors">
               Customer Rating
             </span>
             {filters.minRating && (
-              <span className="size-1.5 rounded-full bg-blue-600" />
+              <span className="size-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
             )}
           </div>
           <ChevronDown
@@ -262,18 +262,18 @@ export function MarketplaceFilterSidebar({
                   }
                   className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition-colors cursor-pointer ${
                     isSelected
-                      ? "bg-blue-50 text-blue-700 font-bold border border-blue-200/80"
+                      ? "bg-orange-50 text-orange-600 font-bold border border-orange-200 shadow-xs"
                       : "text-slate-700 hover:bg-slate-50"
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-0.5 text-yellow-400">
+                    <div className="flex items-center gap-0.5 text-orange-400">
                       {Array.from({ length: 5 }).map((_, i) => (
                         <Star
                           key={i}
                           className={`size-3.5 ${
                             i < rating
-                              ? "fill-current text-yellow-400"
+                              ? "fill-current text-orange-400"
                               : "text-slate-200"
                           }`}
                         />
@@ -284,7 +284,7 @@ export function MarketplaceFilterSidebar({
                     </span>
                   </div>
 
-                  {isSelected && <Check className="size-3.5 text-blue-600" />}
+                  {isSelected && <Check className="size-3.5 text-orange-500" />}
                 </button>
               );
             })}
@@ -300,11 +300,11 @@ export function MarketplaceFilterSidebar({
           className="flex w-full items-center justify-between py-1 text-left group cursor-pointer"
         >
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-900 group-hover:text-blue-600 transition-colors">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-900 group-hover:text-orange-500 transition-colors">
               Fulfillment & Trust
             </span>
             {(filters.inStockOnly || filters.verifiedShopsOnly || filters.type) && (
-              <span className="size-1.5 rounded-full bg-blue-600" />
+              <span className="size-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
             )}
           </div>
           <ChevronDown
@@ -320,7 +320,7 @@ export function MarketplaceFilterSidebar({
             <div className="space-y-2">
               <label className="flex cursor-pointer items-center justify-between rounded-lg p-2 hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-2.5">
-                  <BadgeCheck className="size-4 text-blue-600" />
+                  <BadgeCheck className="size-4 text-orange-500" />
                   <span className="text-xs font-semibold text-slate-700">
                     Verified Merchants
                   </span>
@@ -334,13 +334,13 @@ export function MarketplaceFilterSidebar({
                       verifiedShopsOnly: e.target.checked || undefined,
                     })
                   }
-                  className="size-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 accent-blue-600 cursor-pointer"
+                  className="size-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500 accent-orange-500 cursor-pointer"
                 />
               </label>
 
               <label className="flex cursor-pointer items-center justify-between rounded-lg p-2 hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-2.5">
-                  <PackageCheck className="size-4 text-blue-600" />
+                  <PackageCheck className="size-4 text-orange-500" />
                   <span className="text-xs font-semibold text-slate-700">
                     Ready to Ship (In Stock)
                   </span>
@@ -354,7 +354,7 @@ export function MarketplaceFilterSidebar({
                       inStockOnly: e.target.checked || undefined,
                     })
                   }
-                  className="size-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 accent-blue-600 cursor-pointer"
+                  className="size-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500 accent-orange-500 cursor-pointer"
                 />
               </label>
             </div>

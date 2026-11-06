@@ -88,7 +88,7 @@ export function DealCard({
   return (
     <div
       onClick={() => onSelect?.(id)}
-      className="group cursor-pointer bg-white rounded-xl p-2 border border-slate-100 hover:border-blue-200 hover:shadow-xl hover:shadow-slate-900/5 hover:-translate-y-1 transition-all duration-300 ease-out flex flex-col justify-between h-full font-sans"
+      className="group cursor-pointer bg-white rounded-xl p-2 border border-slate-100 hover:border-orange-300 hover:shadow-xl hover:shadow-orange-500/10 hover:-translate-y-1 transition-all duration-300 ease-out flex flex-col justify-between h-full font-sans"
     >
       {/* Product Image Tile — Compact & Proportional */}
       <div className="space-y-1.5">
@@ -133,14 +133,14 @@ export function DealCard({
           {/* Badges */}
           <div className="flex items-center gap-1 flex-wrap">
             {realDiscountLabel && (
-              <span className="bg-blue-600 text-white font-extrabold text-[8px] px-1 py-0.2 rounded uppercase tracking-wider">
+              <span className="bg-orange-500 text-white font-extrabold text-[8px] px-1 py-0.2 rounded uppercase tracking-wider shadow-xs">
                 {realDiscountLabel}
               </span>
             )}
           </div>
 
           {/* Title */}
-          <h3 className="text-[11px] sm:text-xs font-normal text-slate-900 leading-tight line-clamp-2 group-hover:text-blue-600 transition-colors">
+          <h3 className="text-[11px] sm:text-xs font-normal text-slate-900 leading-tight line-clamp-2 group-hover:text-orange-500 transition-colors">
             {name}
           </h3>
 

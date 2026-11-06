@@ -58,7 +58,7 @@ export function FlashDealsSection({ deals }: FlashDealsProps) {
       {/* Header — Title uses bold, high-contrast typography like your image */}
       <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5">
         <div className="flex items-center gap-2">
-          <span className="flex items-center justify-center h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-orange-50 text-orange-600 shrink-0">
+          <span className="flex items-center justify-center h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-orange-50 text-orange-500 shrink-0">
             <Tag className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
           </span>
           <h2 className="text-base sm:text-lg lg:text-2xl font-extrabold text-slate-950 tracking-tight leading-none">
@@ -112,7 +112,7 @@ export function FlashDealsSection({ deals }: FlashDealsProps) {
         <div className="mt-1.5 hidden sm:flex items-center gap-3 justify-center">
           <div className="w-48 h-1 bg-slate-200 rounded-full overflow-hidden relative">
             <div
-              className="h-full bg-orange-500 transition-all duration-200 ease-out rounded-full"
+              className="h-full bg-orange-500 shadow-xs shadow-orange-500/40 transition-all duration-200 ease-out rounded-full"
               style={{ width: `${Math.max(scrollProgress, 20)}%` }}
             />
           </div>
