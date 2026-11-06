@@ -1,6 +1,6 @@
 import { useMutation,useQuery,useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { loginRequest, registerRequest, logoutRequest,verifyEmailRequest,forgetPasswordRequest, resetPasswordRequest, reactivateAccountRequest } from "./auth.api";
+import { loginRequest, registerRequest, logoutRequest, verifyEmailRequest, resendVerificationRequest, forgetPasswordRequest, resetPasswordRequest, reactivateAccountRequest } from "./auth.api";
 import { useAuthStore } from "../../store/auth.store";
 import { isDeactivatedResponse } from "./auth.types";
 import type { LoginPayload, RegisterPayload,ForgetPayload,resetPasswordPayload  } from "./auth.types";
@@ -30,8 +30,8 @@ export const useRegister = () => {
 
     return useMutation({
         mutationFn: (payload: RegisterPayload) => registerRequest(payload),
-        onSuccess: () => {
-            navigate("/verify-email-notice");
+        onSuccess: (_data, variables) => {
+            navigate("/verify-email-notice", { state: { email: variables.email } });
         },
     });
 };
@@ -60,6 +60,12 @@ export const useVerifyEmail = (token: string | null) => {
         enabled: !!token,
         retry: false,
         staleTime: Infinity,
+    });
+};
+
+export const useResendVerification = () => {
+    return useMutation({
+        mutationFn: (email: string) => resendVerificationRequest(email),
     });
 };
 

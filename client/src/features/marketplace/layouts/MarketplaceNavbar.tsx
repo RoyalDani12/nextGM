@@ -146,19 +146,28 @@ export const MarketplaceNavbar = () => {
           />
 
           {/* Search Box */}
-          <form onSubmit={(event) => { event.preventDefault(); navigate(searchQuery.trim() ? `/?search=${encodeURIComponent(searchQuery.trim())}` : "/"); }} className="hidden xl:flex flex-1 max-w-xl relative group">
-            <Search className="absolute left-4 top-3 size-4 text-slate-400 group-focus-within:text-orange-500 transition-colors" />
-            <Input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search physical products, brands, or categories..."
-              className="h-11 w-full rounded-full border-2 border-slate-900 bg-white pl-11 pr-24 text-sm font-medium text-slate-900 shadow-none placeholder:text-slate-500 transition-all focus-visible:border-orange-500 focus-visible:ring-2 focus-visible:ring-orange-500/20"
-            />
-            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-              <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-bold text-slate-500 shadow-xs">
-                <Command className="size-3" />
-                <span>NG</span>
+          <form onSubmit={(event) => { event.preventDefault(); navigate(searchQuery.trim() ? `/?search=${encodeURIComponent(searchQuery.trim())}` : "/"); }} className="hidden xl:flex flex-1 max-w-xl relative items-center">
+            <div className="relative w-full flex items-center">
+              <Search className="absolute left-4 size-4 text-slate-400 pointer-events-none" />
+              <Input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search physical products, brands, or categories..."
+                className="h-11 w-full rounded-full border border-slate-200/90 bg-[#F1F4F8] hover:bg-[#E8EDF3] dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-750 pl-11 pr-28 text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 transition-all focus-visible:bg-[#F1F4F8] dark:focus-visible:bg-zinc-800 focus-visible:border-orange-500 focus-visible:ring-2 focus-visible:ring-orange-500/20 shadow-none"
+              />
+              <div className="absolute right-1.5 flex items-center gap-1.5">
+                <div className="pointer-events-none hidden sm:flex items-center gap-1 rounded-lg border border-slate-200 bg-white/80 dark:bg-zinc-700 dark:border-zinc-600 px-1.5 py-0.5 text-[10px] font-bold text-slate-500 dark:text-slate-300 shadow-xs">
+                  <Command className="size-3" />
+                  <span>NG</span>
+                </div>
+                <button
+                  type="submit"
+                  aria-label="Submit search"
+                  className="size-8 rounded-full bg-[#F97316] hover:bg-[#EA580C] text-white flex items-center justify-center transition-colors cursor-pointer shadow-xs active:scale-95"
+                >
+                  <Search className="size-3.5 stroke-[2.5]" />
+                </button>
               </div>
             </div>
           </form>
@@ -285,15 +294,24 @@ export const MarketplaceNavbar = () => {
             )}
           </div>
         </div>
-        <form onSubmit={(event) => { event.preventDefault(); navigate(searchQuery.trim() ? `/?search=${encodeURIComponent(searchQuery.trim())}` : "/"); }} className="relative mx-4 mt-3 lg:hidden">
-          <Search className="absolute left-4 top-3 size-4 text-slate-400" />
-          <Input
-            type="search"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Search products, brands and categories"
-            className="h-10 w-full rounded-full border border-slate-300 bg-slate-50 pl-11 pr-4 text-sm text-slate-900 placeholder:text-slate-500 focus-visible:border-orange-500 focus-visible:ring-2 focus-visible:ring-orange-500/20"
-          />
+        <form onSubmit={(event) => { event.preventDefault(); navigate(searchQuery.trim() ? `/?search=${encodeURIComponent(searchQuery.trim())}` : "/"); }} className="relative mx-4 mt-3 lg:hidden flex items-center">
+          <div className="relative w-full flex items-center">
+            <Search className="absolute left-3.5 size-4 text-slate-400 pointer-events-none" />
+            <Input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search products, brands and categories..."
+              className="h-10 w-full rounded-full border border-slate-200/90 bg-[#F1F4F8] hover:bg-[#E8EDF3] dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-750 pl-10 pr-12 text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 transition-all focus-visible:bg-[#F1F4F8] dark:focus-visible:bg-zinc-800 focus-visible:border-orange-500 focus-visible:ring-2 focus-visible:ring-orange-500/20 shadow-none"
+            />
+            <button
+              type="submit"
+              aria-label="Submit search"
+              className="absolute right-1 size-8 rounded-full bg-[#F97316] hover:bg-[#EA580C] text-white flex items-center justify-center transition-colors cursor-pointer shadow-xs active:scale-95"
+            >
+              <Search className="size-4 stroke-[2.5]" />
+            </button>
+          </div>
         </form>
       </div>
     </header>

@@ -1,11 +1,11 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { loginSchema, type LoginFormValues } from "./auth.schema";
-import { useLogin, useReactivateAccount } from "./auth.hooks";
+import { useLogin, useReactivateAccount, useResendVerification } from "./auth.hooks";
 import { useMergeCart } from "../cart/cart.hook";
 import { clearGuestCart, getGuestCartItems } from "../cart/guest-cart";
 import { isDeactivatedResponse, type LoginResponse } from "./auth.types";
@@ -22,7 +22,9 @@ import {
   Lock, 
   User, 
   CheckCircle2, 
-  ArrowRight
+  ArrowRight,
+  Send,
+  Clock
 } from "lucide-react";
 
 export default function LoginPage() {
@@ -45,6 +47,7 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
+    getValues,
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -52,7 +55,44 @@ export default function LoginPage() {
 
   const login = useLogin();
   const reactivate = useReactivateAccount();
+  const resendVerification = useResendVerification();
   const mergeCart = useMergeCart();
+
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendSuccess, setResendSuccess] = useState<string | null>(null);
+  const [resendError, setResendError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  const handleResendVerification = () => {
+    const emailToVerify = getValues("email")?.trim();
+    if (!emailToVerify) {
+      setResendError("Please enter your email above before requesting a new link.");
+      return;
+    }
+    setResendError(null);
+    setResendSuccess(null);
+    resendVerification.mutate(emailToVerify, {
+      onSuccess: (data) => {
+        setResendSuccess(
+          data?.message || "Verification email sent! Please check your inbox and spam folder."
+        );
+        setResendCooldown(60);
+      },
+      onError: (err: any) => {
+        const msg =
+          err?.response?.data?.message ||
+          "Failed to send verification email. Please try again later.";
+        setResendError(msg);
+      },
+    });
+  };
 
   const onSubmit = (values: LoginFormValues) => {
     login.mutate(values, {
@@ -105,6 +145,12 @@ export default function LoginPage() {
     }
     return "Invalid email or password.";
   })();
+
+  const isUnverifiedEmail = Boolean(
+    login.isError &&
+      (loginErrorMessage.toLowerCase().includes("verify your email") ||
+        (login.error as any)?.response?.data?.message?.toLowerCase().includes("verify your email"))
+  );
 
   return (
     <>
@@ -292,13 +338,71 @@ export default function LoginPage() {
                   </div>
 
                   {/* ERROR ALERTS */}
-                  {login.isError && (
+                  {isUnverifiedEmail ? (
+                    <div className="w-full bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-2xl p-4 text-left space-y-3 animate-fade-up">
+                      <div className="flex items-start gap-3">
+                        <div className="size-9 rounded-xl bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center shrink-0 text-[#F97316]">
+                          <Mail className="size-4.5" />
+                        </div>
+                        <div className="space-y-1 flex-1">
+                          <h3 className="text-xs font-bold text-amber-950 dark:text-amber-200">
+                            Please verify your email before logging in.
+                          </h3>
+                          <p className="text-[11px] text-amber-800/90 dark:text-amber-300/80 leading-relaxed">
+                            A verification link was sent to your email address when your account was created. Please check your inbox (and spam folder) to activate your account.
+                          </p>
+                        </div>
+                      </div>
+
+                      {resendSuccess && (
+                        <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 flex items-center gap-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                          <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                          <span>{resendSuccess}</span>
+                        </div>
+                      )}
+
+                      {resendError && (
+                        <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 flex items-center gap-2 text-xs font-medium text-rose-600 dark:text-rose-400">
+                          <AlertCircle className="size-4 shrink-0" />
+                          <span>{resendError}</span>
+                        </div>
+                      )}
+
+                      <div className="pt-0.5">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={resendVerification.isPending || resendCooldown > 0}
+                          onClick={handleResendVerification}
+                          className="w-full h-9 rounded-xl border border-amber-300/80 dark:border-amber-500/40 bg-white dark:bg-zinc-800 text-amber-950 dark:text-amber-100 hover:bg-amber-100/60 dark:hover:bg-zinc-700 font-bold text-xs shadow-2xs transition-all inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                        >
+                          {resendVerification.isPending ? (
+                            <>
+                              <Spinner className="size-3.5 text-[#F97316]" />
+                              <span>Sending verification link...</span>
+                            </>
+                          ) : resendCooldown > 0 ? (
+                            <>
+                              <Clock className="size-3.5 text-amber-600 dark:text-amber-400" />
+                              <span>Send verification again in {resendCooldown}s</span>
+                            </>
+                          ) : (
+                            <>
+                              <Send className="size-3.5 text-[#F97316]" />
+                              <span>Send verification again</span>
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : login.isError ? (
                     <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20">
                       <p className="text-xs text-rose-600 dark:text-rose-400 text-center font-semibold">
                         {loginErrorMessage}
                       </p>
                     </div>
-                  )}
+                  ) : null}
 
                   {mergeCart.isError && (
                     <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
