@@ -24,7 +24,7 @@ export function MarketplaceHeroCarousel({ products, categories, onCategory }: { 
   }, [paused]);
 
   return (
-    <section className="w-full px-4 pt-5 sm:px-6 lg:px-10">
+    <section className="w-full px-4 pt-5 sm:px-6 lg:px-10 animate-fade-up">
       <div className={`relative min-h-[300px] overflow-hidden rounded-2xl bg-gradient-to-br ${slide.theme} transition-[background] duration-700 ease-out sm:min-h-[330px]`} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
         <div className="absolute -right-20 -top-24 h-80 w-80 rounded-full bg-white/35 blur-2xl" />
         <div className="absolute -bottom-32 left-[42%] h-72 w-72 rounded-full bg-white/25 blur-3xl" />
@@ -54,7 +54,7 @@ export function MarketplaceHeroCarousel({ products, categories, onCategory }: { 
           <button onClick={() => setPaused((value) => !value)} aria-label={paused ? "Play promotions" : "Pause promotions"} className="flex size-9 items-center justify-center rounded-full bg-white/80 text-slate-800 shadow-sm transition hover:scale-105 hover:bg-white">{paused ? <Play className="size-4" /> : <Pause className="size-4" />}</button>
         </div>
       </div>
-      <div className="flex gap-5 overflow-x-auto border-b border-slate-200 py-4 text-sm font-medium text-slate-700 [scrollbar-width:none]">
+      <div className="flex gap-5 overflow-x-auto border-b border-slate-200 py-4 text-sm font-medium text-slate-700 [scrollbar-width:none] animate-fade-up delay-100">
         {categories.slice(0, 9).map((category) => <button key={category.id} onClick={() => onCategory(category.slug)} className="shrink-0 transition hover:text-[#3665f3]">{category.name}</button>)}
       </div>
     </section>

@@ -70,7 +70,7 @@ export default function Hero() {
     setParams(next, { replace: true });
   };
 
-  return <div className="min-h-screen bg-slate-50 text-slate-900 animate-hero-fade">
+  return <div className="min-h-screen bg-slate-50 text-slate-900">
     {showLegacyHero && <section aria-hidden="true">
       <div className="hero-grid absolute inset-0 opacity-40" />
       <div className="hero-orb hero-orb-one" /><div className="hero-orb hero-orb-two" /><div className="hero-orb hero-orb-three" />
@@ -131,12 +131,33 @@ export default function Hero() {
       <PromotionCarousel onSelect={setSelectedProductId} />
       <MarketplaceFilterSidebar categories={categories} filters={filters} onChange={changeFilters} onReset={reset}/>
       <div className="min-w-0">
-        <div className="border-b border-slate-200 pb-4"><nav className="mb-3 flex flex-wrap gap-1 text-xs text-slate-500"><span>Marketplace</span>{breadcrumb.map((item) => <span key={item.id}>› <button onClick={() => changeFilters({ ...filters, categorySlug: item.slug })} className="hover:text-orange-600">{item.name}</button></span>)}</nav><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="flex items-center gap-2 text-xl font-black"><ShoppingBag className="size-5"/> {breadcrumb.at(-1)?.name || "All products"}</h2><p className="mt-1 text-sm text-slate-500">Showing {total ? `1–${products.length} of ${total}` : "0"} products</p></div><div className="hidden items-center gap-2 md:flex"><label className="text-xs font-bold text-slate-500">Sort</label><select value={selectedSort} onChange={(event) => { const [sort, order] = event.target.value.split(":"); changeFilters({ ...filters, sort: sort as CatalogFilters["sort"], order: order as CatalogFilters["order"] }); }} className="h-9 rounded border bg-white px-2 text-xs">{sortOptions.map((item) => <option key={item.label} value={`${item.sort}:${item.order}`}>{item.label}</option>)}</select><div className="flex rounded border p-0.5"><button onClick={() => setView("grid")} aria-label="Grid view" className={`rounded p-1.5 ${view === "grid" ? "bg-slate-900 text-white" : ""}`}><Grid2X2 className="size-4"/></button><button onClick={() => setView("list")} aria-label="List view" className={`rounded p-1.5 ${view === "list" ? "bg-slate-900 text-white" : ""}`}><List className="size-4"/></button></div></div></div></div>
-        {activeChips.length > 0 && <div className="mt-4 flex flex-wrap items-center gap-2"><span className="text-xs font-bold text-slate-500">Active:</span>{activeChips.map((chip) => <button key={chip.label} onClick={chip.clear} className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700">{chip.label}<X className="size-3"/></button>)}<button onClick={reset} className="ml-1 text-xs font-bold text-slate-600 hover:text-slate-950"><RotateCcw className="mr-1 inline size-3"/>Clear all</button></div>}
-        <div className="mt-5 flex flex-wrap gap-2 lg:hidden"><button onClick={() => changeFilters({ ...filters, type: filters.type === "PHYSICAL" ? undefined : "PHYSICAL" })} className={`rounded-full px-3 py-1.5 text-xs font-bold ${filters.type === "PHYSICAL" ? "bg-slate-950 text-white" : "bg-white border"}`}>Physical</button><button onClick={() => changeFilters({ ...filters, type: filters.type === "DIGITAL" ? undefined : "DIGITAL" })} className={`rounded-full px-3 py-1.5 text-xs font-bold ${filters.type === "DIGITAL" ? "bg-slate-950 text-white" : "bg-white border"}`}>Digital</button><button onClick={() => changeFilters({ ...filters, minRating: filters.minRating === 4 ? undefined : 4 })} className={`rounded-full px-3 py-1.5 text-xs font-bold ${filters.minRating === 4 ? "bg-slate-950 text-white" : "bg-white border"}`}><Star className="mr-1 inline size-3 fill-amber-400 text-amber-400"/>4★ & up</button><SlidersHorizontal className="ml-auto mt-1 size-4 text-slate-400"/></div>
-        {isLoading && <div className="flex min-h-64 items-center justify-center gap-2 text-sm text-slate-500"><Loader2 className="size-5 animate-spin"/>Loading marketplace…</div>}{isError && <div className="mt-6 rounded-xl bg-rose-50 p-4 text-sm text-rose-700">Products could not be loaded. Please retry.</div>}{!isLoading && !isError && products.length === 0 && <div className="mt-6 flex min-h-64 flex-col items-center justify-center text-slate-500"><PackageOpen className="size-10"/><p className="mt-3 font-semibold">No products match these filters.</p><button onClick={reset} className="mt-2 text-sm font-bold text-orange-600">Clear all filters</button></div>}
+        <div className="border-b border-slate-200 pb-4 animate-fade-up delay-200"><nav className="mb-3 flex flex-wrap gap-1 text-xs text-slate-500"><span>Marketplace</span>{breadcrumb.map((item) => <span key={item.id}>› <button onClick={() => changeFilters({ ...filters, categorySlug: item.slug })} className="hover:text-orange-600">{item.name}</button></span>)}</nav><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="flex items-center gap-2 text-xl font-black"><ShoppingBag className="size-5"/> {breadcrumb.at(-1)?.name || "All products"}</h2><p className="mt-1 text-sm text-slate-500">Showing {total ? `1–${products.length} of ${total}` : "0"} products</p></div><div className="hidden items-center gap-2 md:flex"><label className="text-xs font-bold text-slate-500">Sort</label><select value={selectedSort} onChange={(event) => { const [sort, order] = event.target.value.split(":"); changeFilters({ ...filters, sort: sort as CatalogFilters["sort"], order: order as CatalogFilters["order"] }); }} className="h-9 rounded border bg-white px-2 text-xs">{sortOptions.map((item) => <option key={item.label} value={`${item.sort}:${item.order}`}>{item.label}</option>)}</select><div className="flex rounded border p-0.5"><button onClick={() => setView("grid")} aria-label="Grid view" className={`rounded p-1.5 ${view === "grid" ? "bg-slate-900 text-white" : ""}`}><Grid2X2 className="size-4"/></button><button onClick={() => setView("list")} aria-label="List view" className={`rounded p-1.5 ${view === "list" ? "bg-slate-900 text-white" : ""}`}><List className="size-4"/></button></div></div></div></div>
+        {activeChips.length > 0 && <div className="mt-4 flex flex-wrap items-center gap-2 animate-fade-up delay-200"><span className="text-xs font-bold text-slate-500">Active:</span>{activeChips.map((chip) => <button key={chip.label} onClick={chip.clear} className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700">{chip.label}<X className="size-3"/></button>)}<button onClick={reset} className="ml-1 text-xs font-bold text-slate-600 hover:text-slate-950"><RotateCcw className="mr-1 inline size-3"/>Clear all</button></div>}
+        <div className="mt-5 flex flex-wrap gap-2 lg:hidden animate-fade-up delay-200"><button onClick={() => changeFilters({ ...filters, type: filters.type === "PHYSICAL" ? undefined : "PHYSICAL" })} className={`rounded-full px-3 py-1.5 text-xs font-bold ${filters.type === "PHYSICAL" ? "bg-slate-950 text-white" : "bg-white border"}`}>Physical</button><button onClick={() => changeFilters({ ...filters, type: filters.type === "DIGITAL" ? undefined : "DIGITAL" })} className={`rounded-full px-3 py-1.5 text-xs font-bold ${filters.type === "DIGITAL" ? "bg-slate-950 text-white" : "bg-white border"}`}>Digital</button><button onClick={() => changeFilters({ ...filters, minRating: filters.minRating === 4 ? undefined : 4 })} className={`rounded-full px-3 py-1.5 text-xs font-bold ${filters.minRating === 4 ? "bg-slate-950 text-white" : "bg-white border"}`}><Star className="mr-1 inline size-3 fill-amber-400 text-amber-400"/>4★ & up</button><SlidersHorizontal className="ml-auto mt-1 size-4 text-slate-400"/></div>
+        {isLoading && (
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 xl:grid-cols-4 animate-fade-in delay-250">
+            {Array.from({ length: 8 }).map((_, idx) => (
+              <div
+                key={idx}
+                className="rounded-xl border border-slate-100 bg-white p-2.5 flex flex-col justify-between h-[270px] animate-pulse"
+              >
+                <div className="aspect-square w-full rounded-lg bg-slate-100" />
+                <div className="space-y-2 mt-2">
+                  <div className="h-3.5 w-4/5 rounded bg-slate-100" />
+                  <div className="h-3 w-1/2 rounded bg-slate-100" />
+                </div>
+                <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-50">
+                  <div className="h-4 w-14 rounded bg-slate-100" />
+                  <div className="h-3.5 w-10 rounded bg-slate-100" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {isError && <div className="mt-6 rounded-xl bg-rose-50 p-4 text-sm text-rose-700 animate-fade-in">Products could not be loaded. Please retry.</div>}
+        {!isLoading && !isError && products.length === 0 && <div className="mt-6 flex min-h-64 flex-col items-center justify-center text-slate-500 animate-fade-in"><PackageOpen className="size-10"/><p className="mt-3 font-semibold">No products match these filters.</p><button onClick={reset} className="mt-2 text-sm font-bold text-orange-600">Clear all filters</button></div>}
         {!isLoading && !isError && products.length > 0 && (view === "grid" ? (
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 xl:grid-cols-4">
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 xl:grid-cols-4 animate-fade-up delay-200">
             {products.map((product, idx) => (
               <ScrollReveal key={product.id} delayMs={(idx % 8) * 45} direction="up">
                 <DealCard
@@ -153,7 +174,7 @@ export default function Hero() {
             ))}
           </div>
         ) : (
-          <div className="mt-6 space-y-3">
+          <div className="mt-6 space-y-3 animate-fade-up delay-200">
             {products.map((product, idx) => (
               <ScrollReveal key={product.id} delayMs={(idx % 6) * 50} direction="up">
                 <button

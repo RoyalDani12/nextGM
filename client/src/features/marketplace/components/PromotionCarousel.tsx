@@ -34,7 +34,7 @@ export function PromotionCarousel({ onSelect }: { onSelect: (productId: string) 
 
   if (!promotions.length) return null;
 
-  return <section className="mb-8 overflow-hidden rounded-3xl border border-orange-100 bg-gradient-to-r from-orange-50 via-amber-50 to-white p-4 shadow-sm sm:p-5">
+  return <section className="mb-8 overflow-hidden rounded-3xl border border-orange-100 bg-gradient-to-r from-orange-50 via-amber-50 to-white p-4 shadow-sm sm:p-5 animate-fade-up delay-150">
     <div className="mb-4 flex items-end justify-between gap-3"><div><p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[.18em] text-orange-600"><Tag className="size-3.5" /> Product offers</p><h2 className="mt-1 text-xl font-black tracking-tight text-slate-900">Deals picked for you</h2></div><p className="hidden text-xs text-slate-500 sm:block">Scrolls automatically</p></div>
     <div ref={track} className="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {promotions.map(({ coupon, product }) => <button key={`${coupon.id}-${product.id}`} onClick={() => onSelect(product.id)} className="group relative w-64 shrink-0 snap-start overflow-hidden rounded-2xl border border-white bg-white text-left shadow-sm transition hover:-translate-y-1 hover:shadow-lg">

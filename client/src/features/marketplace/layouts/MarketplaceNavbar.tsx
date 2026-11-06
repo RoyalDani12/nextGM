@@ -122,7 +122,7 @@ export const MarketplaceNavbar = () => {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 flex w-full flex-col select-none border-b border-slate-200 bg-white font-sans antialiased shadow-sm">
+    <header className="sticky top-0 z-50 flex w-full flex-col select-none border-b border-slate-200 bg-white font-sans antialiased shadow-sm animate-fade-down">
       {/* Top Banner Strip */}
       <div className="w-full border-b border-slate-200 bg-white px-4 py-1.5 text-center text-xs font-semibold tracking-wide text-slate-700">
         <span className="hidden sm:inline">
