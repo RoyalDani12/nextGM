@@ -816,3 +816,67 @@
     }
   }
 }
+
+/* ── Premium Homepage Entrance & Scroll Animations ────── */
+@keyframes heroFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroScaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(16px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes heroOrbFloat {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(20px, -12px) scale(1.06);
+  }
+}
+
+@keyframes cardEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-hero-fade {
+  animation: heroFadeUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-hero-fade-delayed {
+  animation: heroFadeUp 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.18s both;
+}
+
+.animate-hero-scale {
+  animation: heroScaleIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
+}
+
+.animate-hero-orb {
+  animation: heroOrbFloat 12s ease-in-out infinite;
+}
+
+.animate-card-entrance {
+  animation: cardEntrance 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+

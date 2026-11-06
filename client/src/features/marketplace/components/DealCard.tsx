@@ -88,7 +88,7 @@ export function DealCard({
   return (
     <div
       onClick={() => onSelect?.(id)}
-      className="group cursor-pointer bg-white rounded-xl p-2 border border-slate-100 hover:border-slate-200 hover:shadow-md transition-all duration-200 flex flex-col justify-between h-full font-sans"
+      className="group cursor-pointer bg-white rounded-xl p-2 border border-slate-100 hover:border-orange-200 hover:shadow-xl hover:shadow-slate-900/5 hover:-translate-y-1 transition-all duration-300 ease-out flex flex-col justify-between h-full font-sans"
     >
       {/* Product Image Tile — Compact & Proportional */}
       <div className="space-y-1.5">
