@@ -153,7 +153,7 @@ export const MarketplaceNavbar = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search physical products, brands, or categories..."
-              className="h-11 w-full rounded-full border-2 border-slate-900 bg-white pl-11 pr-24 text-sm font-medium text-slate-900 shadow-none placeholder:text-slate-500 transition-all focus-visible:border-orange-500 focus-visible:ring-2 focus-visible:ring-orange-500/20"
+              className="h-11 w-full rounded-full border border-slate-200/90 bg-slate-100/90 hover:bg-slate-100 hover:border-slate-300 dark:bg-zinc-800/90 dark:border-zinc-700/80 pl-11 pr-24 text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 transition-all focus-visible:bg-white dark:focus-visible:bg-zinc-900 focus-visible:border-orange-500 focus-visible:ring-2 focus-visible:ring-orange-500/20 shadow-none"
             />
             <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
               <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-bold text-slate-500 shadow-xs">
@@ -292,7 +292,7 @@ export const MarketplaceNavbar = () => {
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Search products, brands and categories"
-            className="h-10 w-full rounded-full border border-slate-300 bg-slate-50 pl-11 pr-4 text-sm text-slate-900 placeholder:text-slate-500 focus-visible:border-orange-500 focus-visible:ring-2 focus-visible:ring-orange-500/20"
+            className="h-10 w-full rounded-full border border-slate-200/90 bg-slate-100/90 hover:bg-slate-100 hover:border-slate-300 dark:bg-zinc-800/90 dark:border-zinc-700/80 pl-11 pr-4 text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 transition-all focus-visible:bg-white dark:focus-visible:bg-zinc-900 focus-visible:border-orange-500 focus-visible:ring-2 focus-visible:ring-orange-500/20 shadow-none"
           />
         </form>
       </div>

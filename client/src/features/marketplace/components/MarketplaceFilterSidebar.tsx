@@ -30,12 +30,12 @@ export function MarketplaceFilterSidebar({
 }: Props) {
   const count = activeFilterCount(filters);
 
-  // Collapsible section states (all open by default for immediate discoverability)
+  // Collapsible section dropdowns (closed by default, expanded on user click)
   const [openSections, setOpenSections] = useState({
-    category: true,
-    price: true,
-    rating: true,
-    merchant: true,
+    category: false,
+    price: false,
+    rating: false,
+    merchant: false,
   });
 
   const toggleSection = (key: keyof typeof openSections) => {

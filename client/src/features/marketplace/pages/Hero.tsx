@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { ArrowRight, BadgeCheck, Grid2X2, List, Loader2, PackageOpen, RotateCcw, Search, ShoppingBag, Sparkles, Star, X } from "lucide-react";
+import { AlertCircle, ArrowRight, BadgeCheck, Grid2X2, List, Loader2, PackageOpen, RotateCcw, Search, ShoppingBag, Sparkles, Star, X } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ export default function Hero() {
     data,
     isLoading,
     isError,
+    refetch,
     hasNextPage,
     fetchNextPage,
     isFetchingNextPage,
@@ -273,8 +274,25 @@ export default function Hero() {
 
           {/* Error State */}
           {isError && (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50/70 p-5 text-sm text-rose-700 animate-fade-in">
-              Products could not be loaded. Please check your connection and retry.
+            <div className="flex flex-col items-center justify-center p-8 sm:p-12 rounded-2xl border border-rose-200 bg-rose-50/70 text-center animate-fade-in space-y-3.5 mx-auto max-w-lg my-6">
+              <div className="size-12 rounded-full bg-rose-100 flex items-center justify-center text-rose-600">
+                <AlertCircle className="size-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-rose-900">Products could not be loaded</h3>
+                <p className="text-xs text-rose-700/90 max-w-xs">
+                  Please check your connection and retry.
+                </p>
+              </div>
+              <Button
+                onClick={() => refetch()}
+                variant="outline"
+                size="sm"
+                className="rounded-xl border-rose-300 hover:bg-rose-100 text-rose-700 font-bold text-xs shadow-2xs inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <RotateCcw className="size-3.5 text-rose-600" />
+                <span>Retry</span>
+              </Button>
             </div>
           )}
 
@@ -298,20 +316,22 @@ export default function Hero() {
           {/* Active Product Grid Matrix */}
           {!isLoading && !isError && products.length > 0 && (
             view === "grid" ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 md:gap-4 xl:grid-cols-3 2xl:grid-cols-4 animate-fade-up">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 md:gap-4 xl:grid-cols-3 2xl:grid-cols-4 justify-items-center sm:justify-items-stretch animate-fade-up">
                 {products.map((product, idx) => (
-                  <ScrollReveal key={product.id} delayMs={(idx % 6) * 40} direction="up">
-                    <DealCard
-                      id={product.id}
-                      image={product.images?.[0]?.url}
-                      name={product.name}
-                      seller={product.shop?.profile?.name || product.shop?.slug}
-                      price={product.basePrice}
-                      promotion={product.promotion}
-                      type={product.type}
-                      onSelect={setSelectedProductId}
-                    />
-                  </ScrollReveal>
+                  <div key={product.id} className="w-full max-w-[280px] sm:max-w-none">
+                    <ScrollReveal delayMs={(idx % 6) * 40} direction="up">
+                      <DealCard
+                        id={product.id}
+                        image={product.images?.[0]?.url}
+                        name={product.name}
+                        seller={product.shop?.profile?.name || product.shop?.slug}
+                        price={product.basePrice}
+                        promotion={product.promotion}
+                        type={product.type}
+                        onSelect={setSelectedProductId}
+                      />
+                    </ScrollReveal>
+                  </div>
                 ))}
               </div>
             ) : (
