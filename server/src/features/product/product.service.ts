@@ -14,6 +14,7 @@ import {
     softDeleteProductRepository,
     findPublicProductById,
     listPromotedProductsRepository,
+    listActivePublicCouponsRepository,
     browseProductRepository,
     getProductImagesRepository,
     addProductImageRepository,
@@ -322,6 +323,7 @@ export const getPublicProductService = async (productId: string) => {
 };
 
 export const getPromotedProductsService = () => listPromotedProductsRepository();
+export const getPublicCouponsService = () => listActivePublicCouponsRepository();
 
 export const browseProductsService = async (query: BrowseProductsQuery) => {
     const page = Math.max(1, query.page ?? 1);

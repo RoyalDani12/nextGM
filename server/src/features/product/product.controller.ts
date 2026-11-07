@@ -9,6 +9,7 @@ import {
     deleteProductService,
     getPublicProductService,
     getPromotedProductsService,
+    getPublicCouponsService,
     browseProductsService,
     addProductImageService,
     createVaraintService,
@@ -18,6 +19,11 @@ import {
 
 export const getPromotedProductsController = asyncHandler(async (_req: Request, res: Response) => {
     const data = await getPromotedProductsService();
+    res.status(200).json({ success: true, data });
+});
+
+export const getPublicCouponsController = asyncHandler(async (_req: Request, res: Response) => {
+    const data = await getPublicCouponsService();
     res.status(200).json({ success: true, data });
 });
 

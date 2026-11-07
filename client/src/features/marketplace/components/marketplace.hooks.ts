@@ -9,6 +9,7 @@ import {
   fetchMarketplaceCategories,
   fetchProductReviews,
   fetchPromotedProducts,
+  fetchPublicCoupons,
   fetchWishlist,
   fetchStorefront,
   removeWishlistItem,
@@ -21,6 +22,12 @@ import {
 export const usePromotedProducts = () => useQuery({
   queryKey: ["marketplace-promotions"],
   queryFn: fetchPromotedProducts,
+  staleTime: 1000 * 60,
+});
+
+export const usePublicCoupons = () => useQuery({
+  queryKey: ["marketplace-public-coupons"],
+  queryFn: fetchPublicCoupons,
   staleTime: 1000 * 60,
 });
 

@@ -129,7 +129,7 @@ export default function Hero() {
     </section>}
     <MarketplaceHeroCarousel products={products} categories={categories} onCategory={(slug) => changeFilters({ ...filters, categorySlug: slug })} />
     <main id="marketplace-products" className="w-full px-4 py-6 pb-20 sm:px-6 lg:px-10 lg:pb-16 mb-8 font-sans">
-      <PromotionCarousel onSelect={setSelectedProductId} />
+      <PromotionCarousel onSelect={setSelectedProductId} fallbackProducts={products.slice(0, 10)} />
 
       {/* 2-Column Alibaba / Enterprise SaaS Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
