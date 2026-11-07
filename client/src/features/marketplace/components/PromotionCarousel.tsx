@@ -95,10 +95,12 @@ export function PromotionCarousel({ onSelect, fallbackProducts = [] }: Promotion
   useEffect(() => {
     const el = track.current;
     if (!el) return;
+    const timer = setTimeout(checkScroll, 100);
     checkScroll();
     el.addEventListener("scroll", checkScroll, { passive: true });
     window.addEventListener("resize", checkScroll);
     return () => {
+      clearTimeout(timer);
       el.removeEventListener("scroll", checkScroll);
       window.removeEventListener("resize", checkScroll);
     };
@@ -173,7 +175,7 @@ export function PromotionCarousel({ onSelect, fallbackProducts = [] }: Promotion
         {/* Scroll Rail */}
         <div
           ref={track}
-          className="flex gap-3 sm:gap-4 overflow-x-auto scroll-smooth pb-3 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex gap-3 sm:gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-3 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {items.map((item) => {
             const originalPrice = Number(item.basePrice);
@@ -203,7 +205,7 @@ export function PromotionCarousel({ onSelect, fallbackProducts = [] }: Promotion
               <div
                 key={item.id}
                 onClick={() => onSelect(item.id)}
-                className="group cursor-pointer bg-white rounded-xl p-2 border border-slate-100 hover:border-orange-300 hover:shadow-xl hover:shadow-orange-500/10 hover:-translate-y-1 transition-all duration-300 ease-out flex flex-col justify-between h-full font-sans w-[165px] sm:w-[190px] shrink-0"
+                className="group cursor-pointer bg-white rounded-xl p-2 border border-slate-100 hover:border-orange-300 hover:shadow-xl hover:shadow-orange-500/10 hover:-translate-y-1 transition-all duration-300 ease-out flex flex-col justify-between h-full font-sans w-[165px] sm:w-[190px] shrink-0 snap-start"
               >
                 {/* Product Image Tile — Alibaba style */}
                 <div className="space-y-1.5">
