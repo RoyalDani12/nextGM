@@ -44,12 +44,12 @@ export function PromotionCarousel({ onSelect, fallbackProducts = [] }: Promotion
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
-  // 1. Promoted items with active coupons come first
+  // 1. Promoted items with active coupons
   const items: DealProductItem[] = [];
   const seenIds = new Set<string>();
 
   for (const { coupon, product } of promotions) {
-    if (!seenIds.has(product.id)) {
+    if (coupon && !seenIds.has(product.id)) {
       seenIds.add(product.id);
       items.push({
         id: product.id,
@@ -62,16 +62,16 @@ export function PromotionCarousel({ onSelect, fallbackProducts = [] }: Promotion
     }
   }
 
-  // 2. Backfill with fallback products so row is populated
+  // 2. Only include fallback products that actually have an active discount/coupon
   for (const p of fallbackProducts) {
-    if (!seenIds.has(p.id)) {
+    if (p.promotion && !seenIds.has(p.id)) {
       seenIds.add(p.id);
       items.push({
         id: p.id,
         name: p.name,
         basePrice: p.basePrice,
         images: p.images,
-        coupon: p.promotion || null,
+        coupon: p.promotion,
         seller: p.shop?.profile?.name || p.shop?.slug,
       });
     }
