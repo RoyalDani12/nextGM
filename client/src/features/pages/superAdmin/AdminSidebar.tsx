@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { PanelLeft } from "lucide-react";
+import { PanelLeft, X } from "lucide-react";
 import { AdminNavLinks } from "./AdminNavLinks";
 
 const PIN_STORAGE_KEY = "admin-sidebar-pinned";
@@ -38,12 +38,14 @@ export const AdminSidebar = ({
             onMouseEnter={() => collapsed && setPeeking(true)}
             onMouseLeave={() => setPeeking(false)}
             className={`relative h-full shrink-0 transition-[width] duration-200 ease-out ${
-                collapsed ? "w-16" : "w-64"
+                isMobile ? "w-full" : collapsed ? "w-16" : "w-64"
             }`}
         >
             <aside
-                className={`flex h-full flex-col select-none bg-[#533257] text-slate-100 transition-all duration-200 ease-out border-r border-slate-800 ${
-                    expanded ? "w-64" : "w-full"
+                className={`flex h-full flex-col select-none bg-[#533257] text-slate-100 transition-all duration-200 ease-out ${
+                    isMobile
+                        ? "w-full border-r-0"
+                        : `${expanded ? "w-64" : "w-full"} border-r border-slate-800`
                 } ${
                     peeking
                         ? "absolute left-0 top-0 z-50 rounded-r-3xl border-r border-slate-800 bg-[#533257] shadow-2xl shadow-black/80"
@@ -52,14 +54,14 @@ export const AdminSidebar = ({
             >
                 {/* BRAND HEADER */}
                 <div
-                    className={`flex h-16 shrink-0 items-center border-b border-slate-800 px-3.5 ${
+                    className={`flex h-16 shrink-0 items-center border-b border-white/10 px-4 ${
                         expanded ? "justify-between" : "justify-center"
                     }`}
                 >
                     <Link
                         to="/superadmin"
                         onClick={onNavItemClick}
-                        className="flex items-center gap-2.5 overflow-hidden group"
+                        className="flex items-center gap-2.5 overflow-hidden group min-w-0"
                     >
                         <div className="flex size-9 items-center justify-center rounded-xl bg-slate-900 border border-slate-700/60 shadow-inner shrink-0 group-hover:scale-105 transition-transform duration-200">
                             <img
@@ -70,7 +72,7 @@ export const AdminSidebar = ({
                         </div>
 
                         {expanded && (
-                            <div className="flex flex-col">
+                            <div className="flex flex-col min-w-0">
                                 <span className="text-[13px] font-black tracking-tight text-white flex items-center gap-1.5">
                                     Nexions
                                     <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">
@@ -85,7 +87,17 @@ export const AdminSidebar = ({
                         )}
                     </Link>
 
-                    {!isMobile && (
+                    {isMobile ? (
+                        <button
+                            type="button"
+                            onClick={onNavItemClick}
+                            className="shrink-0 rounded-lg p-1.5 text-slate-300 hover:text-white hover:bg-white/10 transition cursor-pointer"
+                            title="Close navigation"
+                            aria-label="Close navigation"
+                        >
+                            <X className="size-5" />
+                        </button>
+                    ) : (
                         <button
                             onClick={() => setPinned((value) => !value)}
                             className="shrink-0 rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white cursor-pointer"
@@ -97,7 +109,7 @@ export const AdminSidebar = ({
                 </div>
 
                 {/* NAVIGATION */}
-                <div className="min-h-0 flex-1 overflow-y-auto px-2.5 py-3.5 ds-scroll">
+                <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3.5 ds-scroll">
                     <AdminNavLinks
                         expanded={expanded}
                         onNavItemClick={onNavItemClick}
@@ -106,7 +118,7 @@ export const AdminSidebar = ({
 
                 {/* FOOTER */}
                 {expanded && (
-                    <div className="border-t border-slate-800 px-4 py-3 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                    <div className="border-t border-white/10 px-4 py-3 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
                         <span className="flex items-center gap-2">
                             <span className="size-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
                             Platform Live

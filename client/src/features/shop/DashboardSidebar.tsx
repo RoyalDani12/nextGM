@@ -14,6 +14,7 @@ import {
     MessageSquare,
     RotateCcw,
     ExternalLink,
+    X,
 } from "lucide-react";
 import { useMyShops } from "./shop.hooks";
 
@@ -116,37 +117,39 @@ export function DashboardSidebar({
             onMouseEnter={() => collapsedRail && setIsPeeking(true)}
             onMouseLeave={() => setIsPeeking(false)}
             className={`relative h-full shrink-0 transition-[width] duration-200 ease-out ${
-                collapsedRail ? "w-[72px]" : "w-64"
+                isMobile ? "w-full" : collapsedRail ? "w-[72px]" : "w-64"
             }`}
         >
             <aside
-                className={`seller-sidebar flex flex-col h-full bg-[#533257] text-white select-none transition-all duration-200 ease-out border-r border-slate-800 ${
+                className={`seller-sidebar flex flex-col h-full bg-[#533257] text-white select-none transition-all duration-200 ease-out ${
+                    isMobile
+                        ? "w-full border-r-0"
+                        : "w-full border-r border-slate-800"
+                } ${
                     isFlyout
                         ? "absolute left-0 top-0 w-64 z-50 rounded-r-2xl border-r border-slate-800 shadow-2xl shadow-black/80 bg-[#533257]"
-                        : "w-full"
+                        : ""
                 }`}
             >
                 {/* TOP BRAND BAR - Exactly h-16 (64px) to match Navbar */}
                 <div
-                    className={`h-16 flex items-center border-b border-slate-800 shrink-0 px-3.5 ${
+                    className={`h-16 flex items-center border-b border-white/10 shrink-0 px-4 ${
                         expanded ? "justify-between" : "justify-center"
                     }`}
                 >
                     {expanded ? (
                         <Link
                             to={currentShopDashboard}
-                            className="flex items-center gap-2.5 px-1 group min-w-0"
+                            className="flex items-center gap-2.5 min-w-0 group"
                             onClick={onNavItemClick}
                         >
                             <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 shadow-md shadow-orange-500/30 transition-transform duration-200 group-hover:scale-105">
                                 <Store className="size-4.5 text-white" />
                             </div>
                             <div className="min-w-0 flex flex-col">
-                                <div className="flex items-center gap-1.5">
-                                    <span className="truncate text-xs font-black tracking-tight text-white group-hover:text-orange-400 transition-colors">
-                                        {activeShop?.profile?.name || "Merchant Portal"}
-                                    </span>
-                                </div>
+                                <span className="truncate text-xs font-black tracking-tight text-white group-hover:text-orange-400 transition-colors">
+                                    {activeShop?.profile?.name || "Merchant Portal"}
+                                </span>
                                 <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
                                     Store Workspace
                                 </span>
@@ -165,7 +168,17 @@ export function DashboardSidebar({
                         </Link>
                     )}
 
-                    {!isMobile && (
+                    {isMobile ? (
+                        <button
+                            type="button"
+                            onClick={onNavItemClick}
+                            className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
+                            title="Close navigation"
+                            aria-label="Close navigation"
+                        >
+                            <X className="size-5" />
+                        </button>
+                    ) : (
                         <button
                             onClick={() => setPinned((prev) => !prev)}
                             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
@@ -178,7 +191,7 @@ export function DashboardSidebar({
                 </div>
 
                 {/* NAVIGATION SECTION */}
-                <div className="flex-1 px-2.5 py-3 space-y-1 overflow-y-auto overflow-x-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex-1 w-full px-3 py-3 space-y-1 overflow-y-auto overflow-x-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                     {expanded && (
                         <div className="px-2 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                             Store Operations
@@ -240,7 +253,7 @@ export function DashboardSidebar({
                 </div>
 
                 {/* BOTTOM FOOTER SECTION */}
-                <div className="p-2.5 border-t border-slate-800 shrink-0 space-y-1">
+                <div className="p-3 border-t border-white/10 shrink-0 space-y-1 w-full">
                     {/* SWITCH SHOP */}
                     <Link
                         to="/shops"
@@ -278,7 +291,7 @@ export function DashboardSidebar({
                     {/* STORE STATUS BADGE */}
                     {expanded && (
                         <div className="pt-2">
-                            <div className="flex items-center justify-between rounded-xl bg-slate-900/90 border border-slate-800 px-3 py-2 text-[11px] text-slate-300">
+                            <div className="flex items-center justify-between rounded-xl bg-slate-900/90 border border-white/10 px-3 py-2 text-[11px] text-slate-300">
                                 <span className="flex items-center gap-2">
                                     <span className="size-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
                                     Store Active

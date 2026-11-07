@@ -102,7 +102,7 @@ export const AdminNavLinks = ({ expanded = true, onNavItemClick }: AdminNavLinks
                     <NavItem href="/superadmin/audits" icon={Shield} label="Security & Audits" expanded={expanded} onClick={onNavItemClick} />
                 </div>
             </div>
-            <div className="mt-6 border-t border-slate-800 pt-3">
+            <div className="mt-6 border-t border-white/10 pt-3">
                 <NavItem href="/superadmin/support" icon={LifeBuoy} label="Support Center" expanded={expanded} onClick={onNavItemClick} />
                 <button
                     onClick={() => logout.mutate()}
