@@ -18,6 +18,9 @@ const envSchema = z.object({
     SMTP_USER: z.string().default(""),
     SMTP_PASS: z.string().default(""),
 
+    // Gmail REST API (HTTPS Port 443 - 100% Free, no domain required, sends to anyone)
+    GMAIL_REFRESH_TOKEN: z.string().optional(),
+
     // Resend (HTTPS Port 443 - for platforms like Render Free tier that block SMTP)
     RESEND_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().optional(),
