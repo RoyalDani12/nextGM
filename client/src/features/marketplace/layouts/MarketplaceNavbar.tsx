@@ -191,19 +191,82 @@ export const MarketplaceNavbar = () => {
           </div>
 
 
-          {/* Mobile Cart Button */}
-          <button
-            onClick={() => navigate("/cart")}
-            className="relative ml-auto flex cursor-pointer items-center justify-center rounded-xl p-2 text-slate-700 transition-all hover:bg-orange-50 hover:text-orange-500 lg:hidden"
-            aria-label="Shopping cart"
-          >
-            <ShoppingCart className="size-6" />
-            {cartItemCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 flex items-center justify-center rounded-full bg-orange-500 text-[11px] font-extrabold text-white shadow-xs">
-                {cartItemCount}
-              </span>
+          {/* Mobile Actions: Sign In (or User Menu) + Cart */}
+          <div className="ml-auto flex items-center gap-1.5 sm:gap-2 lg:hidden">
+            {!isAuthenticated ? (
+              <Button
+                size="sm"
+                onClick={() => navigate("/login")}
+                className="h-8.5 rounded-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-3 shadow-xs shadow-orange-500/25 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+              >
+                <User className="size-3.5" />
+                <span>Sign In</span>
+              </Button>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label="Open mobile account menu"
+                  className="flex items-center gap-1 outline-none cursor-pointer"
+                >
+                  <div className="size-8.5 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 font-bold text-xs shadow-2xs">
+                    {user?.name?.[0]?.toUpperCase() || <User className="size-3.5" />}
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 rounded-2xl border border-slate-200 bg-white p-1 shadow-2xl">
+                  <div className="border-b border-slate-100 px-3 py-2">
+                    <p className="text-[10px] font-medium text-slate-500">Signed in as</p>
+                    <p className="text-xs font-bold text-slate-900 truncate">{user?.name || user?.email}</p>
+                  </div>
+                  <div className="space-y-0.5 p-1 text-slate-700 text-xs">
+                    <DropdownMenuItem
+                      onClick={() => navigate("/account/settings")}
+                      className="cursor-pointer rounded-xl focus:bg-orange-50 focus:text-orange-600"
+                    >
+                      <User className="mr-2 size-4 text-slate-400" /> Profile Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => navigate("/customer-order")}
+                      className="cursor-pointer rounded-xl focus:bg-orange-50 focus:text-orange-600"
+                    >
+                      <Receipt className="mr-2 size-4 text-slate-400" /> Your Orders
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => navigate("/shops")}
+                      className="cursor-pointer rounded-xl focus:bg-orange-50 focus:text-orange-600"
+                    >
+                      <Package className="mr-2 size-4 text-slate-400" /> See Your Shops
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => navigate("/wishlist")}
+                      className="cursor-pointer rounded-xl focus:bg-rose-50 focus:text-rose-500"
+                    >
+                      <Heart className="mr-2 size-4 text-rose-400" /> My Wishlist
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="my-1" />
+                    <DropdownMenuItem
+                      onClick={() => logout()}
+                      className="cursor-pointer rounded-xl text-rose-600 focus:bg-rose-50 focus:text-rose-600"
+                    >
+                      <LogOut className="mr-2 size-4 text-rose-500" /> Sign Out
+                    </DropdownMenuItem>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
-          </button>
+
+            <button
+              onClick={() => navigate("/cart")}
+              className="relative flex cursor-pointer items-center justify-center rounded-xl p-2 text-slate-700 transition-all hover:bg-orange-50 hover:text-orange-500"
+              aria-label="Shopping cart"
+            >
+              <ShoppingCart className="size-5.5" />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 flex items-center justify-center rounded-full bg-orange-500 text-[10px] font-extrabold text-white shadow-xs">
+                  {cartItemCount}
+                </span>
+              )}
+            </button>
+          </div>
 
           <div className="flex items-center gap-3">
             {/* Auth Actions */}

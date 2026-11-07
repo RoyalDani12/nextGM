@@ -3,7 +3,6 @@ import { Link, useNavigate, useLocation, useSearchParams } from "react-router-do
 import {
   Compass,
   Heart,
-  HelpCircle,
   Package,
   Store,
   Settings,
@@ -243,20 +242,6 @@ export const MarketplaceMobileMenu = ({
             >
               <span className="flex items-center gap-3">
                 <Compass className="size-4" /> Explore Catalog
-              </span>
-              <ChevronRight className="size-3.5 opacity-40" />
-            </button>
-
-            <button
-              onClick={() => goTo("/how-it-works")}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                isActive("/how-it-works")
-                  ? "bg-orange-50 text-orange-600 shadow-xs"
-                  : "text-slate-700 hover:bg-slate-100/70 hover:text-slate-900"
-              }`}
-            >
-              <span className="flex items-center gap-3">
-                <HelpCircle className="size-4" /> How It Works
               </span>
               <ChevronRight className="size-3.5 opacity-40" />
             </button>

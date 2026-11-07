@@ -20,7 +20,6 @@ import {
   NavigationMenuItem,
   NavigationMenuList,
   NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { MarketplaceMegaMenu } from "./MarketplaceMegaMenu";
 import { useMarketplaceCategories } from "./marketplace.hooks";
@@ -298,16 +297,6 @@ export const MarketplaceDesktopNav = ({
           </NavigationMenuTrigger>
 
           <NavigationMenuContent><MarketplaceMegaMenu /></NavigationMenuContent>
-        </NavigationMenuItem>
-
-        {/* How It Works */}
-        <NavigationMenuItem>
-          <Link
-            to="/how-it-works"
-            className={`${navigationMenuTriggerStyle()} bg-transparent text-sm font-semibold px-3 py-2 rounded-full transition-all text-slate-700 hover:text-slate-950 hover:bg-slate-100 cursor-pointer`}
-          >
-            How It Works
-          </Link>
         </NavigationMenuItem>
 
         {/* Wishlist */}
