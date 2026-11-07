@@ -2,26 +2,37 @@ import { useState } from "react";
 import {
   ArrowRight,
   BadgeCheck,
+  Check,
   CheckCircle2,
   ChevronRight,
-  Cpu,
   CreditCard,
+  Download,
   Lock,
-  Package,
   RefreshCw,
+  RotateCcw,
   ShieldCheck,
   ShoppingBag,
   Sparkles,
   Star,
   Store,
   Truck,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
-/* ─── TYPES ───────────────────────────────────────────────────────────── */
-type TrackId = "shoppers" | "merchants" | "engine" | "safeguards";
+/* ─── TYPES & DATA STRUCTURES ─────────────────────────────────────────── */
+type TrackId = "shoppers" | "merchants" | "settlement" | "trust";
 
 interface StepDetail {
   id: string;
@@ -37,460 +48,394 @@ interface StepDetail {
 interface TrackConfig {
   id: TrackId;
   label: string;
-  shortLabel: string;
   subtitle: string;
   icon: LucideIcon;
-  badgeColor: string;
-  activeColor: string;
+  colorClass: string;
   steps: StepDetail[];
 }
 
-/* ─── TRACK DATA ──────────────────────────────────────────────────────── */
+/* ─── REAL APP RECHARTS DATA ──────────────────────────────────────────── */
+const mockRevenueTimeline = [
+  { day: "Mon", revenue: 2840, orders: 18 },
+  { day: "Tue", revenue: 4120, orders: 26 },
+  { day: "Wed", revenue: 3890, orders: 22 },
+  { day: "Thu", revenue: 5460, orders: 34 },
+  { day: "Fri", revenue: 7120, orders: 48 },
+  { day: "Sat", revenue: 8940, orders: 56 },
+  { day: "Sun", revenue: 6420, orders: 41 },
+];
+
+/* ─── NEXTGM REAL FEATURE TRACKS ─────────────────────────────────────── */
 const TRACKS: TrackConfig[] = [
   {
     id: "shoppers",
-    label: "For Shoppers",
-    shortLabel: "Shoppers",
-    subtitle: "From discovery to doorstep with zero friction",
+    label: "Shopper Experience",
+    subtitle: "From faceted discovery to multi-store unified checkout",
     icon: ShoppingBag,
-    badgeColor: "bg-orange-500/10 text-orange-600 border-orange-500/20",
-    activeColor: "border-orange-500 bg-orange-500 text-white",
+    colorClass: "orange",
     steps: [
       {
         id: "curated-discovery",
         stepNumber: "01",
         badge: "Smart Discovery",
-        title: "Curated Brands & Real-Time Search",
-        tagline: "Find handcrafted essentials and standout independent brands.",
+        title: "Faceted Search & Verified Storefronts",
+        tagline: "Discover unique physical & digital products from independent merchants.",
         description:
-          "Browse high-trust independent storefronts with instant category filters, verified buyer reviews, and real-time inventory previews.",
+          "Browse multi-level category breadcrumbs, filter by 4★+ verified reviews, price range, and instant in-stock availability across independent boutique storefronts.",
         metrics: [
-          { label: "Search Latency", value: "< 45ms" },
-          { label: "Verified Sellers", value: "100%" },
+          { label: "Search Index", value: "Real-Time" },
+          { label: "Store Vetting", value: "100% KYC" },
         ],
         keyFeatures: [
-          "Multi-category faceted navigation",
-          "Real-time stock indicators",
-          "Direct storefront transparent pricing",
+          "Category taxonomy with deep nested breadcrumbs",
+          "Verified merchant badge & customer ratings",
+          "Real-time stock indicators with low-stock warnings",
         ],
       },
       {
-        id: "multi-cart",
+        id: "unified-checkout",
         stepNumber: "02",
         badge: "Unified Basket",
-        title: "One Multi-Store Cart. Zero Splitting.",
-        tagline: "Bundle multiple independent stores into one seamless basket.",
+        title: "Multi-Store Cart in One Single Payment",
+        tagline: "Bundle multiple independent stores into one seamless checkout.",
         description:
-          "Add pieces from different stores across the world. Our cart engine groups items by merchant, applies active coupons, and keeps your cart synced across devices.",
+          "Add pieces from multiple independent stores into one cart. NextGM groups items by shop, applies active store coupons, and initiates a single Stripe PaymentIntent.",
         metrics: [
-          { label: "Device Sync", value: "Instant" },
-          { label: "Guest Cart", value: "Supported" },
+          { label: "Store Bundling", value: "Automatic" },
+          { label: "Buyer Surcharge", value: "$0.00 (Zero)" },
         ],
         keyFeatures: [
-          "Automatic store parcel grouping",
-          "Live coupon discount calculator",
-          "Persistent guest session sync",
+          "Cart automatically groups items per independent shop",
+          "Real-time coupon discount code engine",
+          "Guest cart automatically syncs upon sign-in",
         ],
       },
       {
-        id: "express-checkout",
+        id: "order-tracking",
         stepNumber: "03",
-        badge: "Stripe Escrow",
-        title: "Bank-Grade Express Checkout",
-        tagline: "256-bit encrypted payments with Stripe Connect protection.",
-        description:
-          "Pay once with Apple Pay, Google Pay, or Credit Card. Funds are held in protected escrow until the merchant ships your verified order.",
-        metrics: [
-          { label: "Avg. Checkout", value: "2.1 sec" },
-          { label: "Hidden Fees", value: "$0.00" },
-        ],
-        keyFeatures: [
-          "Single-click payment authorization",
-          "Full PCI DSS Level 1 encryption",
-          "No hidden platform surcharges",
-        ],
-      },
-      {
-        id: "live-tracking",
-        stepNumber: "04",
         badge: "Live Telemetry",
-        title: "Doorstep Milestones & Tracking",
-        tagline: "Track dispatch, carrier handoff, and delivery live.",
+        title: "Live Milestones, Invoices & 14-Day Returns",
+        tagline: "Track carrier milestones, download invoices, and request hassle-free returns.",
         description:
-          "Receive automated webhook updates, track courier transit live, and enjoy a hassle-free 14-day return guarantee with direct merchant support.",
+          "Follow your package from CONFIRMED to PROCESSING to SHIPPED and DELIVERED. Download official PDF invoices and submit return requests with evidence photos in 1 click.",
         metrics: [
-          { label: "Delivery Updates", value: "Real-Time" },
           { label: "Return Window", value: "14 Days" },
+          { label: "Invoice Format", value: "Instant PDF" },
         ],
         keyFeatures: [
-          "Automated tracking numbers",
-          "Status notifications & invoices",
-          "Direct store dispute assistance",
+          "Universal carrier tracking ID integration (FedEx, UPS, DHL)",
+          "Order invoice modal with full tax and item breakdown",
+          "Structured return reasons (DAMAGED, NOT_AS_DESCRIBED, etc.)",
         ],
       },
     ],
   },
   {
     id: "merchants",
-    label: "For Store Owners",
-    shortLabel: "Store Owners",
-    subtitle: "A modern SaaS operating system for independent commerce",
+    label: "Merchant Operating System",
+    subtitle: "Onboarding, matrix variant inventory & rolling bank payouts",
     icon: Store,
-    badgeColor: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-    activeColor: "border-blue-600 bg-blue-600 text-white",
+    colorClass: "blue",
     steps: [
       {
-        id: "store-onboard",
+        id: "publish-readiness",
         stepNumber: "01",
-        badge: "Launch in Minutes",
-        title: "Multi-Tenant Storefront Setup",
-        tagline: "Claim your branded URL and customize your storefront.",
+        badge: "Shop Readiness",
+        title: "8-Step Store Readiness Checklist",
+        tagline: "Launch your independent storefront in under 3 minutes.",
         description:
-          "Create your independent digital boutique. Upload your custom logo, configure shipping zones, policy rules, and custom domain routing instantly.",
+          "Complete NextGM's 8 publish readiness checks: profile, name, description, logo, contact info, business address, tax ID, and first product to transition from PENDING to ACTIVE.",
         metrics: [
-          { label: "Setup Time", value: "< 3 mins" },
-          { label: "Custom Subdomain", value: "Free" },
+          { label: "Readiness Checks", value: "8 Criteria" },
+          { label: "Branded URL", value: "nexions.com/:shopSlug" },
         ],
         keyFeatures: [
-          "Unique storefront slug & branding",
-          "Granular shipping rate tables",
-          "Integrated SEO & social metadata",
+          "Unique branded storefront slug and social metadata",
+          "Automated shop approval verification pipeline",
+          "Cloudinary CDN image uploads for banners and logos",
         ],
       },
       {
-        id: "catalog-variants",
+        id: "variant-catalog",
         stepNumber: "02",
-        badge: "Inventory Engine",
-        title: "Multi-Variant Catalog Management",
-        tagline: "Manage SKUs, physical sizes, colors, and stock levels.",
+        badge: "Inventory Matrix",
+        title: "Matrix Variant Engine & Physical/Digital Goods",
+        tagline: "Granular control over SKUs, sizes, colors, and stock levels.",
         description:
-          "Effortlessly handle products with matrix variants, low-stock threshold alerts, Cloudinary image optimization, and flash deal promotions.",
+          "Manage physical goods with shipping dimensions, weight, and color/size variants, or digital products with secure download tokens. Low-stock alerts protect against overselling.",
         metrics: [
-          { label: "Variant Combinations", value: "Unlimited" },
-          { label: "Image CDN", value: "Cloudinary" },
+          { label: "Product Types", value: "Physical & Digital" },
+          { label: "Auto-Hide Stock", value: "Automatic" },
         ],
         keyFeatures: [
-          "SKU-level stock tracking & auto-hiding",
-          "Promotional coupons & percentage discounts",
-          "Instant digital and physical goods support",
+          "SKU-level stock tracking with low-stock alerts",
+          "Multi-image Cloudinary media gallery with drag reorder",
+          "Active promotion coupons (percentage or fixed discounts)",
         ],
       },
       {
-        id: "order-fulfillment",
+        id: "fulfillment-payouts",
         stepNumber: "03",
-        badge: "Dispatch Pipeline",
-        title: "Fulfillment & Real-Time Tracking",
-        tagline: "Process incoming orders, print packing slips, and ship.",
-        description:
-          "Real-time notifications trigger when shoppers buy. Assign carrier tracking IDs (FedEx, UPS, DHL), notify buyers, and trigger automatic status transitions.",
-        metrics: [
-          { label: "Notification Lag", value: "< 100ms" },
-          { label: "Carrier Sync", value: "Universal" },
-        ],
-        keyFeatures: [
-          "One-click packing slips & invoices",
-          "Automated customer dispatch emails",
-          "Return request workflow management",
-        ],
-      },
-      {
-        id: "automated-payouts",
-        stepNumber: "04",
         badge: "Stripe Connect",
-        title: "Direct Payouts to Your Bank",
-        tagline: "Automated 2-day rolling deposits with transparent ledger.",
+        title: "Order Dispatch & 48h Rolling Payouts",
+        tagline: "Fulfill orders with tracking numbers and withdraw wallet funds.",
         description:
-          "Enjoy direct payouts via Stripe Connect. View net earnings, taxes, settlement dates, and downloadable CSV ledgers with zero surprise deductions.",
+          "View orders in CONFIRMED (To Pack) status, generate packing slips, assign carrier tracking IDs, and withdraw your 90% wallet earnings directly to your bank account via Stripe Express.",
         metrics: [
-          { label: "Payout Schedule", value: "Rolling 48h" },
-          { label: "Platform Cut", value: "Fair Flat" },
+          { label: "Merchant Split", value: "90% Net" },
+          { label: "Payout Schedule", value: "Rolling 48 Hours" },
         ],
         keyFeatures: [
-          "Direct deposit to 120+ countries",
-          "Complete ledger breakdown & export",
-          "Zero merchant lock-in or hidden cuts",
+          "One-click status update: CONFIRMED → PROCESSING → SHIPPED",
+          "Live shop wallet balance with automated bank transfers",
+          "Return request review board with direct refund authorization",
         ],
       },
     ],
   },
   {
-    id: "engine",
-    label: "Engine & Infrastructure",
-    shortLabel: "Infrastructure",
-    subtitle: "High-concurrency backend built on modern distributed primitives",
-    icon: Cpu,
-    badgeColor: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-    activeColor: "border-emerald-600 bg-emerald-600 text-white",
+    id: "settlement",
+    label: "Atomic Settlement & Engine",
+    subtitle: "Stripe Connect, BullMQ queues & hermetic multi-tenancy",
+    icon: Zap,
+    colorClass: "amber",
     steps: [
       {
-        id: "gateway-auth",
+        id: "atomic-split",
         stepNumber: "01",
-        badge: "Secure Gateway",
-        title: "TypeScript API & Session Isolation",
-        tagline: "Sub-50ms API endpoints protected by JWT and role governance.",
+        badge: "Atomic Settlement",
+        title: "90% Merchant / 10% Platform Split",
+        tagline: "Zero buyer markups. Instant ledger settlement via Stripe webhooks.",
         description:
-          "Enterprise API architecture with role-based routing (SuperAdmin, ShopOwner, Customer), rate limiting, and automated input validation via Zod schemas.",
+          "When a customer pays via single Stripe PaymentIntent, the atomic webhook handler immediately credits 90% of each store's items to its ShopWallet and 10% to the PlatformWallet.",
         metrics: [
+          { label: "Settlement Speed", value: "< 250ms" },
+          { label: "Ledger Accuracy", value: "ACID Guaranteed" },
+        ],
+        keyFeatures: [
+          "Single customer checkout creates grouped per-shop orders",
+          "Automated ledger credit and debit transactions recorded",
+          "No hidden buyer service fees or inflated currency spreads",
+        ],
+      },
+      {
+        id: "async-queues",
+        stepNumber: "02",
+        badge: "Redis BullMQ",
+        title: "Asynchronous Background Processing",
+        tagline: "High-throughput event workers for emails, webhooks, and analytics.",
+        description:
+          "Transactional emails, PDF invoice generation, Stripe webhook verifications, and analytics rollups run asynchronously on Redis BullMQ workers with exponential retry backoff.",
+        metrics: [
+          { label: "Worker Queue", value: "Redis BullMQ" },
           { label: "API Response", value: "< 35ms" },
-          { label: "Schema Safety", value: "100% Zod" },
         ],
         keyFeatures: [
-          "HttpOnly secure session cookies",
-          "Redis token revoking & rate defense",
-          "Automated request audit trail",
+          "Instant customer order confirmation dispatch",
+          "Real-time WebSocket alerts to merchant dashboards",
+          "Automatic dead-letter queue monitoring",
         ],
       },
       {
-        id: "data-isolation",
-        stepNumber: "02",
-        badge: "Multi-Tenancy",
-        title: "PostgreSQL Multi-Tenant Architecture",
-        tagline: "Hermetic data isolation for every independent merchant.",
-        description:
-          "Relational PostgreSQL architecture ensures complete data separation between stores. Inventory, customer records, and ledger balances never cross tenant boundaries.",
-        metrics: [
-          { label: "Query Execution", value: "< 12ms" },
-          { label: "Data Integrity", value: "ACID Guaranteed" },
-        ],
-        keyFeatures: [
-          "Multi-tenant schema partitioning",
-          "Optimized B-tree indexing on catalog searches",
-          "Zero cross-shop data leakage",
-        ],
-      },
-      {
-        id: "queues-webhooks",
+        id: "multi-tenant-db",
         stepNumber: "03",
-        badge: "Asynchronous Workers",
-        title: "Redis BullMQ & Event Processing",
-        tagline: "Decoupled job queues handle emails, webhooks, and analytics.",
+        badge: "PostgreSQL",
+        title: "Hermetic Multi-Tenant Data Isolation",
+        tagline: "Relational database schema protecting every store's data.",
         description:
-          "Heavy tasks never block the user thread. Stripe webhooks, transactional receipts, notifications, and analytics rollups process through asynchronous workers.",
+          "PostgreSQL architecture enforces strict tenant isolation. Customer databases, store inventories, payout accounts, and sales analytics never bleed across store boundaries.",
         metrics: [
-          { label: "Queue Throughput", value: "10k+ jobs/s" },
-          { label: "Webhook Reliability", value: "99.99%" },
+          { label: "Data Isolation", value: "Tenant Boundary" },
+          { label: "Security", value: "Role-Based Access" },
         ],
         keyFeatures: [
-          "Automatic exponential retry backoff",
-          "Dead-letter queue inspection",
-          "Real-time event broadcasting",
-        ],
-      },
-      {
-        id: "cdn-speed",
-        stepNumber: "04",
-        badge: "Edge Performance",
-        title: "Global CDN & Asset Acceleration",
-        tagline: "Sub-second page loads powered by Vite and Cloudinary CDN.",
-        description:
-          "Dynamic image transformations, WebP/AVIF automated formatting, and responsive srcset generation guarantee instant browsing on any network.",
-        metrics: [
-          { label: "Lighthouse Score", value: "98/100" },
-          { label: "Image Format", value: "Next-Gen AVIF" },
-        ],
-        keyFeatures: [
-          "Edge asset caching across 240+ PoPs",
-          "Automatic device-aware downscaling",
-          "Optimized bundle splitting",
+          "Row-level security and tenant-scoped query execution",
+          "Optimized catalog indexes for high-speed faceted searches",
+          "PCI-DSS compliant tokenization through Stripe Elements",
         ],
       },
     ],
   },
   {
-    id: "safeguards",
-    label: "Trust & Buyer Protection",
-    shortLabel: "Protection",
-    subtitle: "Financial safeguards, fraud defense, and verified reviews",
+    id: "trust",
+    label: "Trust, Reviews & Returns",
+    subtitle: "Verified buyer authentication, escrow safety & fraud defense",
     icon: ShieldCheck,
-    badgeColor: "bg-purple-500/10 text-purple-600 border-purple-500/20",
-    activeColor: "border-purple-600 bg-purple-600 text-white",
+    colorClass: "emerald",
     steps: [
       {
-        id: "escrow-protection",
+        id: "verified-reviews-system",
         stepNumber: "01",
-        badge: "Escrow Holding",
-        title: "Guaranteed Buyer Escrow Vault",
-        tagline: "Merchants only get settled once shipping is recorded.",
+        badge: "Review Authenticity",
+        title: "100% Verified Buyer Reviews Only",
+        tagline: "Eliminating bot farms: reviews require completed, delivered orders.",
         description:
-          "Your payment is secured in a platform vault. In the rare event of non-delivery or unresolved issues, platform protection guarantees a full and immediate refund.",
+          "Only authenticated customers who purchased and received the product can leave star ratings and reviews. Verified Buyer badges give shoppers complete confidence.",
         metrics: [
-          { label: "Buyer Coverage", value: "$100k Max" },
-          { label: "Dispute Resolution", value: "< 24h" },
-        ],
-        keyFeatures: [
-          "Automated shipment verification trigger",
-          "One-click return dispute initiation",
-          "Direct Stripe payment reversal guarantee",
-        ],
-      },
-      {
-        id: "verified-reviews",
-        stepNumber: "02",
-        badge: "Review Integrity",
-        title: "100% Cryptographically Verified Reviews",
-        tagline: "No bot farms. Only genuine confirmed purchasers can rate.",
-        description:
-          "Unlike legacy giants flooded with fake five-star feedback, reviews on Nexions require a completed, fulfilled order transaction ID. Fake reviews are mathematically eliminated.",
-        metrics: [
-          { label: "Verified Buyer Tag", value: "Strict Order ID" },
           { label: "Fake Review Rate", value: "0.00%" },
+          { label: "Seller Response", value: "Public Replies" },
         ],
         keyFeatures: [
-          "Order ID verification on submit",
-          "Verified buyer visual checkmark",
-          "Public merchant response threads",
+          "Delivered order ID validation before review submission",
+          "Verified buyer visual checkmark on product pages",
+          "Merchant response capability for customer feedback",
         ],
       },
       {
-        id: "zero-hidden-fees",
+        id: "returns-management",
+        stepNumber: "02",
+        badge: "Hassle-Free Returns",
+        title: "Structured 14-Day Return & Refund Pipeline",
+        tagline: "Fair dispute management with evidence photos and direct refunds.",
+        description:
+          "Customers can request returns with specific categorized reasons and photos. Merchants review and approve refunds directly from their dashboard with full ledger tracking.",
+        metrics: [
+          { label: "Standard Window", value: "14 Days" },
+          { label: "Evidence Upload", value: "Cloudinary" },
+        ],
+        keyFeatures: [
+          "Standardized return reasons (DAMAGED, WRONG_ITEM, etc.)",
+          "Direct merchant-customer resolution workflow",
+          "Automated wallet adjustment upon approved refund",
+        ],
+      },
+      {
+        id: "superadmin-governance",
         stepNumber: "03",
-        badge: "Transparent Pricing",
-        title: "Zero Hidden Fees at Checkout",
-        tagline: "What you see is what you pay. No platform markups.",
+        badge: "Platform Governance",
+        title: "SuperAdmin Oversight & Store Vetting",
+        tagline: "Proactive shop moderation and transactional security.",
         description:
-          "We never tack on sneaky 'convenience fees', 'marketplace service charges', or inflated currency spreads. Exact taxes and shipping are transparent before you click pay.",
+          "SuperAdmins review newly registered shops, monitor platform-wide GMV analytics, audit coupon usage, manage categories, and step in for dispute mediation when required.",
         metrics: [
-          { label: "Buyer Surcharge", value: "$0.00" },
-          { label: "Fee Transparency", value: "100%" },
+          { label: "KYC Verification", value: "Stripe Connect" },
+          { label: "Platform Uptime", value: "99.98%" },
         ],
         keyFeatures: [
-          "Itemized tax & carrier shipping rates",
-          "No surge or peak pricing algorithms",
-          "Item prices set directly by merchants",
-        ],
-      },
-      {
-        id: "seller-compliance",
-        stepNumber: "04",
-        badge: "Vetted Merchants",
-        title: "Strict Merchant KYC & Vetting",
-        tagline: "Every shop passes identity checks and quality verification.",
-        description:
-          "Store owners must complete identity verification and pass quality screening before their products reach the public marketplace. Spammers and drop-shippers are filtered out.",
-        metrics: [
-          { label: "Merchant KYC", value: "Stripe Verified" },
-          { label: "Store Uptime", value: "Monitored 24/7" },
-        ],
-        keyFeatures: [
-          "Government ID verification",
-          "Live business status checks",
-          "Automated prohibited item scanning",
+          "SuperAdmin shop approval & suspension governance",
+          "Platform-wide order, shipment, and payout audits",
+          "Centralized category and coupon lifecycle management",
         ],
       },
     ],
   },
 ];
 
-/* ─── REALISTIC VISUAL APP MOCKUP COMPONENTS ──────────────────────────── */
+/* ─── REAL APP VISUAL MOCKUPS (LIGHT MODE, PRE-DEFINED NEXTGM COLORS) ─── */
 
 /**
- * Shopper Live Interactive Mockup
+ * Shopper Experience Mockup
  */
-function ShopperMockup({ activeStep }: { activeStep: string }) {
+function ShopperAppMockup({ activeStep }: { activeStep: string }) {
   const [selectedColor, setSelectedColor] = useState<"slate" | "white" | "amber">("slate");
   const [cartCount, setCartCount] = useState(2);
-  const [couponApplied, setCouponApplied] = useState(false);
+  const [couponApplied, setCouponApplied] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
 
-  const handleAddToCart = () => {
+  const handleAdd = () => {
     setIsAdding(true);
     setTimeout(() => {
       setCartCount((c) => c + 1);
       setIsAdding(false);
-    }, 450);
+    }, 400);
   };
 
   return (
-    <div className="relative flex flex-col rounded-2xl border border-slate-200/90 bg-slate-950 text-white shadow-2xl shadow-slate-950/20 overflow-hidden">
-      {/* OS / Browser Header */}
-      <div className="flex items-center justify-between border-b border-white/10 bg-slate-900/90 px-4 py-3 backdrop-blur">
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5 overflow-hidden">
+      {/* Light Chrome Header */}
+      <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-4 py-3">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
-            <div className="size-2.5 rounded-full bg-rose-500/80" />
-            <div className="size-2.5 rounded-full bg-amber-500/80" />
-            <div className="size-2.5 rounded-full bg-emerald-500/80" />
+            <div className="size-2.5 rounded-full bg-slate-300" />
+            <div className="size-2.5 rounded-full bg-slate-300" />
+            <div className="size-2.5 rounded-full bg-slate-300" />
           </div>
-          <span className="ml-3 hidden text-[11px] font-mono text-slate-400 sm:inline-block">
-            nexions.marketplace/discover/audio-studio
-          </span>
+          <div className="ml-3 hidden sm:flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 border border-slate-200">
+            <Lock className="size-3 text-emerald-600" />
+            <span>nexions.marketplace/discover/audio-studio</span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold text-slate-200">
-            <ShoppingBag className="size-3 text-orange-400" />
-            <span>Bag ({cartCount})</span>
+          <div className="flex items-center gap-1.5 rounded-full bg-orange-50 border border-orange-200 px-3 py-1 text-xs font-bold text-orange-600">
+            <ShoppingBag className="size-3.5" />
+            <span>Cart ({cartCount})</span>
           </div>
-          <div className="size-6 rounded-full bg-orange-500 flex items-center justify-center text-[10px] font-black text-white">
+          <div className="size-7 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-black shadow-sm">
             JD
           </div>
         </div>
       </div>
 
-      {/* Dynamic Step View inside Browser */}
-      <div className="p-4 sm:p-6 bg-gradient-to-b from-slate-900/50 to-slate-950 min-h-[420px]">
+      {/* Main Body */}
+      <div className="p-4 sm:p-6 bg-white min-h-[460px]">
         {activeStep === "curated-discovery" && (
           <div className="space-y-4 animate-fade-in">
-            {/* Top Store Header */}
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/[0.04] p-3 border border-white/10">
+            {/* Store Breadcrumb & Header */}
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-orange-50/50 p-3.5 border border-orange-100">
               <div className="flex items-center gap-3">
-                <div className="size-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center font-black text-white text-xs">
+                <div className="size-11 rounded-xl bg-orange-500 text-white flex items-center justify-center font-black text-sm shadow-sm">
                   AS
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-sm text-white">Aura Soundworks</span>
-                    <BadgeCheck className="size-4 text-orange-400 fill-orange-400/20" />
+                    <span className="font-bold text-slate-900 text-sm">Aura Soundworks</span>
+                    <BadgeCheck className="size-4 text-orange-500 fill-orange-500/20" />
+                    <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
+                      Verified Store
+                    </span>
                   </div>
-                  <p className="text-[11px] text-slate-400">Independent Acoustic Studio • Portland, OR</p>
+                  <p className="text-xs text-slate-500">Acoustic Audio Boutique • Portland, OR</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-400 border border-emerald-500/20">
-                <Star className="size-3 fill-emerald-400 text-emerald-400" />
+              <div className="flex items-center gap-1 rounded-lg bg-white px-2.5 py-1 text-xs font-bold text-slate-700 border border-slate-200 shadow-2xs">
+                <Star className="size-3.5 fill-amber-400 text-amber-400" />
                 <span>4.96 (428 reviews)</span>
               </div>
             </div>
 
-            {/* Product Card Showcase */}
-            <div className="grid gap-5 sm:grid-cols-[1.1fr_.9fr] items-center rounded-2xl bg-white/[0.03] p-4 border border-white/10">
-              <div className="relative group overflow-hidden rounded-xl bg-slate-800/80 aspect-[4/3]">
+            {/* Product Card with Real Image */}
+            <div className="grid gap-5 sm:grid-cols-[1.1fr_.9fr] items-center rounded-2xl border border-slate-200/80 p-4 bg-slate-50/40">
+              <div className="relative group overflow-hidden rounded-xl bg-white border border-slate-200/70 aspect-[4/3]">
                 <img
                   src="/hero-products/headphones.jpg"
-                  alt="Aura Studio Headphones"
+                  alt="Aura Spatial ANC Wireless Headphones"
                   className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
-                <div className="absolute top-2.5 left-2.5 rounded-full bg-slate-950/80 px-2.5 py-0.5 text-[10px] font-bold text-orange-300 backdrop-blur border border-white/10">
+                <span className="absolute top-2.5 left-2.5 rounded-full bg-white/95 px-2.5 py-0.5 text-[10px] font-bold text-orange-600 border border-orange-200 shadow-xs">
                   Staff Pick
-                </div>
-                <div className="absolute bottom-2.5 right-2.5 rounded-md bg-emerald-500/90 px-2 py-0.5 text-[10px] font-bold text-slate-950">
-                  Ready to Ship (8 left)
-                </div>
+                </span>
+                <span className="absolute bottom-2.5 right-2.5 rounded-md bg-emerald-600 text-white px-2 py-0.5 text-[10px] font-bold shadow-xs">
+                  In Stock (8 left)
+                </span>
               </div>
 
-              <div className="space-y-3.5">
+              <div className="space-y-3">
                 <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-orange-400">
-                      Studio Reference
-                    </span>
-                    <span className="text-xs font-medium text-slate-400">Free 2-day delivery</span>
-                  </div>
-                  <h4 className="mt-1 text-base sm:text-lg font-black text-white leading-tight">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-orange-600">
+                    Studio Reference Series
+                  </span>
+                  <h4 className="mt-1 text-base sm:text-lg font-black text-slate-900 leading-tight">
                     Aura Spatial ANC Wireless Headphones
                   </h4>
                   <div className="mt-2 flex items-baseline gap-2">
-                    <span className="text-2xl font-black text-white">$189.00</span>
+                    <span className="text-2xl font-black text-slate-900">$189.00</span>
                     <span className="text-xs text-slate-400 line-through">$249.00</span>
-                    <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400">
+                    <span className="rounded bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-[10px] font-bold">
                       SAVE 24%
                     </span>
                   </div>
                 </div>
 
-                {/* Interactive Variant Color Selector */}
+                {/* Variant Color Selector */}
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-300 block mb-1.5">
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">
                     Finish:{" "}
-                    <span className="text-white capitalize font-bold">
-                      {selectedColor === "slate" ? "Matte Obsidian" : selectedColor === "white" ? "Arctic Frost" : "Warm Amber"}
+                    <span className="text-slate-900 font-bold">
+                      {selectedColor === "slate"
+                        ? "Matte Obsidian"
+                        : selectedColor === "white"
+                        ? "Arctic Frost"
+                        : "Warm Amber"}
                     </span>
                   </label>
                   <div className="flex items-center gap-2">
@@ -498,15 +443,19 @@ function ShopperMockup({ activeStep }: { activeStep: string }) {
                       type="button"
                       onClick={() => setSelectedColor("slate")}
                       className={`size-6 rounded-full bg-slate-800 border-2 transition-all ${
-                        selectedColor === "slate" ? "border-orange-400 scale-110 shadow-sm shadow-orange-500/50" : "border-white/30"
+                        selectedColor === "slate"
+                          ? "border-orange-500 scale-110 shadow-sm"
+                          : "border-slate-300"
                       }`}
                       title="Matte Obsidian"
                     />
                     <button
                       type="button"
                       onClick={() => setSelectedColor("white")}
-                      className={`size-6 rounded-full bg-slate-100 border-2 transition-all ${
-                        selectedColor === "white" ? "border-orange-400 scale-110 shadow-sm shadow-orange-500/50" : "border-white/30"
+                      className={`size-6 rounded-full bg-white border-2 transition-all ${
+                        selectedColor === "white"
+                          ? "border-orange-500 scale-110 shadow-sm"
+                          : "border-slate-300"
                       }`}
                       title="Arctic Frost"
                     />
@@ -514,24 +463,26 @@ function ShopperMockup({ activeStep }: { activeStep: string }) {
                       type="button"
                       onClick={() => setSelectedColor("amber")}
                       className={`size-6 rounded-full bg-amber-600 border-2 transition-all ${
-                        selectedColor === "amber" ? "border-orange-400 scale-110 shadow-sm shadow-orange-500/50" : "border-white/30"
+                        selectedColor === "amber"
+                          ? "border-orange-500 scale-110 shadow-sm"
+                          : "border-slate-300"
                       }`}
                       title="Warm Amber"
                     />
                   </div>
                 </div>
 
-                {/* Add to Cart Simulation */}
+                {/* Add to Cart Button */}
                 <button
                   type="button"
-                  onClick={handleAddToCart}
+                  onClick={handleAdd}
                   disabled={isAdding}
-                  className="w-full rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 active:scale-[0.98]"
+                  className="w-full rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 text-xs transition-all flex items-center justify-center gap-2 shadow-md shadow-orange-500/20 active:scale-95 cursor-pointer"
                 >
                   {isAdding ? (
                     <>
                       <RefreshCw className="size-3.5 animate-spin" />
-                      <span>Syncing Cart...</span>
+                      <span>Syncing with Cart...</span>
                     </>
                   ) : (
                     <>
@@ -545,469 +496,421 @@ function ShopperMockup({ activeStep }: { activeStep: string }) {
           </div>
         )}
 
-        {activeStep === "multi-cart" && (
+        {activeStep === "unified-checkout" && (
           <div className="space-y-4 animate-fade-in">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h4 className="text-sm font-bold text-white">Unified Multi-Store Basket</h4>
-                <p className="text-[11px] text-slate-400">2 independent merchant packages in 1 order</p>
+                <h4 className="text-sm font-bold text-slate-900">Unified Multi-Store Basket</h4>
+                <p className="text-xs text-slate-500">2 independent shops bundled into 1 single checkout</p>
               </div>
-              <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-400 border border-emerald-500/20">
-                Free Express Delivery Unlocked
+              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
+                1 PaymentIntent • 0% Buyer Fee
               </span>
             </div>
 
-            {/* Merchant 1 Item */}
-            <div className="rounded-xl bg-white/[0.04] p-3 border border-white/10 space-y-2">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="font-bold text-orange-400 flex items-center gap-1.5">
-                  <Store className="size-3" /> Aura Soundworks (Oregon)
+            {/* Shop 1 Parcel */}
+            <div className="rounded-xl border border-slate-200 bg-white p-3.5 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-orange-600 flex items-center gap-1.5">
+                  <Store className="size-3.5" /> Aura Soundworks (Oregon)
                 </span>
-                <span className="text-slate-400">Ships in 24h</span>
+                <span className="text-slate-500 text-[11px]">Sub-order #NX-99482-A</span>
               </div>
               <div className="flex items-center justify-between gap-3 pt-1">
                 <div className="flex items-center gap-3">
                   <img
                     src="/hero-products/headphones.jpg"
-                    alt="Aura ANC"
-                    className="size-11 rounded-lg object-cover bg-slate-800"
+                    alt=""
+                    className="size-12 rounded-lg object-cover border border-slate-200"
                   />
                   <div>
-                    <p className="text-xs font-bold text-white">Aura Spatial ANC Wireless</p>
-                    <p className="text-[11px] text-slate-400">Qty: 1 • Matte Obsidian</p>
+                    <p className="text-xs font-bold text-slate-900">Aura Spatial ANC Wireless</p>
+                    <p className="text-[11px] text-slate-500">Qty: 1 • Matte Obsidian</p>
                   </div>
                 </div>
-                <span className="text-sm font-black text-white">$189.00</span>
+                <span className="text-sm font-black text-slate-900">$189.00</span>
               </div>
             </div>
 
-            {/* Merchant 2 Item */}
-            <div className="rounded-xl bg-white/[0.04] p-3 border border-white/10 space-y-2">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="font-bold text-sky-400 flex items-center gap-1.5">
-                  <Store className="size-3" /> Peak Minimalist Goods (Tokyo)
+            {/* Shop 2 Parcel */}
+            <div className="rounded-xl border border-slate-200 bg-white p-3.5 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-blue-600 flex items-center gap-1.5">
+                  <Store className="size-3.5" /> Peak Minimalist Goods (Tokyo)
                 </span>
-                <span className="text-slate-400">Tracked Air Courier</span>
+                <span className="text-slate-500 text-[11px]">Sub-order #NX-99482-B</span>
               </div>
               <div className="flex items-center justify-between gap-3 pt-1">
                 <div className="flex items-center gap-3">
                   <img
                     src="/hero-products/camera.jpg"
-                    alt="Camera Pack"
-                    className="size-11 rounded-lg object-cover bg-slate-800"
+                    alt=""
+                    className="size-12 rounded-lg object-cover border border-slate-200"
                   />
                   <div>
-                    <p className="text-xs font-bold text-white">Classic Rangefinder Case & Strap</p>
-                    <p className="text-[11px] text-slate-400">Qty: 1 • Olive Green</p>
+                    <p className="text-xs font-bold text-slate-900">Classic Rangefinder Case & Strap</p>
+                    <p className="text-[11px] text-slate-500">Qty: 1 • Olive Tan</p>
                   </div>
                 </div>
-                <span className="text-sm font-black text-white">$65.00</span>
+                <span className="text-sm font-black text-slate-900">$65.00</span>
               </div>
             </div>
 
-            {/* Interactive Coupon & Summary */}
-            <div className="rounded-xl bg-slate-900 p-3 border border-white/10 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400">Subtotal (2 items)</span>
-                <span className="font-bold text-white">$254.00</span>
+            {/* Interactive Coupon & Order Summary */}
+            <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">Subtotal (2 items)</span>
+                <span className="font-bold text-slate-900">$254.00</span>
               </div>
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-slate-400">Promo Code</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-600">Active Coupon</span>
                   <button
                     type="button"
                     onClick={() => setCouponApplied(!couponApplied)}
-                    className="rounded bg-orange-500/20 px-1.5 py-0.5 text-[10px] font-bold text-orange-400 hover:bg-orange-500/30 transition"
+                    className="rounded bg-orange-100 hover:bg-orange-200 text-orange-800 px-2 py-0.5 text-[10px] font-bold transition"
                   >
-                    {couponApplied ? "WELCOME15 Applied ✓" : "Apply WELCOME15"}
+                    {couponApplied ? "SAVE20 Applied ✓" : "Apply SAVE20"}
                   </button>
                 </div>
-                <span className={couponApplied ? "font-bold text-emerald-400" : "text-slate-500"}>
-                  {couponApplied ? "-$38.10" : "$0.00"}
+                <span className={couponApplied ? "font-bold text-emerald-600" : "text-slate-400"}>
+                  {couponApplied ? "-$50.80" : "$0.00"}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-xs pt-1 border-t border-white/10">
-                <span className="font-bold text-white">Total at Stripe Checkout</span>
-                <span className="text-base font-black text-white">
-                  ${couponApplied ? "215.90" : "254.00"}
+              <div className="flex items-center justify-between pt-2 border-t border-slate-200 text-xs">
+                <span className="font-bold text-slate-900">Total at Express Checkout</span>
+                <span className="text-base font-black text-slate-900">
+                  ${couponApplied ? "203.20" : "254.00"}
                 </span>
               </div>
             </div>
           </div>
         )}
 
-        {activeStep === "express-checkout" && (
+        {activeStep === "order-tracking" && (
           <div className="space-y-4 animate-fade-in">
-            <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Lock className="size-4 text-emerald-400" />
-                <span className="text-xs font-bold text-emerald-300">256-bit Stripe Escrow Authorization</span>
-              </div>
-              <span className="text-[10px] font-mono text-emerald-400">TLS 1.3 Verified</span>
-            </div>
-
-            {/* Express Pay Buttons */}
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                className="rounded-xl bg-white text-slate-950 font-black py-2.5 text-xs flex items-center justify-center gap-1.5 hover:bg-slate-100 transition shadow"
-              >
-                <span className="text-sm">Pay</span> Express
-              </button>
-              <button
-                type="button"
-                className="rounded-xl bg-slate-800 text-white font-bold py-2.5 text-xs flex items-center justify-center gap-1.5 hover:bg-slate-700 transition border border-white/10"
-              >
-                <CreditCard className="size-3.5 text-orange-400" /> Credit Card
-              </button>
-            </div>
-
-            {/* Mock Credit Card Form Preview */}
-            <div className="rounded-xl bg-white/[0.04] p-3.5 border border-white/10 space-y-2.5 text-xs">
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Cardholder Information
-                </label>
-                <div className="rounded-lg bg-slate-900 border border-white/10 px-3 py-2 text-slate-200 flex items-center justify-between">
-                  <span>Jane Doe • jane@example.com</span>
-                  <CheckCircle2 className="size-3.5 text-emerald-400" />
+            {/* Order Header */}
+            <div className="flex items-center justify-between rounded-xl bg-orange-50/70 p-3.5 border border-orange-200">
+              <div className="flex items-center gap-2.5">
+                <Truck className="size-5 text-orange-600" />
+                <div>
+                  <p className="text-xs font-bold text-slate-900">FedEx Ground Priority #NX-99482</p>
+                  <p className="text-[11px] text-slate-500">Shipped from Portland, OR</p>
                 </div>
               </div>
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Card Details (Protected)
-                </label>
-                <div className="rounded-lg bg-slate-900 border border-white/10 px-3 py-2 text-slate-200 flex items-center justify-between font-mono">
-                  <span>•••• •••• •••• 4242</span>
-                  <span className="text-slate-400 text-[11px]">11/28 • CVC 982</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-                <span>Shipping: Free Express</span>
-                <span>Platform Fee: <strong className="text-emerald-400 font-bold">$0.00 (Zero)</strong></span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              className="w-full rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold py-3 text-xs shadow-lg shadow-orange-500/30 transition flex items-center justify-center gap-2"
-            >
-              <ShieldCheck className="size-4" />
-              <span>Authorize & Place Order • $215.90</span>
-            </button>
-          </div>
-        )}
-
-        {activeStep === "live-tracking" && (
-          <div className="space-y-4 animate-fade-in">
-            {/* Tracking Badge */}
-            <div className="flex items-center justify-between rounded-xl bg-white/[0.04] p-3 border border-white/10">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Truck className="size-4 text-orange-400" />
-                  <span className="text-xs font-bold text-white">Tracking #NX-99482-US</span>
-                </div>
-                <p className="text-[11px] text-slate-400 mt-0.5">Courier: FedEx Ground Priority</p>
-              </div>
-              <span className="rounded-full bg-emerald-500/20 px-2.5 py-1 text-[10px] font-bold text-emerald-400 border border-emerald-500/30">
+              <span className="rounded-full bg-emerald-100 text-emerald-800 px-2.5 py-1 text-xs font-bold">
                 In Transit (On Schedule)
               </span>
             </div>
 
             {/* Stepper Timeline */}
-            <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-white/15">
+            <div className="relative pl-6 space-y-4 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
               <div className="relative">
-                <div className="absolute -left-6 top-0.5 size-4 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] text-slate-950 font-bold">
+                <div className="absolute -left-6 top-0.5 size-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-xs">
                   ✓
                 </div>
-                <p className="text-xs font-bold text-white">Payment Authorized & Escrow Locked</p>
-                <p className="text-[11px] text-slate-400">Today, 09:14 AM • Stripe Connect</p>
+                <p className="text-xs font-bold text-slate-900">Payment Authorized via Stripe</p>
+                <p className="text-[11px] text-slate-500">Today, 09:14 AM • $203.20 single checkout</p>
               </div>
 
               <div className="relative">
-                <div className="absolute -left-6 top-0.5 size-4 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] text-slate-950 font-bold">
+                <div className="absolute -left-6 top-0.5 size-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-xs">
                   ✓
                 </div>
-                <p className="text-xs font-bold text-white">Merchant Packed & Sealed</p>
-                <p className="text-[11px] text-slate-400">Aura Soundworks Warehouse • 11:30 AM</p>
+                <p className="text-xs font-bold text-slate-900">Merchant Packed & Label Printed</p>
+                <p className="text-[11px] text-slate-500">Aura Soundworks Warehouse • 11:30 AM</p>
               </div>
 
               <div className="relative">
-                <div className="absolute -left-6 top-0.5 size-4 rounded-full bg-orange-500 animate-pulse flex items-center justify-center">
-                  <div className="size-2 rounded-full bg-white" />
+                <div className="absolute -left-6 top-0.5 size-5 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold shadow-xs animate-pulse">
+                  •
                 </div>
-                <p className="text-xs font-bold text-orange-300">Out for Local Delivery</p>
-                <p className="text-[11px] text-slate-400">Courier van on route • Expected by 4:00 PM</p>
+                <p className="text-xs font-bold text-orange-600">Out for Local Delivery</p>
+                <p className="text-[11px] text-slate-500">Courier van on route • Expected by 4:00 PM</p>
               </div>
 
               <div className="relative opacity-60">
-                <div className="absolute -left-6 top-0.5 size-4 rounded-full bg-white/20 border border-white/40" />
-                <p className="text-xs font-medium text-slate-300">Delivery Confirmation & Payout Release</p>
-                <p className="text-[11px] text-slate-500">Signature required • 14-day warranty begins</p>
+                <div className="absolute -left-6 top-0.5 size-5 rounded-full bg-slate-200 border-2 border-slate-300" />
+                <p className="text-xs font-medium text-slate-600">Delivered & Review Unlocked</p>
+                <p className="text-[11px] text-slate-400">14-day warranty begins upon delivery scan</p>
               </div>
             </div>
 
-            {/* Support Pill */}
-            <div className="rounded-xl bg-slate-900 p-3 border border-white/10 flex items-center justify-between text-xs">
+            {/* Invoices & Return Action Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 p-3 border border-slate-200 text-xs">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="size-4 text-emerald-400" />
-                <span className="text-slate-300">Protected by Nexions Buyer Guarantee</span>
+                <button
+                  type="button"
+                  className="rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 px-3 py-1.5 font-bold transition flex items-center gap-1.5 shadow-2xs"
+                >
+                  <Download className="size-3.5 text-orange-500" />
+                  <span>Download Invoice PDF</span>
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 px-3 py-1.5 font-bold transition flex items-center gap-1.5 shadow-2xs"
+                >
+                  <RotateCcw className="size-3.5 text-slate-500" />
+                  <span>14-Day Return Request</span>
+                </button>
               </div>
-              <span className="text-orange-400 font-bold hover:underline cursor-pointer">Contact Support</span>
+              <span className="text-[11px] font-bold text-emerald-700">Protected by Nexions Shield</span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Mockup Status Footer */}
-      <div className="flex items-center justify-between border-t border-white/10 bg-slate-900/60 px-4 py-2.5 text-[11px] text-slate-400">
+      {/* Footer */}
+      <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/80 px-4 py-2.5 text-xs text-slate-500">
         <span className="flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="size-2 rounded-full bg-emerald-500" />
           Interactive Shopper Live Preview
         </span>
-        <span className="text-[10px] text-slate-500 font-mono">Stage: {activeStep}</span>
+        <span className="text-[11px] font-mono text-slate-400">Stage: {activeStep}</span>
       </div>
     </div>
   );
 }
 
 /**
- * Merchant Live Interactive Mockup
+ * Merchant OS Mockup with Real NextGM Dashboard Features & Recharts Chart
  */
-function MerchantMockup({ activeStep }: { activeStep: string }) {
+function MerchantAppMockup({ activeStep }: { activeStep: string }) {
   return (
-    <div className="relative flex flex-col rounded-2xl border border-slate-200/90 bg-slate-950 text-white shadow-2xl shadow-slate-950/20 overflow-hidden">
-      {/* OS / Dashboard Top Bar */}
-      <div className="flex items-center justify-between border-b border-white/10 bg-slate-900/90 px-4 py-3 backdrop-blur">
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5 overflow-hidden">
+      {/* Light Chrome Header */}
+      <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-4 py-3">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
-            <div className="size-2.5 rounded-full bg-rose-500/80" />
-            <div className="size-2.5 rounded-full bg-amber-500/80" />
-            <div className="size-2.5 rounded-full bg-emerald-500/80" />
+            <div className="size-2.5 rounded-full bg-slate-300" />
+            <div className="size-2.5 rounded-full bg-slate-300" />
+            <div className="size-2.5 rounded-full bg-slate-300" />
           </div>
-          <span className="ml-3 hidden text-[11px] font-mono text-slate-400 sm:inline-block">
-            dashboard.nexions.io/store/aura-soundworks
-          </span>
+          <div className="ml-3 hidden sm:flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 border border-slate-200">
+            <Store className="size-3 text-orange-600" />
+            <span>dashboard.nexions.io/shop/aura-soundworks</span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 rounded-full bg-emerald-500/20 px-2.5 py-1 text-[10px] font-bold text-emerald-400 border border-emerald-500/30">
-            <span className="size-1.5 rounded-full bg-emerald-400 animate-ping" />
-            Store Live
-          </div>
-          <span className="size-6 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-black text-white">
-            N
+          <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 flex items-center gap-1">
+            <span className="size-1.5 rounded-full bg-emerald-500 animate-ping" />
+            ACTIVE & TRADING
           </span>
+          <div className="size-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-black shadow-sm">
+            AS
+          </div>
         </div>
       </div>
 
-      {/* Dynamic Content */}
-      <div className="p-4 sm:p-6 bg-gradient-to-b from-slate-900/50 to-slate-950 min-h-[420px]">
-        {activeStep === "store-onboard" && (
+      {/* Main Content */}
+      <div className="p-4 sm:p-6 bg-white min-h-[460px]">
+        {activeStep === "publish-readiness" && (
           <div className="space-y-4 animate-fade-in">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div>
-                <h4 className="text-sm font-bold text-white">Storefront Configuration</h4>
-                <p className="text-[11px] text-slate-400">Independent URL & brand identity</p>
-              </div>
-              <span className="rounded bg-blue-500/20 px-2 py-0.5 text-[10px] font-bold text-blue-300">
-                Tier: Merchant Pro
-              </span>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl bg-white/[0.04] p-3 border border-white/10">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Custom Merchant Handle
+            {/* Real Login / Dashboard Overview Image Banner */}
+            <div className="relative rounded-2xl overflow-hidden border border-slate-200/80 bg-slate-50 aspect-[16/7] flex items-center justify-center">
+              <img
+                src="/loginImage.png"
+                alt="NextG Dashboard Illustration"
+                className="size-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent flex items-end p-4">
+                <span className="rounded-lg bg-white/95 px-3 py-1 text-xs font-black text-slate-900 backdrop-blur shadow-sm">
+                  Storefront Launchpad: aura-soundworks
                 </span>
-                <p className="mt-1 text-sm font-mono text-orange-400 font-bold">
-                  nexions.com/<span className="text-white">aura-soundworks</span>
-                </p>
-                <p className="mt-1 text-[11px] text-slate-400">DNS SSL Certificate: Active ✓</p>
-              </div>
-
-              <div className="rounded-xl bg-white/[0.04] p-3 border border-white/10">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Shipping Zone Matrix
-                </span>
-                <p className="mt-1 text-sm font-bold text-white">Domestic + 42 Global Regions</p>
-                <p className="mt-1 text-[11px] text-slate-400">Carrier API: FedEx & DHL Sync</p>
               </div>
             </div>
 
-            <div className="rounded-xl bg-slate-900 p-4 border border-white/10 space-y-3">
+            {/* 8-Step Readiness Checklist */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-3">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-white flex items-center gap-2">
-                  <Store className="size-3.5 text-blue-400" /> Storefront Health Score
+                <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <BadgeCheck className="size-4 text-emerald-600" /> 8/8 Publish Readiness Checks Completed
                 </span>
-                <span className="font-bold text-emerald-400">100% Ready</span>
+                <span className="font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded text-[10px]">
+                  100% READY
+                </span>
               </div>
-              <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-500 to-emerald-400 h-full w-full" />
+              <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                <div className="bg-gradient-to-r from-orange-500 to-emerald-500 h-full w-full" />
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center text-[10px] text-slate-400 pt-1">
-                <div>✓ Verified Payout Bank</div>
-                <div>✓ Policy Pages Live</div>
-                <div>✓ Catalog Indexed</div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px] text-slate-600">
+                <div className="flex items-center gap-1.5">
+                  <Check className="size-3 text-emerald-600 font-bold" /> Profile setup
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Check className="size-3 text-emerald-600 font-bold" /> Store logo
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Check className="size-3 text-emerald-600 font-bold" /> Business address
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Check className="size-3 text-emerald-600 font-bold" /> Tax ID / Legal
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {activeStep === "catalog-variants" && (
+        {activeStep === "variant-catalog" && (
           <div className="space-y-4 animate-fade-in">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h4 className="text-sm font-bold text-white">Matrix Variant Inventory</h4>
-                <p className="text-[11px] text-slate-400">Automated stock warnings & Cloudinary media</p>
+                <h4 className="text-sm font-bold text-slate-900">Matrix Variant Inventory</h4>
+                <p className="text-xs text-slate-500">Live stock counts with automatic low-stock warnings</p>
               </div>
               <button
                 type="button"
-                className="rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] px-2.5 py-1 transition"
+                className="rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-3 py-1.5 transition shadow-sm"
               >
-                + Add Variant
+                + Add New Variant
               </button>
             </div>
 
-            {/* Inventory Items Table */}
-            <div className="rounded-xl bg-white/[0.03] border border-white/10 overflow-hidden text-xs">
-              <div className="grid grid-cols-4 bg-white/[0.04] px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            {/* Matrix Variant Table */}
+            <div className="rounded-xl border border-slate-200 overflow-hidden text-xs">
+              <div className="grid grid-cols-4 bg-slate-50 px-3.5 py-2 font-bold uppercase tracking-wider text-slate-500 text-[10px]">
                 <span className="col-span-2">Product & SKU</span>
-                <span>Stock Level</span>
+                <span>Stock Count</span>
                 <span className="text-right">Price</span>
               </div>
-              <div className="divide-y divide-white/5">
-                <div className="grid grid-cols-4 px-3 py-2.5 items-center">
-                  <div className="col-span-2 flex items-center gap-2">
+              <div className="divide-y divide-slate-100 bg-white">
+                <div className="grid grid-cols-4 px-3.5 py-2.5 items-center">
+                  <div className="col-span-2 flex items-center gap-2.5">
                     <img
                       src="/hero-products/headphones.jpg"
                       alt=""
-                      className="size-8 rounded object-cover bg-slate-800"
+                      className="size-9 rounded-lg object-cover border border-slate-200"
                     />
                     <div>
-                      <p className="font-bold text-white text-[11px]">Aura ANC (Obsidian)</p>
-                      <p className="text-[9px] font-mono text-slate-400">SKU: AUR-ANC-01</p>
+                      <p className="font-bold text-slate-900">Aura ANC (Obsidian)</p>
+                      <p className="text-[10px] text-slate-400 font-mono">SKU: AUR-ANC-01</p>
                     </div>
                   </div>
-                  <span className="text-emerald-400 font-bold text-[11px]">42 in stock</span>
-                  <span className="text-right font-bold text-white">$189.00</span>
+                  <span className="text-emerald-700 font-bold">42 in stock</span>
+                  <span className="text-right font-black text-slate-900">$189.00</span>
                 </div>
 
-                <div className="grid grid-cols-4 px-3 py-2.5 items-center">
-                  <div className="col-span-2 flex items-center gap-2">
+                <div className="grid grid-cols-4 px-3.5 py-2.5 items-center">
+                  <div className="col-span-2 flex items-center gap-2.5">
                     <img
                       src="/hero-products/camera.jpg"
                       alt=""
-                      className="size-8 rounded object-cover bg-slate-800"
+                      className="size-9 rounded-lg object-cover border border-slate-200"
                     />
                     <div>
-                      <p className="font-bold text-white text-[11px]">Leather Strap (Tan)</p>
-                      <p className="text-[9px] font-mono text-slate-400">SKU: STP-LTH-04</p>
+                      <p className="font-bold text-slate-900">Leather Strap (Tan)</p>
+                      <p className="text-[10px] text-slate-400 font-mono">SKU: STP-LTH-04</p>
                     </div>
                   </div>
-                  <span className="text-amber-400 font-bold text-[11px]">3 left (Low)</span>
-                  <span className="text-right font-bold text-white">$45.00</span>
+                  <span className="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded w-fit">
+                    3 left (Low)
+                  </span>
+                  <span className="text-right font-black text-slate-900">$45.00</span>
+                </div>
+
+                <div className="grid grid-cols-4 px-3.5 py-2.5 items-center">
+                  <div className="col-span-2 flex items-center gap-2.5">
+                    <img
+                      src="/hero-products/smartwatch.jpg"
+                      alt=""
+                      className="size-9 rounded-lg object-cover border border-slate-200"
+                    />
+                    <div>
+                      <p className="font-bold text-slate-900">Titanium Smart Band</p>
+                      <p className="text-[10px] text-slate-400 font-mono">SKU: TIT-SMT-09</p>
+                    </div>
+                  </div>
+                  <span className="text-emerald-700 font-bold">18 in stock</span>
+                  <span className="text-right font-black text-slate-900">$129.00</span>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 p-3 flex items-center justify-between text-xs text-blue-200">
-              <div className="flex items-center gap-2">
-                <Sparkles className="size-4 text-blue-400" />
-                <span>Auto-hiding out-of-stock items enabled</span>
-              </div>
-              <span className="text-[10px] font-bold text-blue-300">BullMQ Sync ✓</span>
-            </div>
-          </div>
-        )}
-
-        {activeStep === "order-fulfillment" && (
-          <div className="space-y-4 animate-fade-in">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div>
-                <h4 className="text-sm font-bold text-white">Order Dispatch Queue</h4>
-                <p className="text-[11px] text-slate-400">Batch labels and tracking notifications</p>
-              </div>
-              <span className="rounded-full bg-orange-500/20 px-2 py-0.5 text-[10px] font-bold text-orange-400">
-                3 Pending Dispatch
+            <div className="rounded-xl bg-orange-50/80 border border-orange-200 p-3 text-xs text-orange-900 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="size-4 text-orange-600" />
+                Cloudinary CDN active: Automatic AVIF image optimization
               </span>
-            </div>
-
-            <div className="rounded-xl bg-white/[0.04] p-3 border border-white/10 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="font-mono text-xs font-bold text-white">Order #NX-48918</span>
-                  <p className="text-[10px] text-slate-400">Customer: Michael K. • Express 2-Day</p>
-                </div>
-                <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
-                  Paid $254.00
-                </span>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-white/10">
-                <button
-                  type="button"
-                  className="rounded-lg bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 text-[11px] font-bold transition flex items-center gap-1.5"
-                >
-                  <Package className="size-3" />
-                  <span>Generate FedEx Label</span>
-                </button>
-                <button
-                  type="button"
-                  className="rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 text-[11px] font-semibold transition border border-white/10"
-                >
-                  Print Packing Slip
-                </button>
-              </div>
-            </div>
-
-            <div className="rounded-xl bg-slate-900 p-3 border border-white/10 flex items-center justify-between text-xs">
-              <span className="text-slate-400">Customer automated dispatch email:</span>
-              <span className="text-emerald-400 font-bold">Ready on scan</span>
+              <span className="font-bold text-orange-700">98/100 Score</span>
             </div>
           </div>
         )}
 
-        {activeStep === "automated-payouts" && (
+        {activeStep === "fulfillment-payouts" && (
           <div className="space-y-4 animate-fade-in">
-            {/* Payout Hero Metrics */}
+            {/* Top 3 KPI Cards */}
             <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl bg-white/[0.05] p-3.5 border border-white/10">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3.5">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Available Balance
                 </span>
-                <p className="mt-1 text-xl font-black text-emerald-400">$8,420.00</p>
-                <p className="text-[10px] text-slate-400 mt-1">Transfers in 24h</p>
+                <p className="mt-1 text-xl font-black text-emerald-700">$8,420.00</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">Stripe Express Ready</p>
               </div>
 
-              <div className="rounded-xl bg-white/[0.05] p-3.5 border border-white/10">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3.5">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Pending Escrow
                 </span>
-                <p className="mt-1 text-xl font-black text-white">$1,840.50</p>
-                <p className="text-[10px] text-slate-400 mt-1">In-transit orders</p>
+                <p className="mt-1 text-xl font-black text-slate-900">$1,840.50</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">In-transit orders</p>
               </div>
 
-              <div className="rounded-xl bg-white/[0.05] p-3.5 border border-white/10">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3.5">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Platform Fees
+                  Net Merchant Split
                 </span>
-                <p className="mt-1 text-xl font-black text-blue-400">Transparent</p>
-                <p className="text-[10px] text-slate-400 mt-1">Zero hidden cut</p>
+                <p className="mt-1 text-xl font-black text-orange-600">90.0% Net</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">Automated settlement</p>
               </div>
             </div>
 
-            {/* Payout Bank Target */}
-            <div className="rounded-xl bg-white/[0.04] p-3.5 border border-white/10 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="size-9 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">
+            {/* Real Recharts Interactive Sales Curve */}
+            <div className="rounded-xl border border-slate-200 bg-white p-3.5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-slate-900">7-Day Gross Revenue Trend</span>
+                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  +24.8% this week
+                </span>
+              </div>
+              <div className="h-28 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={mockRevenueTimeline} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#F97316" stopOpacity={0.25} />
+                        <stop offset="95%" stopColor="#F97316" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                    <XAxis dataKey="day" tick={{ fontSize: 10, fill: "#64748B" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: "#64748B" }} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#ffffff",
+                        borderRadius: "8px",
+                        border: "1px solid #E2E8F0",
+                        fontSize: "11px",
+                      }}
+                    />
+                    <Area type="monotone" dataKey="revenue" stroke="#F97316" strokeWidth={2.5} fill="url(#revenueGradient)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Connected Bank Info */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2.5">
+                <div className="size-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
                   <CreditCard className="size-4" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-white">Stripe Express Direct Transfer</p>
-                  <p className="text-[10px] text-slate-400">Chase Business Checking ••••• 8821</p>
+                  <p className="font-bold text-slate-900">Stripe Express Direct Deposit</p>
+                  <p className="text-[11px] text-slate-500">Chase Business Checking ••••• 8821</p>
                 </div>
               </div>
-              <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+              <span className="rounded bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-bold">
                 Auto-Deposit Active
               </span>
             </div>
@@ -1015,184 +918,204 @@ function MerchantMockup({ activeStep }: { activeStep: string }) {
         )}
       </div>
 
-      {/* Mockup Status Footer */}
-      <div className="flex items-center justify-between border-t border-white/10 bg-slate-900/60 px-4 py-2.5 text-[11px] text-slate-400">
+      {/* Footer */}
+      <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/80 px-4 py-2.5 text-xs text-slate-500">
         <span className="flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-blue-400 animate-pulse" />
+          <span className="size-2 rounded-full bg-blue-500" />
           Interactive Merchant OS Preview
         </span>
-        <span className="text-[10px] text-slate-500 font-mono">Stage: {activeStep}</span>
+        <span className="text-[11px] font-mono text-slate-400">Stage: {activeStep}</span>
       </div>
     </div>
   );
 }
 
 /**
- * Engine / Infrastructure Interactive Mockup
+ * Settlement Engine & Architecture Mockup (Light theme)
  */
-function EngineMockup({ activeStep }: { activeStep: string }) {
+function SettlementEngineMockup({ activeStep }: { activeStep: string }) {
   return (
-    <div className="relative flex flex-col rounded-2xl border border-slate-200/90 bg-slate-950 text-white shadow-2xl shadow-slate-950/20 overflow-hidden font-mono">
-      {/* Terminal Bar */}
-      <div className="flex items-center justify-between border-b border-white/10 bg-slate-900/90 px-4 py-3">
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5 overflow-hidden">
+      {/* Light Chrome Header */}
+      <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-4 py-3">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
-            <div className="size-2.5 rounded-full bg-rose-500" />
-            <div className="size-2.5 rounded-full bg-amber-500" />
-            <div className="size-2.5 rounded-full bg-emerald-500" />
+            <div className="size-2.5 rounded-full bg-slate-300" />
+            <div className="size-2.5 rounded-full bg-slate-300" />
+            <div className="size-2.5 rounded-full bg-slate-300" />
           </div>
-          <span className="ml-2 text-[11px] text-slate-400">engine.telemetry.nexions.internal</span>
+          <span className="ml-3 text-xs font-mono text-slate-600">engine.settlement.nexions.internal</span>
         </div>
-        <div className="flex items-center gap-2 text-[10px] text-emerald-400">
-          <span className="size-2 rounded-full bg-emerald-400 animate-ping" />
+        <div className="flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[11px] font-bold text-amber-800">
+          <span className="size-1.5 rounded-full bg-amber-500 animate-ping" />
           ACTIVE_PHASE: {activeStep.toUpperCase()}
         </div>
       </div>
 
-      <div className="p-4 sm:p-6 bg-slate-950 min-h-[420px] text-xs space-y-4">
-        {/* Node architecture pills */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
-          <div className="rounded-lg bg-white/[0.04] p-2 border border-white/10 text-center">
-            <span className="text-slate-400 block">Gateway</span>
-            <span className="font-bold text-emerald-400">Fastify • 18ms</span>
-          </div>
-          <div className="rounded-lg bg-white/[0.04] p-2 border border-white/10 text-center">
-            <span className="text-slate-400 block">Database</span>
-            <span className="font-bold text-sky-400">PostgreSQL ACID</span>
-          </div>
-          <div className="rounded-lg bg-white/[0.04] p-2 border border-white/10 text-center">
-            <span className="text-slate-400 block">Job Queue</span>
-            <span className="font-bold text-amber-400">Redis BullMQ</span>
-          </div>
-          <div className="rounded-lg bg-white/[0.04] p-2 border border-white/10 text-center">
-            <span className="text-slate-400 block">Payment</span>
-            <span className="font-bold text-purple-400">Stripe Connect</span>
+      <div className="p-4 sm:p-6 bg-white min-h-[460px] space-y-4">
+        {/* Real OG Cover Image Preview */}
+        <div className="relative rounded-2xl overflow-hidden border border-slate-200/80 bg-slate-50 aspect-[16/7] flex items-center justify-center">
+          <img
+            src="/og-cover.png"
+            alt="NextG Platform Architecture"
+            className="size-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/20 to-transparent flex items-end p-4">
+            <div>
+              <p className="text-white text-xs font-black">Next-Gen Multi-Tenant Commerce Architecture</p>
+              <p className="text-slate-300 text-[10px]">Stripe Connect • BullMQ Job Queues • PostgreSQL ACID</p>
+            </div>
           </div>
         </div>
 
-        {/* Live log feed */}
-        <div className="rounded-xl bg-slate-900/90 p-4 border border-white/10 space-y-2 text-[11px] font-mono leading-relaxed overflow-x-auto">
+        {/* Real Atomic Settlement Diagram */}
+        <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-3 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-slate-900 flex items-center gap-1.5">
+              <Zap className="size-4 text-orange-500" /> Single PaymentIntent Split (Webhook Execution)
+            </span>
+            <span className="font-mono text-[10px] text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded font-bold">
+              21ms latency
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 text-center text-xs">
+            <div className="rounded-lg bg-white p-2.5 border border-slate-200 shadow-2xs">
+              <span className="text-[10px] text-slate-500 block">Total Buyer Charge</span>
+              <span className="font-black text-slate-900 text-sm">$254.00</span>
+              <span className="text-[10px] text-emerald-600 block mt-0.5">0% Hidden Fee</span>
+            </div>
+
+            <div className="rounded-lg bg-white p-2.5 border border-slate-200 shadow-2xs">
+              <span className="text-[10px] text-slate-500 block">90% ShopWallet</span>
+              <span className="font-black text-emerald-700 text-sm">$228.60</span>
+              <span className="text-[10px] text-slate-500 block mt-0.5">Credited to Shop</span>
+            </div>
+
+            <div className="rounded-lg bg-white p-2.5 border border-slate-200 shadow-2xs">
+              <span className="text-[10px] text-slate-500 block">10% PlatformWallet</span>
+              <span className="font-black text-blue-600 text-sm">$25.40</span>
+              <span className="text-[10px] text-slate-500 block mt-0.5">Platform Commission</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Live Event Dispatch Stream */}
+        <div className="rounded-xl bg-slate-900 text-white p-3.5 font-mono text-[11px] leading-relaxed space-y-1.5">
           <div className="text-emerald-400 flex items-center gap-2">
-            <span>[21:43:02.102]</span>
-            <span className="text-white font-bold">INFO:</span>
-            <span>POST /api/v1/checkout/session — 200 OK (21ms)</span>
+            <span>[21:43:01]</span>
+            <span className="font-bold text-white">STRIPE:</span>
+            <span>payment_intent.succeeded (checkout_id=chk_88294)</span>
+          </div>
+          <div className="text-amber-400 flex items-center gap-2">
+            <span>[21:43:01]</span>
+            <span className="font-bold text-white">ATOMIC_SETTLE:</span>
+            <span>90% credited to aura-soundworks wallet, 10% platform</span>
           </div>
           <div className="text-sky-300 flex items-center gap-2">
-            <span>[21:43:02.148]</span>
-            <span className="text-white font-bold">EVENT:</span>
-            <span>stripe_webhook: payment_intent.succeeded (escrow_id=esc_99184)</span>
-          </div>
-          <div className="text-amber-300 flex items-center gap-2">
-            <span>[21:43:02.190]</span>
-            <span className="text-white font-bold">WORKER:</span>
-            <span>BullMQ: dispatched email receipt & order dispatch ticket (job_id=4821)</span>
-          </div>
-          <div className="text-purple-300 flex items-center gap-2">
-            <span>[21:43:02.210]</span>
-            <span className="text-white font-bold">DB:</span>
-            <span>PostgreSQL tenant isolated commit: orders & order_items (lock_time=1.8ms)</span>
-          </div>
-          <div className="text-emerald-300 flex items-center gap-2">
-            <span>[21:43:02.260]</span>
-            <span className="text-white font-bold">NOTIFY:</span>
-            <span>ShopOwner websocket: New order audio-studio received</span>
-          </div>
-        </div>
-
-        {/* Latency and Uptime Stats */}
-        <div className="grid grid-cols-3 gap-3 pt-2">
-          <div className="rounded-lg bg-white/[0.03] p-3 border border-white/10">
-            <span className="text-[10px] text-slate-400 block">Global Uptime</span>
-            <span className="text-lg font-bold text-white">99.98%</span>
-          </div>
-          <div className="rounded-lg bg-white/[0.03] p-3 border border-white/10">
-            <span className="text-[10px] text-slate-400 block">Queue Lag</span>
-            <span className="text-lg font-bold text-emerald-400">0.02s</span>
-          </div>
-          <div className="rounded-lg bg-white/[0.03] p-3 border border-white/10">
-            <span className="text-[10px] text-slate-400 block">Active Tenants</span>
-            <span className="text-lg font-bold text-sky-400">Multi-Isolated</span>
+            <span>[21:43:02]</span>
+            <span className="font-bold text-white">BULLMQ:</span>
+            <span>dispatched customer invoice PDF & merchant email notifications</span>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center justify-between border-t border-white/10 bg-slate-900/60 px-4 py-2.5 text-[10px] text-slate-400">
-        <span>Zero Cross-Tenant Leakage • Encrypted at Rest</span>
-        <span className="text-emerald-400">TLS 1.3 / mTLS</span>
+      {/* Footer */}
+      <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/80 px-4 py-2.5 text-xs text-slate-500">
+        <span>Hermetic Tenant Isolation • ACID Transactions</span>
+        <span className="text-emerald-700 font-bold">100% Guaranteed</span>
       </div>
     </div>
   );
 }
 
 /**
- * Trust & Safeguards Mockup
+ * Trust, Reviews & Returns Mockup (Light theme)
  */
-function SafeguardsMockup({ activeStep }: { activeStep: string }) {
+function TrustAppMockup({ activeStep }: { activeStep: string }) {
   return (
-    <div className="relative flex flex-col rounded-2xl border border-slate-200/90 bg-slate-950 text-white shadow-2xl shadow-slate-950/20 overflow-hidden">
-      <div className="flex items-center justify-between border-b border-white/10 bg-slate-900/90 px-4 py-3">
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5 overflow-hidden">
+      {/* Light Chrome Header */}
+      <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-4 py-3">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="size-4 text-emerald-400" />
-          <span className="text-xs font-bold text-white">Nexions Trust & Settlement Engine</span>
+          <ShieldCheck className="size-4 text-emerald-600" />
+          <span className="text-xs font-bold text-slate-900">Nexions Trust & Governance Portal</span>
         </div>
-        <span className="text-[10px] font-mono text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
+        <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
           Escrow: {activeStep}
         </span>
       </div>
 
-      <div className="p-4 sm:p-6 bg-gradient-to-b from-slate-900/50 to-slate-950 min-h-[420px] space-y-4">
-        {/* Shield Guarantee Card */}
-        <div className="rounded-2xl bg-gradient-to-br from-emerald-500/10 via-slate-900 to-purple-500/10 p-5 border border-emerald-500/20 space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="size-11 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center font-black">
-              <ShieldCheck className="size-6" />
+      <div className="p-4 sm:p-6 bg-white min-h-[460px] space-y-4">
+        {/* Verified Review Sample Card */}
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="size-9 rounded-full bg-orange-100 text-orange-700 font-bold flex items-center justify-center text-xs">
+                MC
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-slate-900 text-xs">Marcus Chen</span>
+                  <span className="rounded bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-[10px] font-bold flex items-center gap-1">
+                    <CheckCircle2 className="size-3 text-emerald-600" /> Verified Buyer
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-500">Order #NX-48918 • Delivered 2 days ago</p>
+              </div>
             </div>
-            <div>
-              <h4 className="text-base font-black text-white">Nexions Buyer & Merchant Shield</h4>
-              <p className="text-xs text-slate-300">End-to-End Escrow & Cryptographic Purchase Receipts</p>
+            <div className="flex items-center text-amber-400">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star key={i} className="size-3.5 fill-amber-400 text-amber-400" />
+              ))}
             </div>
           </div>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            Funds deposited by buyers are securely held in Stripe escrow until carrier delivery tracking confirms
-            safe transit. If goods do not arrive as described, the buyer receives an automated full refund.
+          <p className="text-xs text-slate-700 leading-relaxed">
+            "These Spatial ANC headphones from Aura Soundworks exceeded every expectation. Build quality is
+            incredible and delivery arrived a full day ahead of schedule with complete FedEx tracking."
           </p>
+          <div className="rounded-lg bg-white p-2.5 border border-slate-200 text-[11px] text-slate-600">
+            <strong className="text-orange-600">Store Response from Aura Soundworks:</strong> "Thank you
+            Marcus! We appreciate your support for independent audio craft!"
+          </div>
         </div>
 
-        {/* 3 Pillars */}
+        {/* 14-Day Return Guarantee Breakdown */}
         <div className="grid gap-3 sm:grid-cols-3 text-xs">
-          <div className="rounded-xl bg-white/[0.04] p-3 border border-white/10 space-y-1">
-            <div className="text-emerald-400 font-bold flex items-center gap-1.5">
+          <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-1 shadow-2xs">
+            <div className="text-emerald-700 font-bold flex items-center gap-1.5">
               <CheckCircle2 className="size-3.5" /> Zero Markup
             </div>
-            <p className="text-[11px] text-slate-400">No sneaky 5% service fees tacked on at checkout.</p>
+            <p className="text-[11px] text-slate-500">No sneaky 5% service fees tacked on at checkout.</p>
           </div>
-          <div className="rounded-xl bg-white/[0.04] p-3 border border-white/10 space-y-1">
-            <div className="text-sky-400 font-bold flex items-center gap-1.5">
-              <CheckCircle2 className="size-3.5" /> Verified Reviews
+          <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-1 shadow-2xs">
+            <div className="text-blue-700 font-bold flex items-center gap-1.5">
+              <CheckCircle2 className="size-3.5" /> 14-Day Returns
             </div>
-            <p className="text-[11px] text-slate-400">Only verified buyers with valid order IDs can post reviews.</p>
+            <p className="text-[11px] text-slate-500">Structured return reasons with direct refund guarantee.</p>
           </div>
-          <div className="rounded-xl bg-white/[0.04] p-3 border border-white/10 space-y-1">
-            <div className="text-purple-400 font-bold flex items-center gap-1.5">
+          <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-1 shadow-2xs">
+            <div className="text-purple-700 font-bold flex items-center gap-1.5">
               <CheckCircle2 className="size-3.5" /> Stripe KYC
             </div>
-            <p className="text-[11px] text-slate-400">Every merchant passes government identity checks.</p>
+            <p className="text-[11px] text-slate-500">Every merchant passes government identity vetting.</p>
           </div>
         </div>
 
-        {/* Dispute Resolution SLA */}
-        <div className="rounded-xl bg-slate-900 p-3.5 border border-white/10 flex items-center justify-between text-xs">
+        {/* Resolution Time Notice */}
+        <div className="rounded-xl bg-orange-50 border border-orange-200 p-3.5 flex items-center justify-between text-xs">
           <div>
-            <span className="font-bold text-white">Dispute Response Resolution Time</span>
-            <p className="text-[11px] text-slate-400">Dedicated platform concierge review</p>
+            <span className="font-bold text-slate-900">Platform Dispute Resolution SLA</span>
+            <p className="text-[11px] text-slate-500">Dedicated concierge review for buyer protection</p>
           </div>
-          <span className="text-emerald-400 font-black text-sm">Under 24 Hours</span>
+          <span className="text-orange-600 font-black text-sm">Under 24 Hours</span>
         </div>
       </div>
 
-      <div className="flex items-center justify-between border-t border-white/10 bg-slate-900/60 px-4 py-2.5 text-[11px] text-slate-400">
-        <span>Compliant with Global Consumer Protection Laws</span>
-        <span className="text-emerald-400">100% Protected</span>
+      {/* Footer */}
+      <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/80 px-4 py-2.5 text-xs text-slate-500">
+        <span>Compliant with Global Consumer Protection Standards</span>
+        <span className="text-emerald-700 font-bold">100% Protected</span>
       </div>
     </div>
   );
@@ -1206,7 +1129,6 @@ export default function HowItWorksSection() {
 
   const [activeStepId, setActiveStepId] = useState<string>(currentTrack.steps[0].id);
 
-  // When track changes, default to its first step
   const handleTrackChange = (trackId: TrackId) => {
     setActiveTrackId(trackId);
     const track = TRACKS.find((t) => t.id === trackId) || TRACKS[0];
@@ -1217,31 +1139,31 @@ export default function HowItWorksSection() {
   const TrackIcon = currentTrack.icon;
 
   return (
-    <section className="relative overflow-hidden border-y border-slate-200/90 bg-gradient-to-b from-white via-slate-50 to-white py-20 lg:py-28 text-slate-900 font-sans">
-      {/* Background Subtle Ambience Glow */}
+    <section className="relative overflow-hidden border-y border-slate-200/80 bg-slate-50/70 py-20 lg:py-28 text-slate-900 font-sans">
+      {/* Background warm orange ambient glow */}
       <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-b from-orange-100/40 via-amber-50/20 to-transparent blur-3xl -z-10" />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <ScrollReveal direction="up">
           <div className="mx-auto max-w-3xl text-center space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-orange-200/80 bg-orange-50/80 px-3.5 py-1.5 text-xs font-bold text-orange-600 shadow-sm backdrop-blur">
+            <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3.5 py-1.5 text-xs font-bold text-orange-600 shadow-2xs">
               <Sparkles className="size-3.5 text-orange-500" />
-              <span>Interactive Platform Tour</span>
+              <span>Interactive Architecture & Product Walkthrough</span>
             </div>
             <h2 className="text-3xl font-black tracking-tight text-slate-950 sm:text-4xl lg:text-5xl">
-              One Architecture. Every Phase of Modern Commerce.
+              One Unified Marketplace. Every Part of Modern Commerce.
             </h2>
             <p className="text-base sm:text-lg text-slate-600 leading-relaxed">
-              Explore how Nexions connects shoppers, high-growth independent merchants, and high-velocity
-              financial infrastructure in a unified experience.
+              Explore how NextGM brings multi-store shoppers, independent store owners, and atomic Stripe
+              settlement together in one clean, friction-free platform.
             </p>
           </div>
         </ScrollReveal>
 
-        {/* Segmented Persona Track Selector */}
+        {/* Light Segmented Persona Controller */}
         <ScrollReveal delayMs={100} direction="up">
-          <div className="mt-12 flex justify-center">
+          <div className="mt-10 flex justify-center">
             <div className="inline-flex flex-wrap items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
               {TRACKS.map((track) => {
                 const Icon = track.icon;
@@ -1253,11 +1175,11 @@ export default function HowItWorksSection() {
                     onClick={() => handleTrackChange(track.id)}
                     className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                       isSelected
-                        ? "bg-slate-950 text-white shadow-md shadow-slate-950/20"
-                        : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/80"
+                        ? "bg-orange-500 text-white shadow-md shadow-orange-500/25"
+                        : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/70"
                     }`}
                   >
-                    <Icon className={`size-4 ${isSelected ? "text-orange-400" : "text-slate-400"}`} />
+                    <Icon className={`size-4 ${isSelected ? "text-white" : "text-slate-400"}`} />
                     <span>{track.label}</span>
                   </button>
                 );
@@ -1266,13 +1188,13 @@ export default function HowItWorksSection() {
           </div>
         </ScrollReveal>
 
-        {/* Main Interactive Stage Grid */}
+        {/* Main Stage Grid */}
         <div className="mt-12 grid gap-10 lg:grid-cols-12 lg:items-start">
-          {/* Left Column (5 cols): Interactive Step Cards */}
+          {/* Left Column (5 cols): Step Milestones */}
           <div className="lg:col-span-5 space-y-3">
             <div className="mb-2 flex items-center justify-between px-1">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Workflow Milestones (Click to Preview)
+                Milestones (Click to View Live State)
               </span>
               <span className="text-xs font-semibold text-orange-600">
                 {currentTrack.steps.findIndex((s) => s.id === activeStepId) + 1} of {currentTrack.steps.length}
@@ -1288,14 +1210,14 @@ export default function HowItWorksSection() {
                   onClick={() => setActiveStepId(step.id)}
                   className={`group relative flex w-full flex-col rounded-2xl p-4.5 text-left transition-all border cursor-pointer ${
                     isCurrent
-                      ? "border-orange-500/80 bg-white shadow-xl shadow-orange-500/5 ring-1 ring-orange-500/30"
+                      ? "border-orange-500 bg-white shadow-lg shadow-orange-500/10 ring-1 ring-orange-500/20"
                       : "border-slate-200/80 bg-white/70 hover:border-slate-300 hover:bg-white"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5">
                       <span
-                        className={`flex size-6 items-center justify-center rounded-lg text-[11px] font-black transition-colors ${
+                        className={`flex size-6 items-center justify-center rounded-lg text-xs font-black transition-colors ${
                           isCurrent
                             ? "bg-orange-500 text-white"
                             : "bg-slate-100 text-slate-500 group-hover:bg-orange-100 group-hover:text-orange-600"
@@ -1329,10 +1251,9 @@ export default function HowItWorksSection() {
                     {step.description}
                   </p>
 
-                  {/* Highlight Metrics */}
-                  <div className="mt-3.5 flex items-center gap-3 pt-3 border-t border-slate-100">
+                  <div className="mt-3.5 flex items-center gap-4 pt-3 border-t border-slate-100">
                     {step.metrics.map((m) => (
-                      <div key={m.label} className="text-[11px]">
+                      <div key={m.label} className="text-xs">
                         <span className="text-slate-400">{m.label}: </span>
                         <span className="font-bold text-slate-900">{m.value}</span>
                       </div>
@@ -1350,7 +1271,7 @@ export default function HowItWorksSection() {
               >
                 <span>
                   {activeTrackId === "merchants"
-                    ? "Ready to build your store? Launch a storefront"
+                    ? "Ready to launch your shop? Register a storefront"
                     : "Ready to explore products? Browse verified marketplace"}
                 </span>
                 <ArrowRight className="size-3.5" />
@@ -1358,21 +1279,21 @@ export default function HowItWorksSection() {
             </div>
           </div>
 
-          {/* Right Column (7 cols): High Fidelity SaaS Mockup Screen */}
+          {/* Right Column (7 cols): High Fidelity Light SaaS Mockup */}
           <div className="lg:col-span-7 sticky top-24">
             <ScrollReveal direction="scale">
-              {activeTrackId === "shoppers" && <ShopperMockup activeStep={activeStep.id} />}
-              {activeTrackId === "merchants" && <MerchantMockup activeStep={activeStep.id} />}
-              {activeTrackId === "engine" && <EngineMockup activeStep={activeStep.id} />}
-              {activeTrackId === "safeguards" && <SafeguardsMockup activeStep={activeStep.id} />}
+              {activeTrackId === "shoppers" && <ShopperAppMockup activeStep={activeStep.id} />}
+              {activeTrackId === "merchants" && <MerchantAppMockup activeStep={activeStep.id} />}
+              {activeTrackId === "settlement" && <SettlementEngineMockup activeStep={activeStep.id} />}
+              {activeTrackId === "trust" && <TrustAppMockup activeStep={activeStep.id} />}
 
-              {/* Active Step Feature Breakdown Card */}
-              <div className="mt-4 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm">
+              {/* Feature Highlights Card */}
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4.5 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-2">
                     <TrackIcon className="size-4 text-orange-500" />
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                      Feature Deep-Dive
+                      Technical Capabilities
                     </span>
                   </div>
                   <span className="text-xs font-bold text-slate-900">{activeStep.title}</span>
@@ -1384,7 +1305,7 @@ export default function HowItWorksSection() {
                       key={feat}
                       className="flex items-start gap-2 rounded-xl bg-slate-50 p-2.5 text-xs font-medium text-slate-700 border border-slate-100"
                     >
-                      <CheckCircle2 className="size-4 shrink-0 text-emerald-500 mt-0.5" />
+                      <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600 mt-0.5" />
                       <span>{feat}</span>
                     </div>
                   ))}
