@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
 import RoleRedirect from "./RoleRedirect";
 
@@ -85,6 +85,11 @@ function PageLoader() {
     );
 }
 
+function CategoryRouteRedirect() {
+    const { categorySlug } = useParams<{ categorySlug: string }>();
+    return <Navigate to={`/?categorySlug=${categorySlug || ""}#marketplace-products`} replace />;
+}
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
 export function AppRoutes() {
@@ -106,6 +111,17 @@ export function AppRoutes() {
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/wishlist" element={<WishlistPage />} />
                 <Route path="/cart" element={<CartPage />} />
+
+                {/* Marketplace Shortcuts & Category Aliases (Resolved before store handles) */}
+                <Route path="/categories/:categorySlug" element={<CategoryRouteRedirect />} />
+                <Route path="/categories" element={<Navigate to="/#marketplace-products" replace />} />
+                <Route path="/deals" element={<Navigate to="/#marketplace-deals" replace />} />
+                <Route path="/trending" element={<Navigate to="/?sort=rating&order=desc#marketplace-products" replace />} />
+                <Route path="/new-arrivals" element={<Navigate to="/?sort=createdAt&order=desc#marketplace-products" replace />} />
+                <Route path="/vendors" element={<Navigate to="/?verifiedShopsOnly=true#marketplace-products" replace />} />
+                <Route path="/collections/featured" element={<Navigate to="/?verifiedShopsOnly=true&sort=rating&order=desc#marketplace-products" replace />} />
+                <Route path="/collections/:collectionSlug" element={<Navigate to="/#marketplace-products" replace />} />
+
                 <Route path="/:shopSlug" element={<StorefrontPage />} />
 
                 {/* 2. SHARED PROTECTED ROUTES */}

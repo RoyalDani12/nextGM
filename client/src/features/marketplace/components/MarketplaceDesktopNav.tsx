@@ -23,83 +23,111 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { MarketplaceMegaMenu } from "./MarketplaceMegaMenu";
+import { useMarketplaceCategories } from "./marketplace.hooks";
 
-const EXPLORE_MEGA_MENU = {
-  featured: {
-    title: "Curated Store Drops",
-    description:
-      "Discover top-rated physical goods, custom apparel, and tech gear from verified vendors.",
-    badge: "Hot Products",
-    href: "/collections/featured",
-  },
-
-  sections: [
-    {
-      title: "Explore Categories",
-      links: [
-        {
-          name: "Apparel & Fashion",
-          desc: "Streetwear, footwear & custom merch",
-          href: "/categories/apparel",
-          icon: Shirt,
-        },
-        {
-          name: "Tech & Electronics",
-          desc: "Gadgets, audio gear & accessories",
-          href: "/categories/tech",
-          icon: Laptop,
-        },
-        {
-          name: "Home & Workspace",
-          desc: "Furniture, lighting & desk accessories",
-          href: "/categories/workspace",
-          icon: Home,
-        },
-        {
-          name: "Beauty & Personal",
-          desc: "Skincare, grooming & wellness items",
-          href: "/categories/beauty",
-          icon: HeartPulse,
-        },
-        {
-          name: "Sports & Outdoor",
-          desc: "Outdoor essentials & gym equipment",
-          href: "/categories/sports",
-          icon: Trophy,
-        },
-        {
-          name: "New Arrivals",
-          desc: "Latest physical products added",
-          href: "/new-arrivals",
-          icon: Sparkle,
-        },
-      ],
-    },
-    {
-      title: "Marketplace Highlights",
-      links: [
-        {
-          name: "Verified Vendors",
-          desc: "Hand-picked independent physical vendors",
-          href: "/vendors?filter=verified",
-          icon: ShieldCheck,
-        },
-        {
-          name: "Hot Deals & Drops",
-          desc: "Limited-time physical product discounts",
-          href: "/deals",
-          icon: Flame,
-        },
-        {
-          name: "Trending Items",
-          desc: "Most popular physical goods this week",
-          href: "/trending",
-          icon: TrendingUp,
-        },
-      ],
-    },
-  ],
+const getCategoryIcon = (name: string) => {
+  const n = name.toLowerCase();
+  if (
+    n.includes("apparel") ||
+    n.includes("cloth") ||
+    n.includes("shirt") ||
+    n.includes("men") ||
+    n.includes("women") ||
+    n.includes("child") ||
+    n.includes("style")
+  ) {
+    return Shirt;
+  }
+  if (
+    n.includes("tech") ||
+    n.includes("electr") ||
+    n.includes("device") ||
+    n.includes("laptop") ||
+    n.includes("phone")
+  ) {
+    return Laptop;
+  }
+  if (
+    n.includes("home") ||
+    n.includes("space") ||
+    n.includes("work") ||
+    n.includes("furnit") ||
+    n.includes("decor")
+  ) {
+    return Home;
+  }
+  if (
+    n.includes("beauty") ||
+    n.includes("health") ||
+    n.includes("care") ||
+    n.includes("skin")
+  ) {
+    return HeartPulse;
+  }
+  if (
+    n.includes("sport") ||
+    n.includes("gym") ||
+    n.includes("fit") ||
+    n.includes("outdoor")
+  ) {
+    return Trophy;
+  }
+  return Sparkle;
 };
+
+const DEFAULT_CATEGORY_LINKS = [
+  {
+    name: "Apparel & Fashion",
+    desc: "Streetwear, footwear & custom merch",
+    href: "/?categorySlug=apparel#marketplace-products",
+    icon: Shirt,
+  },
+  {
+    name: "Tech & Electronics",
+    desc: "Gadgets, audio gear & accessories",
+    href: "/?categorySlug=tech#marketplace-products",
+    icon: Laptop,
+  },
+  {
+    name: "Home & Workspace",
+    desc: "Furniture, lighting & desk accessories",
+    href: "/?categorySlug=workspace#marketplace-products",
+    icon: Home,
+  },
+  {
+    name: "Beauty & Personal",
+    desc: "Skincare, grooming & wellness items",
+    href: "/?categorySlug=beauty#marketplace-products",
+    icon: HeartPulse,
+  },
+  {
+    name: "Sports & Outdoor",
+    desc: "Outdoor essentials & gym equipment",
+    href: "/?categorySlug=sports#marketplace-products",
+    icon: Trophy,
+  },
+];
+
+const HIGHLIGHT_LINKS = [
+  {
+    name: "Verified Vendors",
+    desc: "Hand-picked independent physical vendors",
+    href: "/?verifiedShopsOnly=true#marketplace-products",
+    icon: ShieldCheck,
+  },
+  {
+    name: "Hot Deals & Drops",
+    desc: "Limited-time physical product discounts",
+    href: "/#marketplace-deals",
+    icon: Flame,
+  },
+  {
+    name: "Trending Items",
+    desc: "Most popular physical goods this week",
+    href: "/?sort=rating&order=desc#marketplace-products",
+    icon: TrendingUp,
+  },
+];
 
 interface MarketplaceDesktopNavProps {
   cartItemCount: number;
@@ -114,6 +142,42 @@ export const MarketplaceDesktopNav = ({
   wishlistItemCount = 0,
   onWishlist,
 }: MarketplaceDesktopNavProps) => {
+  const { data: categories = [] } = useMarketplaceCategories();
+
+  const handleNavScroll = (href: string) => {
+    if (href.includes("#marketplace-deals")) {
+      document.getElementById("marketplace-deals")?.scrollIntoView({ behavior: "smooth" });
+    } else if (href.includes("#marketplace-products")) {
+      document.getElementById("marketplace-products")?.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  const dynamicCategoryLinks =
+    categories.length > 0
+      ? [
+          ...categories.slice(0, 5).map((cat) => ({
+            name: cat.name,
+            desc: `${cat.productCount} item${cat.productCount === 1 ? "" : "s"} · ${cat.children?.length || 0} subcategories`,
+            href: `/?categorySlug=${cat.slug}#marketplace-products`,
+            icon: getCategoryIcon(cat.name),
+          })),
+          {
+            name: "New Arrivals",
+            desc: "Latest physical products added",
+            href: "/?sort=createdAt&order=desc#marketplace-products",
+            icon: Sparkle,
+          },
+        ]
+      : [
+          ...DEFAULT_CATEGORY_LINKS,
+          {
+            name: "New Arrivals",
+            desc: "Latest physical products added",
+            href: "/?sort=createdAt&order=desc#marketplace-products",
+            icon: Sparkle,
+          },
+        ];
+
   return (
     <NavigationMenu className="hidden lg:flex">
       <NavigationMenuList className="flex items-center gap-1.5">
@@ -126,64 +190,99 @@ export const MarketplaceDesktopNav = ({
 
           <NavigationMenuContent className="grid w-[850px] grid-cols-12 gap-6 rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-2xl">
             <div className="col-span-8 grid grid-cols-2 gap-6">
-              {EXPLORE_MEGA_MENU.sections.map((section) => (
-                <div
-                  key={section.title}
-                  className="space-y-3"
-                >
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    {section.title}
-                  </h4>
+              {/* Explore Categories Column */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Explore Categories
+                </h4>
 
-                  <div className="space-y-1">
-                    {section.links.map((link) => {
-                      const Icon = link.icon;
+                <div className="space-y-1">
+                  {dynamicCategoryLinks.map((link) => {
+                    const Icon = link.icon;
 
-                      return (
-                        <Link
-                          key={link.name}
-                          to={link.href}
-                          className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-all group"
-                        >
-                          <div className="p-2 rounded-lg bg-orange-50 text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-all shadow-xs">
-                            <Icon className="size-4" />
+                    return (
+                      <Link
+                        key={link.name}
+                        to={link.href}
+                        onClick={() => handleNavScroll(link.href)}
+                        className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-all group cursor-pointer"
+                      >
+                        <div className="p-2 rounded-lg bg-orange-50 text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-all shadow-xs">
+                          <Icon className="size-4" />
+                        </div>
+
+                        <div>
+                          <div className="text-sm font-semibold text-slate-800 group-hover:text-orange-500 transition-colors">
+                            {link.name}
                           </div>
 
-                          <div>
-                            <div className="text-sm font-semibold text-slate-800 group-hover:text-orange-500 transition-colors">
-                              {link.name}
-                            </div>
-
-                            <p className="text-xs text-slate-500 line-clamp-1">
-                              {link.desc}
-                            </p>
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
+                          <p className="text-xs text-slate-500 line-clamp-1">
+                            {link.desc}
+                          </p>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
-              ))}
+              </div>
+
+              {/* Marketplace Highlights Column */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Marketplace Highlights
+                </h4>
+
+                <div className="space-y-1">
+                  {HIGHLIGHT_LINKS.map((link) => {
+                    const Icon = link.icon;
+
+                    return (
+                      <Link
+                        key={link.name}
+                        to={link.href}
+                        onClick={() => handleNavScroll(link.href)}
+                        className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-all group cursor-pointer"
+                      >
+                        <div className="p-2 rounded-lg bg-orange-50 text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-all shadow-xs">
+                          <Icon className="size-4" />
+                        </div>
+
+                        <div>
+                          <div className="text-sm font-semibold text-slate-800 group-hover:text-orange-500 transition-colors">
+                            {link.name}
+                          </div>
+
+                          <p className="text-xs text-slate-500 line-clamp-1">
+                            {link.desc}
+                          </p>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
 
+            {/* Featured Card */}
             <div className="relative col-span-4 flex flex-col justify-between overflow-hidden rounded-xl border border-orange-200/80 bg-gradient-to-br from-orange-50 via-white to-orange-100/40 p-5 shadow-xl">
               <div className="space-y-2">
                 <span className="inline-block bg-white border border-orange-200 text-orange-600 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full tracking-wide">
-                  {EXPLORE_MEGA_MENU.featured.badge}
+                  Hot Products
                 </span>
 
                 <h3 className="text-base font-bold text-slate-900 leading-snug">
-                  {EXPLORE_MEGA_MENU.featured.title}
+                  Curated Store Drops
                 </h3>
 
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  {EXPLORE_MEGA_MENU.featured.description}
+                  Discover top-rated physical goods, custom apparel, and tech gear from verified vendors.
                 </p>
               </div>
 
               <Link
-                to={EXPLORE_MEGA_MENU.featured.href}
-                className="mt-4 flex items-center justify-between font-bold text-xs text-orange-600 hover:text-orange-700 transition-colors group"
+                to="/?verifiedShopsOnly=true&sort=rating&order=desc#marketplace-products"
+                onClick={() => handleNavScroll("#marketplace-products")}
+                className="mt-4 flex items-center justify-between font-bold text-xs text-orange-600 hover:text-orange-700 transition-colors group cursor-pointer"
               >
                 <span>Browse Collection</span>
                 <ArrowRight className="size-4 transform group-hover:translate-x-1 transition-transform" />

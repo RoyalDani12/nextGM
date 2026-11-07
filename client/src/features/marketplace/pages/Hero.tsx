@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { AlertCircle, ArrowRight, BadgeCheck, Grid2X2, List, Loader2, PackageOpen, RotateCcw, Search, ShoppingBag, Sparkles, Star, X } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DealCard } from "../components/DealCard";
@@ -17,9 +17,21 @@ type MarketplaceProduct = { id: string; name: string; description?: string; base
 
 export default function Hero() {
   const [params, setParams] = useSearchParams();
+  const location = useLocation();
   const [searchInput, setSearchInput] = useState(params.get("search") || "");
   const [search, setSearch] = useState(params.get("search") || "");
-  const [filters, setFilters] = useState<CatalogFilters>({ ...emptyCatalogFilters, categorySlug: params.get("categorySlug") || undefined });
+  const [filters, setFilters] = useState<CatalogFilters>({
+    ...emptyCatalogFilters,
+    categorySlug: params.get("categorySlug") || undefined,
+    sort: (params.get("sort") as CatalogFilters["sort"]) || undefined,
+    order: (params.get("order") as CatalogFilters["order"]) || undefined,
+    verifiedShopsOnly: params.get("verifiedShopsOnly") === "true" ? true : undefined,
+    inStockOnly: params.get("inStockOnly") === "true" ? true : undefined,
+    type: (params.get("type") as CatalogFilters["type"]) || undefined,
+    minRating: params.get("minRating") ? Number(params.get("minRating")) : undefined,
+    minPrice: params.get("minPrice") || undefined,
+    maxPrice: params.get("maxPrice") || undefined,
+  });
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [view, setView] = useState<"grid" | "list">("grid");
   const { data: categories = [] } = useMarketplaceCategories();
@@ -40,12 +52,65 @@ export default function Hero() {
   useEffect(() => {
     const slug = params.get("categorySlug") || undefined;
     const query = params.get("search") || "";
-    setFilters((current) => current.categorySlug === slug ? current : { ...current, categorySlug: slug });
+    const sort = (params.get("sort") as CatalogFilters["sort"]) || undefined;
+    const order = (params.get("order") as CatalogFilters["order"]) || undefined;
+    const verifiedShopsOnly = params.get("verifiedShopsOnly") === "true";
+    const inStockOnly = params.get("inStockOnly") === "true";
+    const type = (params.get("type") as CatalogFilters["type"]) || undefined;
+    const minRating = params.get("minRating") ? Number(params.get("minRating")) : undefined;
+    const minPrice = params.get("minPrice") || undefined;
+    const maxPrice = params.get("maxPrice") || undefined;
+
+    setFilters((current) => ({
+      ...current,
+      categorySlug: slug,
+      sort: sort || current.sort,
+      order: order || current.order,
+      verifiedShopsOnly: params.has("verifiedShopsOnly") ? verifiedShopsOnly : current.verifiedShopsOnly,
+      inStockOnly: params.has("inStockOnly") ? inStockOnly : current.inStockOnly,
+      type: type || current.type,
+      minRating: minRating ?? current.minRating,
+      minPrice: minPrice ?? current.minPrice,
+      maxPrice: maxPrice ?? current.maxPrice,
+    }));
     setSearchInput(query);
     setSearch(query);
   }, [params]);
-  const changeFilters = (next: CatalogFilters) => { setFilters(next); const query = new URLSearchParams(params); if (next.categorySlug) query.set("categorySlug", next.categorySlug); else query.delete("categorySlug"); setParams(query, { replace: true }); };
-  const reset = () => { setSearch(""); setSearchInput(""); changeFilters({ ...emptyCatalogFilters }); };
+
+  useEffect(() => {
+    if (location.hash) {
+      const targetId = location.hash.replace("#", "");
+      const element = document.getElementById(targetId);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: "smooth" });
+        }, 80);
+      }
+    }
+  }, [location.hash, location.search]);
+
+  const changeFilters = (next: CatalogFilters) => {
+    setFilters(next);
+    const query = new URLSearchParams(params);
+    if (next.categorySlug) query.set("categorySlug", next.categorySlug); else query.delete("categorySlug");
+    if (next.sort && next.sort !== "createdAt") query.set("sort", next.sort); else query.delete("sort");
+    if (next.order && next.order !== "desc") query.set("order", next.order); else query.delete("order");
+    if (next.verifiedShopsOnly) query.set("verifiedShopsOnly", "true"); else query.delete("verifiedShopsOnly");
+    if (next.inStockOnly) query.set("inStockOnly", "true"); else query.delete("inStockOnly");
+    if (next.type) query.set("type", next.type); else query.delete("type");
+    if (next.minPrice) query.set("minPrice", next.minPrice); else query.delete("minPrice");
+    if (next.maxPrice) query.set("maxPrice", next.maxPrice); else query.delete("maxPrice");
+    if (next.minRating) query.set("minRating", String(next.minRating)); else query.delete("minRating");
+    setParams(query, { replace: true });
+  };
+
+  const reset = () => {
+    setSearch("");
+    setSearchInput("");
+    changeFilters({ ...emptyCatalogFilters });
+    const query = new URLSearchParams();
+    setParams(query, { replace: true });
+  };
   const activeChips = useMemo(() => {
     const category = categories.flatMap((parent) => [parent, ...parent.children]).find((item) => item.slug === filters.categorySlug);
     return [
@@ -129,7 +194,9 @@ export default function Hero() {
     </section>}
     <MarketplaceHeroCarousel products={products} categories={categories} onCategory={(slug) => changeFilters({ ...filters, categorySlug: slug })} />
     <main id="marketplace-products" className="w-full px-4 py-6 pb-20 sm:px-6 lg:px-10 lg:pb-16 mb-8 font-sans">
-      <PromotionCarousel onSelect={setSelectedProductId} fallbackProducts={products.slice(0, 20)} />
+      <div id="marketplace-deals">
+        <PromotionCarousel onSelect={setSelectedProductId} fallbackProducts={products.slice(0, 20)} />
+      </div>
 
       {/* 2-Column Alibaba / Enterprise SaaS Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start relative">

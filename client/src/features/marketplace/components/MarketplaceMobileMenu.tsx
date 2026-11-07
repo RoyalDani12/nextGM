@@ -53,6 +53,11 @@ export const MarketplaceMobileMenu = ({
   const goTo = (path: string) => {
     navigate(path);
     setIsMobileOpen(false);
+    if (path.includes("#marketplace-deals")) {
+      setTimeout(() => document.getElementById("marketplace-deals")?.scrollIntoView({ behavior: "smooth" }), 100);
+    } else if (path.includes("#marketplace-products")) {
+      setTimeout(() => document.getElementById("marketplace-products")?.scrollIntoView({ behavior: "smooth" }), 100);
+    }
   };
 
   const currentCategorySlug = searchParams.get("categorySlug");
@@ -346,7 +351,7 @@ export const MarketplaceMobileMenu = ({
                   </AccordionTrigger>
                   <AccordionContent className="pb-2 pt-1 pl-4 space-y-1">
                     <button
-                      onClick={() => goTo(`/?categorySlug=${parent.slug}`)}
+                      onClick={() => goTo(`/?categorySlug=${parent.slug}#marketplace-products`)}
                       className={`flex min-h-8 w-full items-center justify-between rounded-lg px-2.5 text-left text-xs transition-colors ${
                         currentCategorySlug === parent.slug
                           ? "bg-orange-50 font-bold text-orange-600"
@@ -360,7 +365,7 @@ export const MarketplaceMobileMenu = ({
                     {parent.children.map((child) => (
                       <button
                         key={child.id}
-                        onClick={() => goTo(`/?categorySlug=${child.slug}`)}
+                        onClick={() => goTo(`/?categorySlug=${child.slug}#marketplace-products`)}
                         className={`flex min-h-8 w-full items-center justify-between rounded-lg px-2.5 text-left text-xs transition-colors ${
                           currentCategorySlug === child.slug
                             ? "bg-orange-50 font-bold text-orange-600"
