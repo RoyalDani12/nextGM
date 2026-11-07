@@ -209,7 +209,7 @@ export const softDeleteProductRepository = async (productId: string) => {
 };
 
 export const findPublicProductById = async (productId: string) => {
-    return prisma.product.findFirst({
+    const product = await prisma.product.findFirst({
         where: {
             id: productId,
             status: "ACTIVE",
@@ -221,6 +221,7 @@ export const findPublicProductById = async (productId: string) => {
         },
         select: {
             id: true,
+            shopId: true,
             name: true,
             slug: true,
             description: true,
@@ -231,12 +232,23 @@ export const findPublicProductById = async (productId: string) => {
             createdAt: true,
             shop: {
                 select: {
+                    id: true,
                     slug: true,
                     profile: {
                         select: {
                             name: true,
                             logo: true,
                         },
+                    },
+                    coupons: {
+                        where: {
+                            isActive: true,
+                            products: { none: {} },
+                            type: { in: ["PERCENTAGE", "FIXED_AMOUNT"] },
+                            OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+                        },
+                        select: { code: true, type: true, value: true, minOrderAmount: true, expiresAt: true },
+                        take: 1,
                     },
                 },
             },
@@ -272,11 +284,24 @@ export const findPublicProductById = async (productId: string) => {
             },
         },
     });
+
+    if (!product) return null;
+
+    const directPromo = product.coupons?.[0]?.coupon;
+    const shopPromo = (product as any).shop?.coupons?.[0];
+    const promotion = directPromo || shopPromo || null;
+
+    return {
+        ...product,
+        promotion,
+    };
 };
 
 export const listPromotedProductsRepository = async () => {
     const now = new Date();
-    return prisma.couponProduct.findMany({
+
+    // 1. Products with specifically targeted coupons
+    const targeted = await prisma.couponProduct.findMany({
         where: {
             coupon: { isActive: true, type: { in: ["PERCENTAGE", "FIXED_AMOUNT"] }, OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
             product: { status: "ACTIVE", deletedAt: null, stock: { gt: 0 }, shop: { status: "ACTIVE", deletedAt: null } },
@@ -286,7 +311,117 @@ export const listPromotedProductsRepository = async () => {
             product: { select: { id: true, name: true, slug: true, basePrice: true, shop: { select: { slug: true, profile: { select: { name: true } } } }, images: { take: 1, orderBy: { isPrimary: "desc" }, select: { url: true } } } },
         },
         orderBy: { coupon: { updatedAt: "desc" } },
-        take: 16,
+        take: 20,
+    });
+
+    const targetedProductIds = new Set(targeted.map((item) => item.product.id));
+
+    // 2. Store-wide active coupons (where shop owner selected "All products" so products relation is empty)
+    const storeWideCoupons = await prisma.coupon.findMany({
+        where: {
+            isActive: true,
+            type: { in: ["PERCENTAGE", "FIXED_AMOUNT"] },
+            OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+            shop: { status: "ACTIVE", deletedAt: null },
+            products: { none: {} },
+        },
+        select: {
+            id: true,
+            code: true,
+            type: true,
+            value: true,
+            minOrderAmount: true,
+            expiresAt: true,
+            shop: {
+                select: {
+                    id: true,
+                    slug: true,
+                    profile: { select: { name: true } },
+                    products: {
+                        where: {
+                            status: "ACTIVE",
+                            deletedAt: null,
+                            stock: { gt: 0 },
+                        },
+                        select: {
+                            id: true,
+                            name: true,
+                            slug: true,
+                            basePrice: true,
+                            images: { take: 1, orderBy: { isPrimary: "desc" }, select: { url: true } },
+                        },
+                        take: 6,
+                        orderBy: { updatedAt: "desc" },
+                    },
+                },
+            },
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 10,
+    });
+
+    const storeWidePromotions: Array<{
+        coupon: { id: string; code: string; type: any; value: any; minOrderAmount: any; expiresAt: Date | null };
+        product: { id: string; name: string; slug: string; basePrice: any; shop: { slug: string; profile: { name: string } | null }; images: Array<{ url: string }> };
+    }> = [];
+
+    for (const item of storeWideCoupons) {
+        for (const prod of item.shop.products) {
+            if (!targetedProductIds.has(prod.id)) {
+                targetedProductIds.add(prod.id);
+                storeWidePromotions.push({
+                    coupon: {
+                        id: item.id,
+                        code: item.code,
+                        type: item.type,
+                        value: item.value,
+                        minOrderAmount: item.minOrderAmount,
+                        expiresAt: item.expiresAt,
+                    },
+                    product: {
+                        id: prod.id,
+                        name: prod.name,
+                        slug: prod.slug,
+                        basePrice: prod.basePrice,
+                        shop: {
+                            slug: item.shop.slug,
+                            profile: item.shop.profile,
+                        },
+                        images: prod.images,
+                    },
+                });
+            }
+        }
+    }
+
+    return [...targeted, ...storeWidePromotions].slice(0, 24);
+};
+
+export const listActivePublicCouponsRepository = async () => {
+    const now = new Date();
+    return prisma.coupon.findMany({
+        where: {
+            isActive: true,
+            OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+            shop: { status: "ACTIVE", deletedAt: null },
+        },
+        select: {
+            id: true,
+            code: true,
+            type: true,
+            value: true,
+            minOrderAmount: true,
+            expiresAt: true,
+            shop: {
+                select: {
+                    id: true,
+                    slug: true,
+                    profile: { select: { name: true } },
+                },
+            },
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 15,
     });
 };
 
@@ -353,6 +488,16 @@ export const browseProductRepository = async (options: BrowseProductsOptions) =>
                         profile: {
                             select: { name: true, logo: true },
                         },
+                        coupons: {
+                            where: {
+                                isActive: true,
+                                products: { none: {} },
+                                type: { in: ["PERCENTAGE", "FIXED_AMOUNT"] },
+                                OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+                            },
+                            select: { code: true, type: true, value: true, minOrderAmount: true, expiresAt: true },
+                            take: 1,
+                        },
                     },
                 },
                 images: {
@@ -382,7 +527,10 @@ export const browseProductRepository = async (options: BrowseProductsOptions) =>
     const ratedProducts = productsWithRatings.map(({ reviews, coupons, ...product }) => {
         const reviewCount = reviews.length;
         const averageRating = reviewCount ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviewCount : 0;
-        return { ...product, averageRating: Number(averageRating.toFixed(1)), reviewCount, promotion: coupons[0]?.coupon ?? null };
+        const directPromo = coupons[0]?.coupon;
+        const shopPromo = (product as any).shop?.coupons?.[0];
+        const promotion = directPromo || shopPromo || null;
+        return { ...product, averageRating: Number(averageRating.toFixed(1)), reviewCount, promotion };
     }).filter((product) => !minRating || product.averageRating >= minRating);
     if (sort === "rating") ratedProducts.sort((a, b) => order === "asc" ? a.averageRating - b.averageRating : b.averageRating - a.averageRating);
 

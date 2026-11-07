@@ -1,6 +1,6 @@
 // src/features/product/product.public.routes.ts
 import express from "express"
-import { getPublicProductController,browseProductsController, getPromotedProductsController } from "./product.controller.js"
+import { getPublicProductController, browseProductsController, getPromotedProductsController, getPublicCouponsController } from "./product.controller.js"
 import { browseProductsSchema } from "./product.schema.js"
 import { validate } from "../../middleware/validate.middleware.js"
 
@@ -12,6 +12,7 @@ router.get(
     browseProductsController
 )
 router.get("/promotions", getPromotedProductsController)
+router.get("/coupons", getPublicCouponsController)
 router.get(
     "/:productId",
     getPublicProductController

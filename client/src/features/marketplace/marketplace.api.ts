@@ -28,10 +28,26 @@ export const fetchProductById = async (productId: string) => {
   return data?.data?.product || data?.data || data;
 };
 export type PromotedProduct = {
-  coupon: { id: string; code: string; type: "PERCENTAGE" | "FIXED_AMOUNT"; value: number | string; minOrderAmount: number | string | null; expiresAt: string | null };
+  coupon: { id: string; code: string; type: "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING"; value: number | string; minOrderAmount: number | string | null; expiresAt: string | null };
   product: { id: string; name: string; slug: string; basePrice: number | string; images: Array<{ url: string }>; shop: { slug: string; profile?: { name?: string } | null } };
 };
+
+export type PublicCoupon = {
+  id: string;
+  code: string;
+  type: "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING";
+  value: number | string;
+  minOrderAmount: number | string | null;
+  expiresAt: string | null;
+  shop: {
+    id: string;
+    slug: string;
+    profile?: { name?: string } | null;
+  };
+};
+
 export const fetchPromotedProducts = async (): Promise<PromotedProduct[]> => (await api.get("/products/promotions")).data.data || [];
+export const fetchPublicCoupons = async (): Promise<PublicCoupon[]> => (await api.get("/products/coupons")).data.data || [];
 export const fetchMarketplaceCategories = async (): Promise<MarketplaceCategory[]> => {
   const { data } = await api.get("/categories");
   return data?.data || [];
