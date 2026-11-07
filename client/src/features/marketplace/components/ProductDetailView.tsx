@@ -301,11 +301,8 @@ export function ProductDetailView({
                 {/* Main Image */}
                 <div className="relative flex-1 aspect-square max-h-80 sm:max-h-96 w-full overflow-hidden rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center p-4">
                   {promotionLabel && (
-                    <span className="absolute top-3 left-3 z-10 bg-orange-500 text-white text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-md shadow-sm tracking-wider inline-flex items-center gap-1">
-                      <span>{promotionLabel}</span>
-                      {productPromotion?.code && (
-                        <span className="opacity-95 font-mono">({productPromotion.code})</span>
-                      )}
+                    <span className="absolute top-3 left-3 z-10 bg-orange-600 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-sm tracking-wider inline-flex items-center gap-1">
+                      <span>SALE {promotionLabel}</span>
                     </span>
                   )}
                   {images[selectedImageIndex]?.url ? (
@@ -363,8 +360,8 @@ export function ProductDetailView({
                     </span>
                   )}
                   {promotionLabel && (
-                    <span className="bg-orange-500 text-white font-extrabold text-[10px] sm:text-xs px-2 py-0.5 rounded uppercase tracking-wider shadow-xs">
-                      {promotionLabel}
+                    <span className="bg-orange-600 text-white font-extrabold text-[10px] sm:text-xs px-2 py-0.5 rounded uppercase tracking-wider shadow-2xs">
+                      SALE {promotionLabel}
                     </span>
                   )}
                 </div>
@@ -501,31 +498,38 @@ export function ProductDetailView({
                 {/* Description and product information */}
                 {activeTab === "overview" && (
                   <div className="space-y-5">
-                    {/* Active Promotion Callout Box */}
+                    {/* Compact Promotion Strip */}
                     {productPromotion && (
-                      <div className="rounded-xl border border-orange-200 bg-orange-50/70 p-4 flex items-start gap-3">
-                        <div className="size-8 rounded-lg bg-orange-500 flex items-center justify-center text-white shrink-0 shadow-xs">
-                          <Tag className="size-4" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-extrabold text-orange-950 uppercase tracking-wide">
-                              Special Deal: {promotionLabel}
+                      <div className="rounded-lg border border-orange-200 bg-orange-50/70 px-3.5 py-2.5 flex items-center justify-between gap-3 text-xs">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="bg-orange-600 text-white font-extrabold text-[9px] px-1.5 py-0.5 rounded uppercase tracking-wider shadow-2xs">
+                            SALE
+                          </span>
+                          <span className="font-bold text-orange-600">
+                            {promotionLabel} {productPromotion.code ? `· Code: ${productPromotion.code}` : ""}
+                          </span>
+                          {savingsAmount > 0 && (
+                            <span className="text-slate-600">
+                              (Save ${savingsAmount.toFixed(2)})
                             </span>
-                            {productPromotion.code && (
-                              <span className="bg-white border border-orange-300 px-1.5 py-0.5 rounded text-[11px] font-mono font-bold text-orange-600">
-                                {productPromotion.code}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-orange-800/90 mt-1 leading-relaxed">
-                            {savingsAmount > 0
-                              ? `You save $${savingsAmount.toFixed(2)} with this promotion! Price is calculated at $${salePrice.toFixed(2)} (regular $${numericPrice.toFixed(2)}).`
-                              : productPromotion.minOrderAmount
-                              ? `Valid on store orders over $${Number(productPromotion.minOrderAmount).toFixed(2)}.`
-                              : `Use code ${productPromotion.code} at checkout to claim your discount.`}
-                          </p>
+                          )}
                         </div>
+                        {productPromotion.code && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(productPromotion.code);
+                              toast.add({
+                                title: "Copied!",
+                                description: `Coupon code "${productPromotion.code}" copied.`,
+                                type: "success",
+                              });
+                            }}
+                            className="shrink-0 text-orange-600 font-mono font-bold hover:underline cursor-pointer text-xs"
+                          >
+                            Copy code
+                          </button>
+                        )}
                       </div>
                     )}
 

@@ -130,15 +130,14 @@ export function DealCard({
 
         {/* Content Section — Tight & High-Density */}
         <div className="space-y-1 px-0.5">
-          {/* Discount Tag / Badges */}
-          {promotion?.code && realDiscountLabel ? (
-            <p className="text-[11px] font-bold text-orange-600 tracking-tight truncate">
-              {realDiscountLabel}: {promotion.code}
-            </p>
-          ) : realDiscountLabel ? (
-            <div className="flex items-center gap-1 flex-wrap">
-              <span className="bg-orange-500 text-white font-extrabold text-[8px] px-1 py-0.2 rounded uppercase tracking-wider shadow-xs">
-                {realDiscountLabel}
+          {/* Discount Tag / Badges — Alibaba style */}
+          {realDiscountLabel ? (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="bg-orange-600 text-white font-extrabold text-[8px] px-1.5 py-0.5 rounded uppercase tracking-wider shadow-2xs">
+                SALE
+              </span>
+              <span className="text-[11px] font-bold text-orange-600 tracking-tight">
+                {realDiscountLabel.toLowerCase()} {promotion?.code ? `· ${promotion.code}` : ""}
               </span>
             </div>
           ) : null}
