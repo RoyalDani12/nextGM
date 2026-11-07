@@ -100,10 +100,30 @@ export function ProductDetailView({
   const variants = (product?.variants ?? []) as ProductVariant[];
   const selectedVariant = variants.find((variant) => variant.id === selectedVariantId);
   const ownReview = reviewData?.reviews?.find((review: { userId: string }) => review.userId === currentUser?.id);
-  const currentPrice = selectedVariant ? selectedVariant.price : product?.basePrice;
+  const rawPrice = selectedVariant ? selectedVariant.price : product?.basePrice;
   const currentStock = selectedVariant ? selectedVariant.stock : (product?.stock ?? 0);
-  const productPromotion = product?.coupons?.[0]?.coupon;
-  const promotionLabel = productPromotion ? productPromotion.type === "PERCENTAGE" ? `${Number(productPromotion.value)}% OFF` : `$${Number(productPromotion.value).toFixed(2)} OFF` : null;
+  const productPromotion = (product as any)?.promotion || product?.coupons?.[0]?.coupon || null;
+  const numericPrice = typeof rawPrice === "number" ? rawPrice : parseFloat(rawPrice || "0") || 0;
+
+  const appliesToPrice = Boolean(
+    productPromotion &&
+      (!productPromotion.minOrderAmount || numericPrice >= Number(productPromotion.minOrderAmount))
+  );
+
+  const discountValue = productPromotion ? Number(productPromotion.value) : 0;
+  const salePrice = appliesToPrice && productPromotion
+    ? productPromotion.type === "PERCENTAGE"
+      ? numericPrice * (1 - discountValue / 100)
+      : Math.max(0, numericPrice - discountValue)
+    : numericPrice;
+
+  const savingsAmount = appliesToPrice ? Math.max(0, numericPrice - salePrice) : 0;
+
+  const promotionLabel = productPromotion
+    ? productPromotion.type === "PERCENTAGE"
+      ? `${discountValue}% OFF`
+      : `$${discountValue.toFixed(2)} OFF`
+    : null;
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -191,7 +211,7 @@ export function ProductDetailView({
                       ? {
                           id: product.id,
                           name: product.name,
-                          basePrice: currentPrice || product.basePrice,
+                          basePrice: salePrice || numericPrice || product.basePrice,
                           stock: currentStock,
                           shop: product.shop,
                           images: product.images || [],
@@ -280,7 +300,14 @@ export function ProductDetailView({
 
                 {/* Main Image */}
                 <div className="relative flex-1 aspect-square max-h-80 sm:max-h-96 w-full overflow-hidden rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center p-4">
-                  {promotionLabel && <span className="absolute top-3 left-3 z-10 bg-rose-600 text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded shadow-sm tracking-wider">{promotionLabel}</span>}
+                  {promotionLabel && (
+                    <span className="absolute top-3 left-3 z-10 bg-orange-500 text-white text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-md shadow-sm tracking-wider inline-flex items-center gap-1">
+                      <span>{promotionLabel}</span>
+                      {productPromotion?.code && (
+                        <span className="opacity-95 font-mono">({productPromotion.code})</span>
+                      )}
+                    </span>
+                  )}
                   {images[selectedImageIndex]?.url ? (
                     <img
                       src={images[selectedImageIndex].url}
@@ -325,16 +352,41 @@ export function ProductDetailView({
               </div>
 
               {/* Current product price and verified promotion */}
-              <div className="bg-slate-50 border-y border-slate-100 py-3.5 px-4 -mx-5 lg:-mx-6 flex items-baseline justify-between gap-4">
-                <div className="flex items-baseline gap-2">
+              <div className="bg-slate-50 border-y border-slate-100 py-3.5 px-4 -mx-5 lg:-mx-6 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-baseline gap-2.5 flex-wrap">
                   <span className="text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight">
-                    ${Number(currentPrice || 0).toFixed(2)}
+                    ${salePrice.toFixed(2)}
                   </span>
+                  {appliesToPrice && savingsAmount > 0 && (
+                    <span className="text-base text-slate-400 line-through font-normal">
+                      ${numericPrice.toFixed(2)}
+                    </span>
+                  )}
+                  {promotionLabel && (
+                    <span className="bg-orange-500 text-white font-extrabold text-[10px] sm:text-xs px-2 py-0.5 rounded uppercase tracking-wider shadow-xs">
+                      {promotionLabel}
+                    </span>
+                  )}
                 </div>
-                {promotionLabel && (
-                  <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-100">
-                    {promotionLabel}
-                  </span>
+                {productPromotion?.code && (
+                  <div className="flex items-center gap-1.5 bg-orange-50 border border-orange-200/90 px-2.5 py-1 rounded-lg text-xs font-bold text-orange-600">
+                    <span className="text-slate-600 font-medium">Coupon:</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(productPromotion.code);
+                        toast.add({
+                          title: "Copied!",
+                          description: `Coupon code "${productPromotion.code}" copied to clipboard.`,
+                          type: "success",
+                        });
+                      }}
+                      className="font-mono bg-white px-1.5 py-0.5 rounded border border-orange-300 text-orange-600 hover:bg-orange-100 transition-colors cursor-pointer"
+                      title="Click to copy coupon code"
+                    >
+                      {productPromotion.code}
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -449,6 +501,34 @@ export function ProductDetailView({
                 {/* Description and product information */}
                 {activeTab === "overview" && (
                   <div className="space-y-5">
+                    {/* Active Promotion Callout Box */}
+                    {productPromotion && (
+                      <div className="rounded-xl border border-orange-200 bg-orange-50/70 p-4 flex items-start gap-3">
+                        <div className="size-8 rounded-lg bg-orange-500 flex items-center justify-center text-white shrink-0 shadow-xs">
+                          <Tag className="size-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-extrabold text-orange-950 uppercase tracking-wide">
+                              Special Deal: {promotionLabel}
+                            </span>
+                            {productPromotion.code && (
+                              <span className="bg-white border border-orange-300 px-1.5 py-0.5 rounded text-[11px] font-mono font-bold text-orange-600">
+                                {productPromotion.code}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-orange-800/90 mt-1 leading-relaxed">
+                            {savingsAmount > 0
+                              ? `You save $${savingsAmount.toFixed(2)} with this promotion! Price is calculated at $${salePrice.toFixed(2)} (regular $${numericPrice.toFixed(2)}).`
+                              : productPromotion.minOrderAmount
+                              ? `Valid on store orders over $${Number(productPromotion.minOrderAmount).toFixed(2)}.`
+                              : `Use code ${productPromotion.code} at checkout to claim your discount.`}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="space-y-3">
                       <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Product Description</h3>
                       <p className="whitespace-pre-line text-xs sm:text-sm text-slate-600 leading-relaxed">

@@ -209,7 +209,7 @@ export const softDeleteProductRepository = async (productId: string) => {
 };
 
 export const findPublicProductById = async (productId: string) => {
-    return prisma.product.findFirst({
+    const product = await prisma.product.findFirst({
         where: {
             id: productId,
             status: "ACTIVE",
@@ -221,6 +221,7 @@ export const findPublicProductById = async (productId: string) => {
         },
         select: {
             id: true,
+            shopId: true,
             name: true,
             slug: true,
             description: true,
@@ -231,12 +232,23 @@ export const findPublicProductById = async (productId: string) => {
             createdAt: true,
             shop: {
                 select: {
+                    id: true,
                     slug: true,
                     profile: {
                         select: {
                             name: true,
                             logo: true,
                         },
+                    },
+                    coupons: {
+                        where: {
+                            isActive: true,
+                            products: { none: {} },
+                            type: { in: ["PERCENTAGE", "FIXED_AMOUNT"] },
+                            OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+                        },
+                        select: { code: true, type: true, value: true, minOrderAmount: true, expiresAt: true },
+                        take: 1,
                     },
                 },
             },
@@ -272,6 +284,17 @@ export const findPublicProductById = async (productId: string) => {
             },
         },
     });
+
+    if (!product) return null;
+
+    const directPromo = product.coupons?.[0]?.coupon;
+    const shopPromo = (product as any).shop?.coupons?.[0];
+    const promotion = directPromo || shopPromo || null;
+
+    return {
+        ...product,
+        promotion,
+    };
 };
 
 export const listPromotedProductsRepository = async () => {
