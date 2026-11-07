@@ -30,10 +30,10 @@ export function MarketplaceFilterSidebar({
 }: Props) {
   const count = activeFilterCount(filters);
 
-  // Collapsible section dropdowns (closed by default, expanded on user click)
+  // Collapsible section dropdowns (categories open by default like Alibaba)
   const [openSections, setOpenSections] = useState({
-    category: false,
-    price: false,
+    category: true,
+    price: true,
     rating: false,
     merchant: false,
   });
@@ -70,7 +70,7 @@ export function MarketplaceFilterSidebar({
   return (
     <aside
       aria-label="Product Catalog Filters"
-      className={`w-full bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 font-sans divide-y divide-slate-100 ${className}`}
+      className={`w-full bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 font-sans divide-y divide-slate-100 max-h-[calc(100vh-8.5rem)] overflow-y-auto overscroll-contain pr-3 [scrollbar-width:thin] scrollbar-thin scrollbar-thumb-slate-200 hover:scrollbar-thumb-slate-300 scrollbar-track-transparent ${className}`}
     >
       {/* ── Sidebar Header: Title, Active Count & Reset ── */}
       <div className="pb-4 flex items-center justify-between">

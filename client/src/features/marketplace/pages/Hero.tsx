@@ -132,9 +132,9 @@ export default function Hero() {
       <PromotionCarousel onSelect={setSelectedProductId} fallbackProducts={products.slice(0, 20)} />
 
       {/* 2-Column Alibaba / Enterprise SaaS Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start relative">
         {/* Left Column (w-72 / 1 col on lg): Sticky Desktop Sidebar */}
-        <div className="hidden lg:block lg:col-span-1 sticky top-24 self-start">
+        <div className="hidden lg:block lg:col-span-1 sticky top-28 self-start z-20">
           <MarketplaceFilterSidebar
             categories={categories}
             filters={filters}
