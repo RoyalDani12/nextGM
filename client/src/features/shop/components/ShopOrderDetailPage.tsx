@@ -25,6 +25,11 @@ import {
 } from "@/features/shop/shop.hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const getVariantName = (variant: unknown) => {
   if (typeof variant === "string") return variant;
@@ -219,123 +224,276 @@ export const ShopOrderDetailPage = () => {
 
   return (
     <div className="mx-auto w-full max-w-[1200px] space-y-5">
-      {/* PRINT-ONLY TEMPLATE */}
+      {/* PRINT-ONLY & PREVIEW MODAL */}
       <style>{`
-        .print-only { display: none; }
         @media print {
           body * { visibility: hidden !important; }
-          .print-only, .print-only * { visibility: visible !important; }
-          .print-only { display: block !important; position: fixed !important; inset: 0 !important; }
+          #printable-invoice, #printable-invoice * { visibility: visible !important; }
+          #printable-invoice {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            padding: 32px !important;
+            background: white !important;
+            box-shadow: none !important;
+            border: none !important;
+          }
         }
       `}</style>
-      {printDocument && (
-        <div className="print-only fixed inset-0 z-[100] bg-white p-8 text-slate-950">
-          <div className="mx-auto max-w-3xl">
-            <div className="flex items-start justify-between border-b-2 border-slate-900 pb-5">
-              <div className="flex items-center gap-3">
-                {order.shop?.profile?.logo && (
-                  <img
-                    src={order.shop.profile.logo}
-                    alt=""
-                    className="h-14 w-14 object-contain"
-                  />
-                )}
-                <div>
-                  <h1 className="text-2xl font-black">
-                    {order.shop?.profile?.name || "Your Store"}
+
+      {/* Invoice & Packing Slip Modal Preview */}
+      <Dialog
+        open={Boolean(printDocument)}
+        onOpenChange={(open) => !open && setPrintDocument(null)}
+      >
+        <DialogContent className="sm:max-w-3xl max-h-[92vh] overflow-y-auto p-0 rounded-lg border border-slate-200 bg-slate-50 shadow-2xl">
+          <DialogTitle className="sr-only">
+            {printDocument === "invoice" ? "Order Invoice Preview" : "Packing Slip Preview"}
+          </DialogTitle>
+
+          {/* Sticky preview controls */}
+          <div className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200 bg-white/95 backdrop-blur-xs px-6 py-3">
+            <div>
+              <p className="text-xs font-semibold text-slate-900">
+                {printDocument === "invoice" ? "Invoice preview" : "Packing slip preview"}
+              </p>
+              <p className="text-[11px] text-slate-400 font-mono">
+                Order #{id.slice(-8).toUpperCase()}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPrintDocument(null)}
+                className="h-8 px-3 text-xs font-medium border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg cursor-pointer"
+              >
+                Close
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => window.print()}
+                className="h-8 px-4 text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white rounded-lg inline-flex items-center gap-1.5 cursor-pointer shadow-none"
+              >
+                <Printer size={13} />
+                <span>Print document</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Document Sheet */}
+          <div className="p-6 sm:p-8">
+            <div
+              id="printable-invoice"
+              className="mx-auto max-w-2xl bg-white border border-slate-200 rounded-lg p-8 sm:p-10 shadow-xs text-slate-900 space-y-7 print:border-none print:shadow-none print:p-0 print:max-w-full"
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between border-b border-slate-200 pb-6 gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2.5">
+                    {order.shop?.profile?.logo ? (
+                      <img
+                        src={order.shop.profile.logo}
+                        alt=""
+                        className="size-10 rounded-md object-cover border border-slate-200"
+                      />
+                    ) : (
+                      <div className="size-10 rounded-md bg-slate-900 text-white flex items-center justify-center font-bold text-sm">
+                        {(order.shop?.profile?.name || "S")[0]}
+                      </div>
+                    )}
+                    <div>
+                      <h2 className="text-base font-bold text-slate-900">
+                        {order.shop?.profile?.name || "Store"}
+                      </h2>
+                      <p className="text-[11px] text-slate-400 font-mono">
+                        {order.shop?.slug ? `/${order.shop.slug}` : "Storefront"}
+                      </p>
+                    </div>
+                  </div>
+                  {order.shop?.profile?.supportEmail && (
+                    <p className="text-xs text-slate-500">
+                      Support: {order.shop.profile.supportEmail}
+                    </p>
+                  )}
+                  {order.shop?.profile?.address && (
+                    <p className="text-xs text-slate-500">
+                      {order.shop.profile.address}
+                    </p>
+                  )}
+                </div>
+
+                <div className="text-right space-y-1">
+                  <h1 className="text-xl font-bold tracking-tight text-slate-900 uppercase">
+                    {printDocument === "invoice" ? "Invoice" : "Packing Slip"}
                   </h1>
-                  <p className="text-sm text-slate-500">
-                    {printDocument === "invoice"
-                      ? "Order Invoice"
-                      : "Packing Slip"}
+                  <p className="text-xs font-mono font-medium text-slate-600">
+                    {printDocument === "invoice" ? `INV-${id.slice(-8).toUpperCase()}` : `PACK-${id.slice(-8).toUpperCase()}`}
                   </p>
+                  <p className="text-[11px] text-slate-400">
+                    Date: {new Date(createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </p>
+                  {payment && (
+                    <span className="inline-block mt-1 text-[10px] font-semibold tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-2 py-0.5 uppercase">
+                      {payment.status}
+                    </span>
+                  )}
                 </div>
               </div>
-              <div className="text-right text-sm">
-                <p className="font-bold">Order #{id.slice(-8).toUpperCase()}</p>
-                <p>{new Date(createdAt).toLocaleDateString()}</p>
-                <div
-                  className="mt-2 h-8 w-40 bg-[repeating-linear-gradient(90deg,#111_0,#111_2px,transparent_2px,transparent_5px)]"
-                  aria-label={`Order barcode ${id}`}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-8 border-b py-6 text-sm">
-              <div>
-                <p className="mb-1 text-xs font-bold uppercase text-slate-500">
-                  Ship to
-                </p>
-                <p className="font-bold">{shippingAddress?.fullName}</p>
-                <p>{shippingAddress?.address}</p>
-                <p>
-                  {shippingAddress?.city}, {shippingAddress?.country}{" "}
-                  {shippingAddress?.postalCode}
-                </p>
-                <p>{shippingAddress?.phone}</p>
-              </div>
-              <div>
-                <p className="mb-1 text-xs font-bold uppercase text-slate-500">
-                  Customer
-                </p>
-                <p>{order.customer?.name}</p>
-                <p>{order.customer?.email}</p>
-                <p className="mt-3">
-                  <strong>Status:</strong> {status}
-                </p>
-              </div>
-            </div>
-            <table className="mt-6 w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b-2 border-slate-900 text-left">
-                  <th className="py-2">Item / SKU</th>
-                  <th className="py-2">Variant</th>
-                  <th className="py-2 text-center">Qty</th>
-                  <th className="py-2 text-right">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item: any) => (
-                  <tr key={item.id} className="border-b">
-                    <td className="py-3">
-                      <strong>{item.product?.name}</strong>
+
+              {/* Two-Column Addresses */}
+              <div className="grid grid-cols-2 gap-6 text-xs pb-1">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
+                    Billed to
+                  </span>
+                  <p className="font-semibold text-slate-900">
+                    {order.customer?.name || shippingAddress?.fullName || "Valued Customer"}
+                  </p>
+                  {order.customer?.email && (
+                    <p className="text-slate-600">{order.customer.email}</p>
+                  )}
+                  {shippingAddress?.phone && (
+                    <p className="text-slate-500">{shippingAddress.phone}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
+                    Shipped to
+                  </span>
+                  <p className="font-semibold text-slate-900">
+                    {shippingAddress?.fullName || "Same as billed"}
+                  </p>
+                  {shippingAddress?.address && (
+                    <p className="text-slate-600 leading-relaxed">
+                      {shippingAddress.address}
                       <br />
-                      <span className="text-xs text-slate-500">
-                        SKU: {item.variant?.sku || item.product?.sku || "—"}
+                      {shippingAddress.city}, {shippingAddress.country} {shippingAddress.postalCode}
+                    </p>
+                  )}
+                  {shipment && (
+                    <p className="text-[11px] text-slate-500 pt-0.5">
+                      Carrier: <strong className="font-medium text-slate-700">{shipment.carrier || shipment.method}</strong>
+                      {shipment.trackingNumber && ` • Tracking: ${shipment.trackingNumber}`}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <div className="border border-slate-200 rounded-lg overflow-hidden">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-medium">
+                      {printDocument === "packing-slip" && (
+                        <th className="py-2.5 px-3 w-8 text-center">Pack</th>
+                      )}
+                      <th className="py-2.5 px-3">Item description</th>
+                      <th className="py-2.5 px-3">Variant</th>
+                      <th className="py-2.5 px-3 text-center">Qty</th>
+                      {printDocument === "invoice" && (
+                        <>
+                          <th className="py-2.5 px-3 text-right">Price</th>
+                          <th className="py-2.5 px-3 text-right">Amount</th>
+                        </>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {items.map((item: any) => (
+                      <tr key={item.id}>
+                        {printDocument === "packing-slip" && (
+                          <td className="py-2.5 px-3 text-center">
+                            <span className="inline-block size-3.5 border border-slate-300 rounded-xs" />
+                          </td>
+                        )}
+                        <td className="py-2.5 px-3">
+                          <p className="font-semibold text-slate-900">
+                            {item.product?.name}
+                          </p>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            SKU: {item.variant?.sku || item.product?.sku || "—"}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-slate-600">
+                          {getVariantName(item.variant) || "—"}
+                        </td>
+                        <td className="py-2.5 px-3 text-center font-semibold text-slate-800 tabular-nums">
+                          {item.quantity}
+                        </td>
+                        {printDocument === "invoice" && (
+                          <>
+                            <td className="py-2.5 px-3 text-right text-slate-600 tabular-nums">
+                              ${Number(item.unitPrice).toFixed(2)}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-semibold text-slate-900 tabular-nums">
+                              ${(Number(item.unitPrice) * item.quantity).toFixed(2)}
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Totals Summary (For Invoice) */}
+              {printDocument === "invoice" ? (
+                <div className="flex justify-end pt-1">
+                  <div className="w-64 space-y-1.5 text-xs">
+                    <div className="flex justify-between text-slate-600">
+                      <span>Subtotal</span>
+                      <span className="tabular-nums font-medium text-slate-900">
+                        ${(Number(totalAmount) + Number(discountAmount || 0) - Number(shipment?.fee || 0)).toFixed(2)}
                       </span>
-                    </td>
-                    <td className="py-3">
-                      {getVariantName(item.variant) || "—"}
-                    </td>
-                    <td className="py-3 text-center">{item.quantity}</td>
-                    <td className="py-3 text-right">
-                      $
-                      {(Number(item.unitPrice) * item.quantity).toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="mt-6 flex justify-end">
-              <div className="w-56 space-y-2 text-right text-sm">
-                <p className="flex justify-between">
-                  <span>Subtotal</span>
-                  <strong>${Number(totalAmount).toFixed(2)}</strong>
-                </p>
-                <p className="flex justify-between text-base">
-                  <span>Total</span>
-                  <strong>${Number(totalAmount).toFixed(2)}</strong>
-                </p>
+                    </div>
+                    {Number(discountAmount || 0) > 0 && (
+                      <div className="flex justify-between text-emerald-700">
+                        <span>Discount applied</span>
+                        <span className="tabular-nums">-${Number(discountAmount).toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-slate-600">
+                      <span>Shipping fee</span>
+                      <span className="tabular-nums font-medium text-slate-900">
+                        {Number(shipment?.fee || 0) === 0 ? "Free" : `$${Number(shipment?.fee).toFixed(2)}`}
+                      </span>
+                    </div>
+                    <div className="pt-2 border-t border-slate-200 flex justify-between items-baseline font-bold text-slate-900 text-sm">
+                      <span>Total paid</span>
+                      <span className="text-base tabular-nums">${Number(totalAmount).toFixed(2)}</span>
+                    </div>
+                    {payment && (
+                      <p className="text-[11px] text-slate-400 text-right pt-0.5">
+                        Paid via {payment.provider}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600">
+                  <p className="font-semibold text-slate-800">Packing Instructions:</p>
+                  <p className="mt-0.5 text-[11px] text-slate-500">
+                    Verify all listed items and quantities before sealing. Include this packing slip inside the package.
+                  </p>
+                </div>
+              )}
+
+              {/* Footer Terms */}
+              <div className="pt-6 border-t border-slate-100 text-[11px] text-slate-400 space-y-1">
+                <p className="text-slate-600 font-medium">Thank you for your business.</p>
+                {order.shop?.profile?.returnsPolicy && (
+                  <p>
+                    <strong>Returns & Refund policy:</strong> {order.shop.profile.returnsPolicy}
+                  </p>
+                )}
               </div>
             </div>
-            {order.shop?.profile?.returnsPolicy && (
-              <p className="mt-10 border-t pt-4 text-xs text-slate-500">
-                <strong>Returns policy:</strong>{" "}
-                {order.shop.profile.returnsPolicy}
-              </p>
-            )}
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* BREADCRUMB NAVIGATION */}
       <div className="flex items-center gap-1.5 text-xs text-slate-400">
