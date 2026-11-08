@@ -3,10 +3,10 @@ import { Loader2, Upload, Star, Trash2, Check, Image as ImageIcon } from "lucide
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -164,83 +164,114 @@ export default function ProductAddDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-h-[90vh] sm:max-w-[620px] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Add New Product</DialogTitle>
+      <DialogContent className="max-h-[90vh] sm:max-w-[560px] overflow-y-auto p-5 rounded-lg border border-slate-200 bg-white shadow-xl">
+        <DialogHeader className="space-y-1 pb-2 border-b border-slate-100">
+          <DialogTitle className="text-base font-semibold text-slate-900">
+            Add product
+          </DialogTitle>
+          <DialogDescription className="text-xs text-slate-500">
+            Create a new item in your store catalog.
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Product Name</label>
+        <form onSubmit={handleSubmit} className="space-y-4 pt-3">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-slate-700">Product name</label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Wireless Headphones"
+              className="h-9 text-xs rounded-lg border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:border-orange-500"
               required
             />
           </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Marketplace Category</label>
-            <select value={platformCategoryId} onChange={(e) => setPlatformCategoryId(e.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-slate-700">Marketplace category</label>
+            <select
+              value={platformCategoryId}
+              onChange={(e) => setPlatformCategoryId(e.target.value)}
+              className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-800 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+            >
               <option value="">No marketplace category</option>
-              {categories.flatMap((parent) => [{ id: parent.id, label: parent.name }, ...parent.children.map((child) => ({ id: child.id, label: `${parent.name} > ${child.name}` }))]).map((category) => <option key={category.id} value={category.id}>{category.label}</option>)}
+              {categories
+                .flatMap((parent) => [
+                  { id: parent.id, label: parent.name },
+                  ...parent.children.map((child) => ({
+                    id: child.id,
+                    label: `${parent.name} > ${child.name}`,
+                  })),
+                ])
+                .map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.label}
+                  </option>
+                ))}
             </select>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Description</label>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-slate-700">Description</label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Product details..."
+              placeholder="Describe this product..."
               rows={3}
+              className="text-xs rounded-lg border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:border-orange-500"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Base Price ($)</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-slate-700">Base price ($)</label>
               <Input
                 type="number"
                 step="0.01"
                 value={basePrice}
                 onChange={(e) => setBasePrice(e.target.value)}
+                placeholder="0.00"
+                className="h-9 text-xs rounded-lg border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:border-orange-500"
                 required
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Stock</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-slate-700">Stock units</label>
               <Input
                 type="number"
                 value={stock}
                 onChange={(e) => setStock(Number(e.target.value))}
+                placeholder="0"
+                className="h-9 text-xs rounded-lg border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:border-orange-500"
                 required
               />
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">SKU (Optional)</label>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-slate-700">
+              SKU <span className="text-slate-400 font-normal">(Optional)</span>
+            </label>
             <Input
               value={sku}
               onChange={(e) => setSku(e.target.value)}
-              placeholder="e.g. SONY-1001"
+              placeholder="e.g. PRD-BLK-001"
+              className="h-9 text-xs rounded-lg border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:border-orange-500"
             />
           </div>
 
-          <div className="space-y-3 pt-2">
+          {/* IMAGES */}
+          <div className="space-y-2.5 pt-1">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-muted-foreground">Product Images</label>
-              <Button
+              <label className="text-xs font-medium text-slate-700">Images</label>
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1.5 text-xs"
                 onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-1.5 h-7 px-2.5 text-xs font-medium text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
               >
-                <Upload className="h-3.5 w-3.5" /> Add Images
-              </Button>
+                <Upload size={12} />
+                <span>Add images</span>
+              </button>
             </div>
 
             <input
@@ -253,84 +284,76 @@ export default function ProductAddDialog({
             />
 
             {/* MAIN IMAGE */}
-            <div className="space-y-1.5">
-              <span className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-                Main Display Image
-              </span>
+            <div>
               {primaryImage ? (
-                <div className="relative aspect-video w-full overflow-hidden rounded-lg border-2 border-primary bg-card">
+                <div className="relative aspect-[16/9] w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
                   <img
                     src={primaryImage.url}
                     alt="Main Product"
-                    className="h-full w-full object-cover"
+                    className="size-full object-cover"
                   />
-                  <Badge className="absolute left-2 top-2 gap-1 bg-primary text-xs text-primary-foreground">
-                    <Check className="h-3.5 w-3.5" /> Main Image
-                  </Badge>
-                  <Button
+                  <span className="inline-flex items-center gap-1 rounded bg-slate-900/90 text-[10px] font-medium text-white px-2 py-0.5 absolute left-2.5 top-2.5 backdrop-blur-xs">
+                    <Check size={11} /> Primary cover
+                  </span>
+                  <button
                     type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute right-2 top-2 h-8 w-8 rounded-full opacity-90 hover:opacity-100"
                     onClick={() => handleRemoveImage(images.indexOf(primaryImage))}
-                    title="Remove Main Image"
+                    className="absolute right-2.5 top-2.5 size-7 rounded-md bg-white/90 hover:bg-white text-slate-600 hover:text-rose-600 border border-slate-200 flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
+                    title="Remove primary image"
                   >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                    <Trash2 size={12} />
+                  </button>
                 </div>
               ) : (
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex aspect-video cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border/80 bg-muted/20 transition-all hover:bg-muted/40"
+                  className="flex aspect-[16/9] cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/50 hover:bg-slate-100/50 transition-colors"
                 >
-                  <ImageIcon className="h-8 w-8 text-muted-foreground/60" />
-                  <p className="mt-2 text-xs font-medium text-muted-foreground">
-                    No primary image selected. Click to browse.
+                  <ImageIcon className="size-6 text-slate-400" />
+                  <p className="mt-1.5 text-xs font-medium text-slate-600">
+                    Click to upload primary cover
                   </p>
+                  <p className="text-[11px] text-slate-400">PNG, JPG or WEBP</p>
                 </div>
               )}
             </div>
 
-            {/* GALLERY IMAGES */}
+            {/* GALLERY THUMBNAILS */}
             {additionalImages.length > 0 && (
-              <div className="space-y-1.5 pt-1">
-                <span className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-                  Additional Gallery Images ({additionalImages.length})
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-medium text-slate-500">
+                  Gallery ({additionalImages.length})
                 </span>
-                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
                   {images.map((img, idx) => {
                     if (img.isPrimary) return null;
                     return (
                       <div
                         key={img.url || idx}
-                        className="group relative aspect-square overflow-hidden rounded-lg border border-border bg-card"
+                        className="group relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-50"
                       >
                         <img
                           src={img.url}
-                          alt={`Gallery preview ${idx}`}
-                          className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                          alt={`Thumbnail ${idx}`}
+                          className="size-full object-cover"
                         />
-                        <div className="absolute inset-0 flex items-center justify-center gap-1.5 bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">
-                          <Button
+                        <div className="absolute inset-0 flex items-center justify-center gap-1 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
                             type="button"
-                            variant="secondary"
-                            size="icon"
-                            className="h-7 w-7 rounded-full bg-background/90"
                             onClick={() => handleSetPrimary(idx)}
-                            title="Set as Main Image"
+                            className="size-6 rounded-md bg-white text-slate-700 hover:text-amber-500 flex items-center justify-center transition-colors cursor-pointer"
+                            title="Set as primary cover"
                           >
-                            <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
-                          </Button>
-                          <Button
+                            <Star size={12} />
+                          </button>
+                          <button
                             type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="h-7 w-7 rounded-full"
                             onClick={() => handleRemoveImage(idx)}
-                            title="Remove Image"
+                            className="size-6 rounded-md bg-white text-slate-700 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer"
+                            title="Remove image"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                            <Trash2 size={12} />
+                          </button>
                         </div>
                       </div>
                     );
@@ -340,24 +363,35 @@ export default function ProductAddDialog({
             )}
           </div>
 
-          <DialogFooter className="pt-3">
-            {uploadProgress && (
-              <span className="mr-auto animate-pulse text-xs text-muted-foreground">
+          <DialogFooter className="pt-3 border-t border-slate-100 flex items-center justify-between sm:justify-between">
+            {uploadProgress ? (
+              <span className="text-xs text-slate-500 animate-pulse">
                 {uploadProgress}
               </span>
+            ) : (
+              <span />
             )}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleClose(false)}
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Product
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleClose(false)}
+                disabled={loading}
+                className="h-8 px-3 text-xs font-medium text-slate-700 border-slate-200 hover:bg-slate-50 rounded-lg cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={loading}
+                className="h-8 px-4 text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white rounded-lg cursor-pointer"
+              >
+                {loading && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
+                Add product
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Image as ImageIcon, Pencil, ArrowUpRight, Check, Loader2 } from "lucide-react";
+import { Image as ImageIcon, Pencil, ArrowUpRight, Check, Loader2, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { Product, ProductStatus } from "@/features/product/product.types";
 
@@ -28,6 +28,7 @@ export default function ProductCard({
   product,
   shopId,
   onEdit,
+  onDelete,
   onStockChange,
   isUpdatingStock,
 }: ProductCardProps) {
@@ -92,9 +93,9 @@ export default function ProductCard({
           </span>
         </div>
 
-        {/* Quick edit */}
-        {onEdit && (
-          <div className="absolute right-2.5 bottom-2.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Quick actions */}
+        <div className="absolute right-2.5 bottom-2.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+          {onEdit && (
             <button
               type="button"
               className="flex size-7 items-center justify-center rounded-md bg-white/95 border border-slate-200 shadow-xs text-slate-600 hover:text-orange-600 transition-colors cursor-pointer"
@@ -106,8 +107,21 @@ export default function ProductCard({
             >
               <Pencil size={12} />
             </button>
-          </div>
-        )}
+          )}
+          {onDelete && (
+            <button
+              type="button"
+              className="flex size-7 items-center justify-center rounded-md bg-white/95 border border-slate-200 shadow-xs text-slate-600 hover:text-rose-600 transition-colors cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(productId, product.name);
+              }}
+              title="Delete product"
+            >
+              <Trash2 size={12} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Body */}

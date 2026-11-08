@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import {
   useShopProducts,
@@ -128,6 +136,8 @@ function ProductPageContent({
     hasPrevPage: false,
   };
 
+  const [productToDelete, setProductToDelete] = useState<{ id: string; name: string } | null>(null);
+
   const handleCreateProduct = async (payload: CreateProductPayload) => {
     await createProduct.mutateAsync(payload);
   };
@@ -137,9 +147,7 @@ function ProductPageContent({
   };
 
   const handleDeleteProduct = (productId: string, productName: string) => {
-    const confirmed = window.confirm(`Are you sure you want to delete "${productName}"?`);
-    if (!confirmed) return;
-    deleteProduct.mutate(productId);
+    setProductToDelete({ id: productId, name: productName });
   };
 
   const handleStatusChange = (productId: string, status: ProductStatus) => {
@@ -189,6 +197,58 @@ function ProductPageContent({
         onOpenChange={(open) => !open && setEditingProduct(null)}
         onSubmit={handleUpdateProduct}
       />
+
+      {/* DELETE CONFIRMATION DIALOG */}
+      <Dialog
+        open={Boolean(productToDelete)}
+        onOpenChange={(open) => !open && setProductToDelete(null)}
+      >
+        <DialogContent className="sm:max-w-md rounded-lg bg-white p-5 shadow-xl border border-slate-200">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-base font-semibold text-slate-900">
+              Delete product
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Are you sure you want to delete{" "}
+              <strong className="text-slate-800">"{productToDelete?.name}"</strong>?
+              This action cannot be undone and will permanently remove this product and its variants.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex justify-end gap-2 pt-3">
+            <button
+              type="button"
+              onClick={() => setProductToDelete(null)}
+              className="px-3.5 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={deleteProduct.isPending}
+              onClick={async () => {
+                if (!productToDelete) return;
+                try {
+                  await deleteProduct.mutateAsync(productToDelete.id);
+                  setProductToDelete(null);
+                } catch (err) {
+                  console.error("Failed to delete product:", err);
+                }
+              }}
+              className="px-4 py-1.5 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
+            >
+              {deleteProduct.isPending ? (
+                <>
+                  <Loader2 size={12} className="animate-spin" />
+                  Deleting…
+                </>
+              ) : (
+                "Delete"
+              )}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <ProductPageStats products={products} total={pagination.total} />
 

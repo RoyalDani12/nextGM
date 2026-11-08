@@ -1,10 +1,16 @@
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Pencil, Trash2, AlertCircle, Loader2, Image as ImageIcon, ChevronDown, } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { useShopProducts, useDeleteProduct, useUpdateProductStatus,useDeleteVariant } from "./product.hooks"; 
+import { useParams, useNavigate, Link } from "react-router-dom";
+import {
+  ArrowLeft,
+  Plus,
+  Pencil,
+  Trash2,
+  AlertCircle,
+  Loader2,
+  Image as ImageIcon,
+  ChevronDown,
+} from "lucide-react";
+import { useShopProducts, useDeleteProduct, useUpdateProductStatus, useDeleteVariant } from "./product.hooks";
 import { ProductVariantEditDialog } from "./components/ProductVariantEditDialog";
 import { AddVariantDialog } from "./components/AddVariantDialog";
 import ProductEditDialog from "./components/ProductEditDialog";
@@ -15,11 +21,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import type { ProductStatus } from "./product.types";
 
 const PRODUCT_STATUS_TRANSITIONS: Record<ProductStatus, ProductStatus[]> = {
@@ -28,21 +35,18 @@ const PRODUCT_STATUS_TRANSITIONS: Record<ProductStatus, ProductStatus[]> = {
   ARCHIVED: ["ACTIVE"],
 };
 
-const STATUS_CONFIG: Record<ProductStatus, { label: string; desc: string; dotClass: string }> = {
-  DRAFT: { 
-    label: "Draft", 
-    desc: "Product is hidden from customers and store catalog.",
-    dotClass: "bg-amber-500"
+const STATUS_CONFIG: Record<ProductStatus, { label: string; dotClass: string }> = {
+  DRAFT: {
+    label: "Draft",
+    dotClass: "bg-amber-500",
   },
-  ACTIVE: { 
-    label: "Active", 
-    desc: "Product is live, searchable, and available for purchase.",
-    dotClass: "bg-emerald-500"
+  ACTIVE: {
+    label: "Active",
+    dotClass: "bg-emerald-500",
   },
-  ARCHIVED: { 
-    label: "Archived", 
-    desc: "Product is discontinued and hidden from all channels.",
-    dotClass: "bg-zinc-400"
+  ARCHIVED: {
+    label: "Archived",
+    dotClass: "bg-slate-400",
   },
 };
 
@@ -56,56 +60,66 @@ const getImageUrl = (img: any): string | null => {
 };
 
 export default function ProductDetailPage() {
-  const { shopId, productId } = useParams<{ shopId: string; productId: string }>();
+  const { shopId = "", productId = "" } = useParams<{ shopId: string; productId: string }>();
   const navigate = useNavigate();
 
   const [editOpen, setEditOpen] = useState(false);
   const [variantOpen, setVariantOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-  const { data, isLoading } = useShopProducts(shopId!);
-  const deleteProduct = useDeleteProduct(shopId!);
-  const updateProductStatus = useUpdateProductStatus(shopId!);
+  const [editVariant, setEditVariant] = useState<any>(null);
+  const [editVariantOpen, setEditVariantOpen] = useState(false);
+
+  // Delete confirmation modals
+  const [deleteProductConfirmOpen, setDeleteProductConfirmOpen] = useState(false);
+  const [deleteVariantTarget, setDeleteVariantTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const { data, isLoading } = useShopProducts(shopId);
+  const deleteProduct = useDeleteProduct(shopId);
+  const updateProductStatus = useUpdateProductStatus(shopId);
+  const deleteVariant = useDeleteVariant(shopId, productId);
 
   const products = (data as any)?.data?.products ?? [];
   const product = products.find((p: any) => (p.id || p._id) === productId);
-  const [editVariant, setEditVariant] = useState<any>(null);
-const [editVariantOpen, setEditVariantOpen] = useState(false);
-
-const deleteVariant = useDeleteVariant(shopId!, productId!);
-
-const handleDeleteVariant = (variantId: string, variantName: string) => {
-  if (window.confirm(`Are you sure you want to delete variant "${variantName}"?`)) {
-    deleteVariant.mutate(variantId);
-  }
-};
 
   if (isLoading) {
-    return <div className="flex justify-center p-12"><Loader2 className="animate-spin h-6 w-6 text-primary" /></div>;
-  }
-
-  if (!product) {
     return (
-      <div className="p-6">
-        <Card className="border-destructive/30">
-          <CardContent className="flex items-center gap-3 p-6">
-            <AlertCircle className="h-5 w-5 text-destructive" />
-            <div>
-              <p className="font-semibold">Product not found</p>
-              <p className="text-sm text-muted-foreground">The product may have been deleted or doesn't exist.</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex min-h-[460px] items-center justify-center">
+        <Loader2 className="size-6 animate-spin text-slate-400" />
       </div>
     );
   }
 
-  const handleDelete = () => {
-    if (window.confirm(`Are you sure you want to delete "${product.name}"?`)) {
-      deleteProduct.mutate(product.id || product._id, {
-        onSuccess: () => navigate(`/dashboard/shop/${shopId}/products`)
-      });
-    }
+  if (!product) {
+    return (
+      <div className="max-w-sm mx-auto text-center py-20 space-y-3">
+        <AlertCircle className="size-8 text-slate-300 mx-auto" />
+        <p className="text-sm font-medium text-slate-700">Product not found</p>
+        <p className="text-xs text-slate-400">This product may have been deleted.</p>
+        <Link
+          to={`/dashboard/shop/${shopId}/products`}
+          className="inline-block text-xs font-medium text-orange-600 hover:text-orange-700"
+        >
+          Return to products
+        </Link>
+      </div>
+    );
+  }
+
+  const handleDeleteProduct = () => {
+    deleteProduct.mutate(product.id || product._id, {
+      onSuccess: () => {
+        setDeleteProductConfirmOpen(false);
+        navigate(`/dashboard/shop/${shopId}/products`);
+      },
+    });
+  };
+
+  const handleDeleteVariantConfirm = () => {
+    if (!deleteVariantTarget) return;
+    deleteVariant.mutate(deleteVariantTarget.id, {
+      onSuccess: () => setDeleteVariantTarget(null),
+    });
   };
 
   const rawImages = product.images || [];
@@ -116,235 +130,349 @@ const handleDeleteVariant = (variantId: string, variantName: string) => {
   const variants = product.variants || [];
 
   return (
-    <TooltipProvider delay={150}>
-      <div className="w-full p-6 md:p-10 space-y-8 max-w-6xl mx-auto">
-        {/* NAVIGATION BAR */}
-        <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2 -ml-2 text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" /> Back to Products
-        </Button>
+    <div className="space-y-5 max-w-[1200px]">
+      {/* Navigation Breadcrumb */}
+      <div>
+        <Link
+          to={`/dashboard/shop/${shopId}/products`}
+          className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 transition-colors"
+        >
+          <ArrowLeft size={13} /> Back to products
+        </Link>
+      </div>
 
-        {/* TOP HERO DETAILS SECTION */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 bg-card border border-border/80 rounded-2xl p-6 md:p-8 shadow-sm">
-          {/* IMAGE GALLERY DISPLAY */}
-          <div className="lg:col-span-5 space-y-4">
-            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-muted/50 border border-border/60 shadow-inner">
+      {/* Main Product Card */}
+      <div className="bg-white border border-slate-200 rounded-lg p-5">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Gallery */}
+          <div className="lg:col-span-5 space-y-3">
+            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center">
               {activeImage ? (
-                <img src={activeImage} alt={product.name} className="h-full w-full object-cover transition-all duration-300" />
+                <img
+                  src={activeImage}
+                  alt={product.name}
+                  className="size-full object-cover"
+                />
               ) : (
-                <div className="flex h-full items-center justify-center">
-                  <ImageIcon className="h-12 w-12 text-muted-foreground/30" />
-                </div>
+                <ImageIcon size={32} className="text-slate-300" />
               )}
             </div>
 
             {images.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-1">
+              <div className="flex gap-2 overflow-x-auto pb-1">
                 {images.map((imgUrl, idx) => (
                   <button
                     key={idx}
+                    type="button"
                     onClick={() => setSelectedImageIndex(idx)}
-                    className={`relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all ${
-                      selectedImageIndex === idx ? "border-primary ring-2 ring-primary/20 shadow-md scale-105" : "border-transparent opacity-60 hover:opacity-100"
+                    className={`size-14 shrink-0 overflow-hidden rounded-md border transition-all cursor-pointer ${
+                      selectedImageIndex === idx
+                        ? "border-orange-500 ring-2 ring-orange-500/20"
+                        : "border-slate-200 opacity-60 hover:opacity-100"
                     }`}
                   >
-                    <img src={imgUrl} alt="" className="h-full w-full object-cover" />
+                    <img src={imgUrl} alt="" className="size-full object-cover" />
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* METADATA & ACTIONS */}
-          <div className="lg:col-span-7 flex flex-col justify-between space-y-6">
+          {/* Details */}
+          <div className="lg:col-span-7 flex flex-col justify-between space-y-5">
             <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-3">
-                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">{product.name}</h1>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-xl font-semibold text-slate-900">{product.name}</h1>
                     {product.type && (
-                      <Badge variant="secondary" className="px-2.5 py-0.5 text-xs font-semibold">
+                      <span className="text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">
                         {product.type}
-                      </Badge>
+                      </span>
                     )}
                   </div>
+                  {product.sku && (
+                    <p className="text-xs text-slate-400 font-mono">SKU: {product.sku}</p>
+                  )}
                 </div>
 
-                {/* STATUS CHANGE VISIBILITY SELECTOR */}
-                <div className="flex items-center gap-2.5">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Change Visibility:</span>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild={false}>
-                      <Button variant="outline" size="sm" disabled={updateProductStatus.isPending} className="gap-2 h-9 px-3.5 shadow-xs">
-                        {updateProductStatus.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <>
-                            <span className={`h-2 w-2 rounded-full ${currentStatusMeta.dotClass}`} />
-                            <span className="font-semibold text-xs">{currentStatusMeta.label}</span>
-                            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                          </>
-                        )}
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-64 p-1.5 shadow-xl">
-                      <div className="px-2 py-1.5 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase border-b border-border/50 mb-1">
-                        Select Visibility Status
-                      </div>
-                      {PRODUCT_STATUS_TRANSITIONS[currentStatus]?.map((status) => {
-                        const itemMeta = STATUS_CONFIG[status];
-                        return (
-                          <Tooltip key={status}>
-                            <TooltipTrigger asChild={false}>
-                              <DropdownMenuItem
-                                className="flex items-center gap-2.5 py-2 px-2.5 rounded-md cursor-pointer focus:bg-accent w-full"
-                                onClick={() => updateProductStatus.mutate({ productId: product.id || product._id, status })}
-                              >
-                                <span className={`h-2 w-2 rounded-full ${itemMeta?.dotClass || "bg-muted-foreground"}`} />
-                                <span className="font-medium text-xs text-foreground">{itemMeta?.label || status}</span>
-                              </DropdownMenuItem>
-                            </TooltipTrigger>
-                            <TooltipContent side="left" className="max-w-xs text-xs bg-popover text-popover-foreground border border-border shadow-lg p-2.5">
-                              <p>{itemMeta?.desc || `Switch status to ${status}`}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        );
-                      })}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+                {/* Status selector */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      disabled={updateProductStatus.isPending}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+                    >
+                      {updateProductStatus.isPending ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <>
+                          <span className={`size-1.5 rounded-full ${currentStatusMeta.dotClass}`} />
+                          <span>{currentStatusMeta.label}</span>
+                          <ChevronDown size={11} className="text-slate-400" />
+                        </>
+                      )}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-40 p-1 rounded-lg border border-slate-200 shadow-lg bg-white">
+                    {PRODUCT_STATUS_TRANSITIONS[currentStatus]?.map((status) => {
+                      const itemMeta = STATUS_CONFIG[status];
+                      return (
+                        <DropdownMenuItem
+                          key={status}
+                          onClick={() =>
+                            updateProductStatus.mutate({
+                              productId: product.id || product._id,
+                              status,
+                            })
+                          }
+                          className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50 rounded cursor-pointer"
+                        >
+                          <span className={`size-1.5 rounded-full ${itemMeta?.dotClass}`} />
+                          <span>{itemMeta?.label || status}</span>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
-              <div className="text-3xl font-extrabold tracking-tight text-foreground">
-                ${Number(product.basePrice ?? 0).toFixed(2)}
-              </div>
-
-              <div className="bg-muted/30 p-3.5 rounded-xl border border-border/40">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Description</p>
-                <p className="text-sm text-foreground/90 leading-relaxed">
-                  {product.description || "No description provided for this product."}
+              {/* Price */}
+              <div>
+                <p className="text-2xl font-semibold text-slate-900 tabular-nums">
+                  ${Number(product.basePrice ?? 0).toFixed(2)}
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <div className="bg-muted/30 p-3 rounded-xl border border-border/40">
-                  <span className="text-muted-foreground block text-[11px] font-semibold uppercase tracking-wider">Stock Availability</span>
-                  <span className="font-bold text-foreground mt-0.5 block">{product.stock ?? 0} units available</span>
+              {/* Description */}
+              <div className="space-y-1">
+                <span className="text-xs font-medium text-slate-500">Description</span>
+                <p className="text-sm text-slate-700 leading-relaxed">
+                  {product.description || "No description provided."}
+                </p>
+              </div>
+
+              {/* Stock and details */}
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <div className="p-3 rounded-lg border border-slate-100 bg-slate-50/50">
+                  <span className="text-xs text-slate-500 block">Inventory</span>
+                  <span className="text-sm font-semibold text-slate-800 tabular-nums mt-0.5 block">
+                    {product.stock ?? 0} in stock
+                  </span>
                 </div>
-                {product.sku && (
-                  <div className="bg-muted/30 p-3 rounded-xl border border-border/40">
-                    <span className="text-muted-foreground block text-[11px] font-semibold uppercase tracking-wider">SKU Code</span>
-                    <span className="font-mono font-bold text-foreground mt-0.5 block">{product.sku}</span>
-                  </div>
-                )}
+                <div className="p-3 rounded-lg border border-slate-100 bg-slate-50/50">
+                  <span className="text-xs text-slate-500 block">Variants</span>
+                  <span className="text-sm font-semibold text-slate-800 tabular-nums mt-0.5 block">
+                    {variants.length} options
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* ACTION BUTTONS (EDIT / DELETE) */}
-            <div className="flex items-center gap-3 pt-4 border-t border-border/60">
-              <Button variant="outline" className="flex-1 gap-2 font-medium shadow-xs" onClick={() => setEditOpen(true)}>
-                <Pencil className="h-4 w-4 text-muted-foreground" /> Edit Product
-              </Button>
-              <Button 
-                variant="destructive" 
-                className="gap-2 font-medium shadow-xs" 
-                disabled={deleteProduct.isPending} 
-                onClick={handleDelete}
+            {/* Actions */}
+            <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
+              <button
+                onClick={() => setEditOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
               >
-                {deleteProduct.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />} 
-                Delete Product
-              </Button>
+                <Pencil size={12} />
+                <span>Edit product</span>
+              </button>
+              <button
+                onClick={() => setDeleteProductConfirmOpen(true)}
+                disabled={deleteProduct.isPending}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-rose-600 border border-rose-200 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+              >
+                <Trash2 size={12} />
+                <span>Delete product</span>
+              </button>
             </div>
           </div>
         </div>
-
-        {/* VARIANTS SECTION */}
-      {/* VARIANTS SECTION */}
-        <Card className="border border-border/80 shadow-sm rounded-2xl overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-border/60 bg-muted/20 px-6 py-4">
-            <CardTitle className="text-base font-bold tracking-tight">Product Variants ({variants.length})</CardTitle>
-            <Button size="sm" onClick={() => setVariantOpen(true)} className="gap-2 shadow-xs">
-              <Plus className="h-4 w-4" /> Add Variant
-            </Button>
-          </CardHeader>
-          <CardContent className="p-6">
-            {variants.length > 0 ? (
-              <div className="divide-y divide-border/60">
-                {variants.map((variant: any) => {
-                  const varId = variant.id || variant._id;
-                  return (
-                    <div key={varId} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2.5">
-                          <span className="font-semibold text-sm text-foreground">{variant.name}</span>
-                          {variant.sku && (
-                            <span className="text-[11px] font-mono bg-muted px-2 py-0.5 rounded text-muted-foreground border border-border/50">
-                              SKU: {variant.sku}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">Stock: <span className="font-medium text-foreground">{variant.stock}</span> units available</p>
-                      </div>
-
-                      <div className="flex items-center gap-4">
-                        <span className="font-extrabold text-sm text-foreground">${Number(variant.price ?? 0).toFixed(2)}</span>
-                        
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                            onClick={() => {
-                              setEditVariant(variant);
-                              setEditVariantOpen(true);
-                            }}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            disabled={deleteVariant.isPending}
-                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                            onClick={() => handleDeleteVariant(varId, variant.name)}
-                          >
-                            {deleteVariant.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <p className="text-sm">No variants found. Add size or color options for this product.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* DIALOGS */}
-        <ProductEditDialog
-          product={product}
-          open={editOpen}
-          shopId={shopId!}
-          onOpenChange={setEditOpen}
-        />
-
-        <AddVariantDialog
-          open={variantOpen}
-          onOpenChange={setVariantOpen}
-          shopId={shopId!}
-          productId={productId!}
-        />
-        <ProductVariantEditDialog
-          open={editVariantOpen}
-          onOpenChange={setEditVariantOpen}
-          shopId={shopId!}
-          productId={productId!}
-          variant={editVariant}
-        />
       </div>
-    </TooltipProvider>
+
+      {/* Variants Section */}
+      <div className="bg-white border border-slate-200 rounded-lg p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-medium text-slate-800">
+              Product variants ({variants.length})
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Sizes, colors, or material options
+            </p>
+          </div>
+          <button
+            onClick={() => setVariantOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors cursor-pointer"
+          >
+            <Plus size={13} />
+            <span>Add variant</span>
+          </button>
+        </div>
+
+        {variants.length > 0 ? (
+          <div className="divide-y divide-slate-100 border-t border-slate-100">
+            {variants.map((variant: any) => {
+              const varId = variant.id || variant._id;
+              return (
+                <div key={varId} className="flex items-center justify-between py-3 text-xs">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-slate-800">{variant.name}</span>
+                      {variant.sku && (
+                        <span className="text-[11px] font-mono text-slate-400">
+                          {variant.sku}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-slate-400">
+                      {variant.stock} units in stock
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="font-semibold text-slate-900 tabular-nums">
+                      ${Number(variant.price ?? 0).toFixed(2)}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => {
+                          setEditVariant(variant);
+                          setEditVariantOpen(true);
+                        }}
+                        className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                        title="Edit variant"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        onClick={() =>
+                          setDeleteVariantTarget({ id: varId, name: variant.name })
+                        }
+                        className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                        title="Delete variant"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-xs text-slate-400 py-6 text-center border-t border-slate-100">
+            No variants added yet. Add size, color, or option variants for this product.
+          </p>
+        )}
+      </div>
+
+      {/* Product Edit Dialog */}
+      <ProductEditDialog
+        product={product}
+        open={editOpen}
+        shopId={shopId}
+        onOpenChange={setEditOpen}
+      />
+
+      {/* Add Variant Dialog */}
+      <AddVariantDialog
+        open={variantOpen}
+        onOpenChange={setVariantOpen}
+        shopId={shopId}
+        productId={productId}
+      />
+
+      {/* Edit Variant Dialog */}
+      <ProductVariantEditDialog
+        open={editVariantOpen}
+        onOpenChange={setEditVariantOpen}
+        shopId={shopId}
+        productId={productId}
+        variant={editVariant}
+      />
+
+      {/* Delete Product Confirmation Modal */}
+      <Dialog open={deleteProductConfirmOpen} onOpenChange={setDeleteProductConfirmOpen}>
+        <DialogContent className="sm:max-w-md rounded-lg bg-white p-5 shadow-xl border border-slate-200">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-base font-semibold text-slate-900">
+              Delete product
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Are you sure you want to delete <strong className="text-slate-800">"{product.name}"</strong>? This will permanently remove this item from your catalog.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex justify-end gap-2 pt-3">
+            <button
+              type="button"
+              onClick={() => setDeleteProductConfirmOpen(false)}
+              className="px-3.5 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={deleteProduct.isPending}
+              onClick={handleDeleteProduct}
+              className="px-4 py-1.5 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
+            >
+              {deleteProduct.isPending ? (
+                <>
+                  <Loader2 size={12} className="animate-spin" />
+                  Deleting…
+                </>
+              ) : (
+                "Delete"
+              )}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Variant Confirmation Modal */}
+      <Dialog
+        open={Boolean(deleteVariantTarget)}
+        onOpenChange={(open) => !open && setDeleteVariantTarget(null)}
+      >
+        <DialogContent className="sm:max-w-md rounded-lg bg-white p-5 shadow-xl border border-slate-200">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-base font-semibold text-slate-900">
+              Delete variant
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Are you sure you want to delete variant <strong className="text-slate-800">"{deleteVariantTarget?.name}"</strong>?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex justify-end gap-2 pt-3">
+            <button
+              type="button"
+              onClick={() => setDeleteVariantTarget(null)}
+              className="px-3.5 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={deleteVariant.isPending}
+              onClick={handleDeleteVariantConfirm}
+              className="px-4 py-1.5 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
+            >
+              {deleteVariant.isPending ? (
+                <>
+                  <Loader2 size={12} className="animate-spin" />
+                  Deleting…
+                </>
+              ) : (
+                "Delete"
+              )}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
