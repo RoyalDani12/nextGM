@@ -116,42 +116,42 @@ export function DashboardSidebar({
         <div
             onMouseEnter={() => collapsedRail && setIsPeeking(true)}
             onMouseLeave={() => setIsPeeking(false)}
-            className={`relative h-full shrink-0 transition-[width] duration-200 ease-out ${
-                isMobile ? "w-full" : collapsedRail ? "w-[72px]" : "w-64"
+            className={`relative h-full shrink-0 transition-[width] duration-150 ease-out ${
+                isMobile ? "w-full" : collapsedRail ? "w-[68px]" : "w-60"
             }`}
         >
             <aside
-                className={`seller-sidebar flex flex-col h-full bg-[#533257] text-white select-none transition-all duration-200 ease-out ${
+                className={`seller-sidebar flex flex-col h-full bg-[#533257] text-white select-none transition-all duration-150 ease-out ${
                     isMobile
                         ? "w-full border-r-0"
-                        : "w-full border-r border-slate-800"
+                        : "w-full border-r border-white/10"
                 } ${
                     isFlyout
-                        ? "absolute left-0 top-0 w-64 z-50 rounded-r-2xl border-r border-slate-800 shadow-2xl shadow-black/80 bg-[#533257]"
+                        ? "absolute left-0 top-0 w-60 z-50 rounded-r-lg border-r border-white/10 shadow-2xl bg-[#533257]"
                         : ""
                 }`}
             >
-                {/* TOP BRAND BAR - Exactly h-16 (64px) to match Navbar */}
+                {/* BRAND HEADER (Matches navbar height 64px) */}
                 <div
-                    className={`h-16 flex items-center border-b border-white/10 shrink-0 px-4 ${
+                    className={`h-16 flex items-center border-b border-white/10 shrink-0 px-3.5 ${
                         expanded ? "justify-between" : "justify-center"
                     }`}
                 >
                     {expanded ? (
                         <Link
                             to={currentShopDashboard}
-                            className="flex items-center gap-2.5 min-w-0 group"
+                            className="flex items-center gap-2.5 min-w-0"
                             onClick={onNavItemClick}
                         >
-                            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 shadow-md shadow-orange-500/30 transition-transform duration-200 group-hover:scale-105">
-                                <Store className="size-4.5 text-white" />
+                            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-orange-500 text-white">
+                                <Store className="size-4" />
                             </div>
                             <div className="min-w-0 flex flex-col">
-                                <span className="truncate text-xs font-black tracking-tight text-white group-hover:text-orange-400 transition-colors">
-                                    {activeShop?.profile?.name || "Merchant Portal"}
+                                <span className="truncate text-xs font-semibold text-white">
+                                    {activeShop?.profile?.name || "Store"}
                                 </span>
-                                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                                    Store Workspace
+                                <span className="text-[10px] text-white/50 truncate font-mono">
+                                    {activeShop?.slug ? `/${activeShop.slug}` : "Console"}
                                 </span>
                             </div>
                         </Link>
@@ -160,10 +160,10 @@ export function DashboardSidebar({
                             to={currentShopDashboard}
                             className="flex items-center justify-center"
                             onClick={onNavItemClick}
-                            title={activeShop?.profile?.name || "Store Dashboard"}
+                            title={activeShop?.profile?.name || "Store"}
                         >
-                            <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 shadow-md shadow-orange-500/30 transition-transform hover:scale-105">
-                                <Store className="size-4.5 text-white" />
+                            <div className="flex size-8 items-center justify-center rounded-lg bg-orange-500 text-white">
+                                <Store className="size-4" />
                             </div>
                         </Link>
                     )}
@@ -172,29 +172,30 @@ export function DashboardSidebar({
                         <button
                             type="button"
                             onClick={onNavItemClick}
-                            className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
+                            className="p-1 rounded-md text-white/60 hover:text-white hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
                             title="Close navigation"
                             aria-label="Close navigation"
                         >
-                            <X className="size-5" />
+                            <X className="size-4" />
                         </button>
                     ) : (
                         <button
+                            type="button"
                             onClick={() => setPinned((prev) => !prev)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
-                            title={pinned ? "Collapse sidebar" : "Pin sidebar open"}
-                            aria-label={pinned ? "Collapse sidebar" : "Pin sidebar open"}
+                            className="p-1 rounded-md text-white/50 hover:text-white hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
+                            title={pinned ? "Collapse sidebar" : "Pin sidebar"}
+                            aria-label={pinned ? "Collapse sidebar" : "Pin sidebar"}
                         >
-                            <PanelLeft className="size-4" />
+                            <PanelLeft className="size-3.5" />
                         </button>
                     )}
                 </div>
 
-                {/* NAVIGATION SECTION */}
-                <div className="flex-1 w-full px-3 py-3 space-y-1 overflow-y-auto overflow-x-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                {/* NAVIGATION ITEMS */}
+                <div className="flex-1 w-full px-2.5 py-3 space-y-1 overflow-y-auto overflow-x-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                     {expanded && (
-                        <div className="px-2 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                            Store Operations
+                        <div className="px-2.5 pb-1 text-[10px] font-medium uppercase tracking-wider text-white/40">
+                            Store menu
                         </div>
                     )}
 
@@ -208,18 +209,18 @@ export function DashboardSidebar({
                                 to={item.href}
                                 onClick={onNavItemClick}
                                 title={!expanded ? item.title : undefined}
-                                className={`group relative flex items-center justify-between rounded-xl px-3 py-2.5 text-xs transition-all duration-150 cursor-pointer ${
+                                className={`group relative flex items-center justify-between rounded-lg px-2.5 py-2 text-xs transition-colors cursor-pointer ${
                                     isActive
-                                        ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold shadow-md shadow-orange-500/25"
-                                        : "text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-0.5 font-medium"
+                                        ? "bg-orange-500 text-white font-medium"
+                                        : "text-white/75 hover:text-white hover:bg-white/8 font-normal"
                                 } ${!expanded ? "justify-center px-2" : ""}`}
                             >
-                                <div className={`flex items-center gap-3 min-w-0 ${!expanded ? "justify-center" : ""}`}>
+                                <div className={`flex items-center gap-2.5 min-w-0 ${!expanded ? "justify-center" : ""}`}>
                                     <Icon
-                                        className={`size-4 shrink-0 transition-transform duration-150 ${
+                                        className={`size-4 shrink-0 ${
                                             isActive
-                                                ? "text-white scale-110"
-                                                : "text-slate-400 group-hover:text-white"
+                                                ? "text-white"
+                                                : "text-white/60 group-hover:text-white"
                                         }`}
                                     />
 
@@ -228,75 +229,71 @@ export function DashboardSidebar({
                                     )}
                                 </div>
 
-                                {expanded && (
-                                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                                        {item.badge && (
-                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                                                isActive
-                                                    ? "bg-white/20 text-white border border-white/30"
-                                                    : "bg-orange-500/20 text-orange-300 border border-orange-500/30"
-                                            }`}>
-                                                {item.badge}
-                                            </span>
-                                        )}
-                                        {isActive && (
-                                            <span
-                                                className="size-1.5 rounded-full bg-white shadow-xs"
-                                                aria-hidden="true"
-                                            />
-                                        )}
-                                    </div>
+                                {expanded && item.badge && (
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-white/20 text-white ml-2">
+                                        {item.badge}
+                                    </span>
                                 )}
                             </Link>
                         );
                     })}
                 </div>
 
-                {/* BOTTOM FOOTER SECTION */}
-                <div className="p-3 border-t border-white/10 shrink-0 space-y-1 w-full">
+                {/* FOOTER */}
+                <div className="p-2.5 border-t border-white/10 shrink-0 space-y-0.5 w-full">
                     {/* SWITCH SHOP */}
                     <Link
                         to="/shops"
                         onClick={onNavItemClick}
-                        title={!expanded ? "Switch Shop" : undefined}
-                        className={`group relative flex items-center rounded-xl px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 transition-all duration-150 cursor-pointer ${
+                        title={!expanded ? "Switch shop" : undefined}
+                        className={`group flex items-center rounded-lg px-2.5 py-1.5 text-xs text-white/70 hover:text-white hover:bg-white/8 transition-colors cursor-pointer ${
                             !expanded ? "justify-center px-2" : "justify-between"
                         }`}
                     >
                         <div className="flex items-center gap-2.5 min-w-0">
-                            <Store className="size-4 shrink-0 text-slate-400 group-hover:text-orange-400 transition-colors" />
-                            {expanded && <span className="truncate">Switch Shop</span>}
+                            <Store className="size-4 shrink-0 text-white/50 group-hover:text-white transition-colors" />
+                            {expanded && <span className="truncate">Switch shop</span>}
                         </div>
                     </Link>
 
-                    {/* VIEW LIVE STORE */}
+                    {/* VIEW PUBLIC STORE */}
                     <a
                         href={activeShop ? `/${activeShop.slug}` : "/"}
                         target="_blank"
                         rel="noreferrer"
-                        title={!expanded ? "View Live Store" : undefined}
-                        className={`group relative flex items-center rounded-xl px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 transition-all duration-150 cursor-pointer ${
+                        title={!expanded ? "View storefront" : undefined}
+                        className={`group flex items-center rounded-lg px-2.5 py-1.5 text-xs text-white/70 hover:text-white hover:bg-white/8 transition-colors cursor-pointer ${
                             !expanded ? "justify-center px-2" : "justify-between"
                         }`}
                     >
                         <div className="flex items-center gap-2.5 min-w-0">
-                            <Globe className="size-4 shrink-0 text-slate-400 group-hover:text-emerald-400 transition-colors" />
-                            {expanded && <span className="truncate">View Public Store</span>}
+                            <Globe className="size-4 shrink-0 text-white/50 group-hover:text-white transition-colors" />
+                            {expanded && <span className="truncate">View storefront</span>}
                         </div>
                         {expanded && (
-                            <ExternalLink className="size-3 text-slate-400 group-hover:text-white transition-colors" />
+                            <ExternalLink className="size-3 text-white/40 group-hover:text-white transition-colors" />
                         )}
                     </a>
 
-                    {/* STORE STATUS BADGE */}
+                    {/* STATUS PILL */}
                     {expanded && (
                         <div className="pt-2">
-                            <div className="flex items-center justify-between rounded-xl bg-slate-900/90 border border-white/10 px-3 py-2 text-[11px] text-slate-300">
-                                <span className="flex items-center gap-2">
-                                    <span className="size-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                                    Store Active
+                            <div className="flex items-center justify-between rounded-lg bg-black/20 border border-white/10 px-2.5 py-1.5 text-xs text-white/80">
+                                <span className="flex items-center gap-1.5">
+                                    <span
+                                        className={`size-1.5 rounded-full ${
+                                            activeShop?.status === "ACTIVE"
+                                                ? "bg-emerald-400"
+                                                : "bg-amber-400"
+                                        }`}
+                                    />
+                                    <span className="text-[11px] text-white/80 font-medium">
+                                        {activeShop?.status === "ACTIVE"
+                                            ? "Active"
+                                            : "Setup mode"}
+                                    </span>
                                 </span>
-                                <span className="font-mono text-[10px] text-slate-400 uppercase font-semibold">
+                                <span className="font-mono text-[10px] text-white/40 uppercase">
                                     {activeShop?.status || "LIVE"}
                                 </span>
                             </div>
