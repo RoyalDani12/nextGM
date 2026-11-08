@@ -11,7 +11,7 @@ import {
   Check,
   Trash2,
   Loader2,
-  Sparkles,
+  Inbox,
   RotateCcw,
 } from "lucide-react";
 
@@ -38,43 +38,46 @@ interface NotificationDropdownProps {
 const getNotificationIcon = (type: NotificationType) => {
   switch (type) {
     case "ORDER_PLACED":
-      return <ShoppingBag className="size-4 text-emerald-600" />;
+      return <ShoppingBag className="size-3.5 text-emerald-600" />;
     case "ORDER_SHIPPED":
-      return <Truck className="size-4 text-blue-600" />;
+      return <Truck className="size-3.5 text-blue-600" />;
     case "ORDER_DELIVERED":
-      return <CheckCircle2 className="size-4 text-emerald-600" />;
+      return <CheckCircle2 className="size-3.5 text-emerald-600" />;
     case "PAYMENT_SUCCESS":
-      return <CreditCard className="size-4 text-teal-600" />;
+      return <CreditCard className="size-3.5 text-teal-600" />;
     case "PAYMENT_FAILED":
     case "PAYMENT_REFUNDED":
-      return <AlertCircle className="size-4 text-rose-600" />;
+      return <AlertCircle className="size-3.5 text-rose-600" />;
     case "REVIEW_RECEIVED":
-      return <Star className="size-4 text-amber-500 fill-amber-400" />;
+      return <Star className="size-3.5 text-amber-500 fill-amber-400" />;
     case "RETURN_REQUESTED":
     case "RETURN_UPDATED":
-      return <RotateCcw className="size-4 text-orange-600" />;
+      return <RotateCcw className="size-3.5 text-orange-600" />;
     default:
-      return <Bell className="size-4 text-slate-600" />;
+      return <Bell className="size-3.5 text-slate-600" />;
   }
 };
 
 const getNotificationBg = (type: NotificationType) => {
   switch (type) {
     case "ORDER_PLACED":
-      return "bg-emerald-50 border-emerald-100";
+      return "bg-emerald-50/70 border-emerald-100 text-emerald-700";
     case "ORDER_SHIPPED":
-      return "bg-blue-50 border-blue-100";
+      return "bg-blue-50/70 border-blue-100 text-blue-700";
     case "ORDER_DELIVERED":
-      return "bg-emerald-50 border-emerald-100";
+      return "bg-emerald-50/70 border-emerald-100 text-emerald-700";
     case "PAYMENT_SUCCESS":
-      return "bg-teal-50 border-teal-100";
+      return "bg-teal-50/70 border-teal-100 text-teal-700";
     case "PAYMENT_FAILED":
     case "PAYMENT_REFUNDED":
-      return "bg-rose-50 border-rose-100";
+      return "bg-rose-50/70 border-rose-100 text-rose-700";
     case "REVIEW_RECEIVED":
-      return "bg-amber-50 border-amber-100";
+      return "bg-amber-50/70 border-amber-100 text-amber-700";
+    case "RETURN_REQUESTED":
+    case "RETURN_UPDATED":
+      return "bg-orange-50/70 border-orange-100 text-orange-700";
     default:
-      return "bg-slate-50 border-slate-100";
+      return "bg-slate-50 border-slate-200/80 text-slate-600";
   }
 };
 
@@ -112,7 +115,7 @@ export function NotificationDropdown({
       unreadOnly: filterUnread,
       limit: 15,
     },
-    isOpen, // Only fetch notifications list when open or opened
+    isOpen,
   );
 
   const markAsRead = useMarkNotificationAsRead();
@@ -126,7 +129,6 @@ export function NotificationDropdown({
       markAsRead.mutate(notification.id);
     }
 
-    // Smart routing based on notification content
     if (notification.type === "REVIEW_RECEIVED" && shopId) {
       navigate(`/dashboard/shop/${shopId}/reviews`);
       setIsOpen(false);
@@ -162,13 +164,13 @@ export function NotificationDropdown({
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger
         className={`relative inline-flex items-center justify-center outline-none transition-colors cursor-pointer ${
-          triggerClassName || "size-9 rounded-full text-slate-600 hover:bg-slate-100"
+          triggerClassName || "size-8 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100"
         }`}
         aria-label="View notifications"
       >
-        <Bell className="size-4.5" />
+        <Bell className="size-4" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-orange-600 text-[10px] font-black text-white ring-2 ring-white shadow-xs animate-in zoom-in-75">
+          <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-orange-500 text-[9px] font-bold text-white ring-2 ring-white tabular-nums">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
@@ -176,19 +178,19 @@ export function NotificationDropdown({
 
       <DropdownMenuContent
         align={align}
-        className="w-[360px] sm:w-[400px] p-0 rounded-3xl bg-white border border-slate-200/90 shadow-2xl shadow-slate-900/10 overflow-hidden z-50 text-slate-900"
+        className="w-[360px] sm:w-[390px] p-0 rounded-lg bg-white border border-slate-200 shadow-xl overflow-hidden z-50 text-slate-900 mt-1.5"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-2.5">
-            <h3 className="text-sm font-black text-slate-900">Notifications</h3>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-white">
+          <div className="flex items-center gap-2">
+            <h3 className="text-xs font-semibold text-slate-900">Notifications</h3>
             {unreadCount > 0 ? (
-              <span className="text-[11px] font-bold text-orange-600 bg-orange-50 border border-orange-200/60 px-2 py-0.5 rounded-full">
-                {unreadCount} new
+              <span className="text-[10px] font-medium text-orange-700 bg-orange-50 border border-orange-200/80 px-1.5 py-0.5 rounded tabular-nums">
+                {unreadCount} unread
               </span>
             ) : (
-              <span className="text-[11px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-                Caught up
+              <span className="text-[10px] font-medium text-slate-400 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded">
+                All caught up
               </span>
             )}
           </div>
@@ -197,36 +199,36 @@ export function NotificationDropdown({
             <button
               onClick={() => markAllAsRead.mutate(shopId)}
               disabled={markAllAsRead.isPending}
-              className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1 cursor-pointer transition-colors"
+              className="text-[11px] font-medium text-slate-600 hover:text-slate-900 flex items-center gap-1 cursor-pointer transition-colors disabled:opacity-50"
             >
               {markAllAsRead.isPending ? (
                 <Loader2 className="size-3 animate-spin" />
               ) : (
-                <Check className="size-3" />
+                <Check className="size-3 text-slate-400" />
               )}
-              Mark all as read
+              <span>Mark all read</span>
             </button>
           )}
         </div>
 
         {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 px-5 py-2.5 bg-slate-50/70 border-b border-slate-100">
+        <div className="flex items-center gap-1 px-3 py-2 bg-slate-50/70 border-b border-slate-100">
           <button
             onClick={() => setFilterUnread(false)}
-            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+            className={`px-2.5 py-1 rounded text-xs font-medium transition-all cursor-pointer ${
               !filterUnread
-                ? "bg-slate-900 text-white shadow-xs"
-                : "text-slate-600 hover:bg-slate-200/60"
+                ? "bg-white text-slate-900 shadow-2xs border border-slate-200/80"
+                : "text-slate-500 hover:text-slate-800"
             }`}
           >
             All
           </button>
           <button
             onClick={() => setFilterUnread(true)}
-            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+            className={`px-2.5 py-1 rounded text-xs font-medium transition-all cursor-pointer ${
               filterUnread
-                ? "bg-slate-900 text-white shadow-xs"
-                : "text-slate-600 hover:bg-slate-200/60"
+                ? "bg-white text-slate-900 shadow-2xs border border-slate-200/80"
+                : "text-slate-500 hover:text-slate-800"
             }`}
           >
             Unread ({unreadCount})
@@ -237,21 +239,21 @@ export function NotificationDropdown({
         <div className="max-h-[380px] overflow-y-auto divide-y divide-slate-100">
           {isLoading ? (
             <div className="p-8 text-center flex flex-col items-center justify-center gap-2">
-              <Loader2 className="size-6 animate-spin text-orange-500" />
-              <p className="text-xs font-semibold text-slate-400">Loading notifications...</p>
+              <Loader2 className="size-5 animate-spin text-slate-400" />
+              <p className="text-xs font-medium text-slate-400">Loading notifications...</p>
             </div>
           ) : notifications.length === 0 ? (
             <div className="p-8 text-center flex flex-col items-center justify-center gap-2">
-              <div className="size-10 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
-                <Sparkles className="size-5" />
+              <div className="size-9 rounded-lg bg-slate-100/80 border border-slate-200/60 flex items-center justify-center text-slate-400">
+                <Inbox className="size-4.5" />
               </div>
-              <p className="text-xs font-bold text-slate-800">
+              <p className="text-xs font-medium text-slate-800">
                 {filterUnread ? "No unread notifications" : "No notifications yet"}
               </p>
-              <p className="text-[11px] text-slate-400 max-w-[200px]">
+              <p className="text-[11px] text-slate-400 max-w-[220px]">
                 {filterUnread
-                  ? "All your notifications have been marked as read."
-                  : "Order updates, reviews, and alerts will appear here."}
+                  ? "All notifications have been marked as read."
+                  : "Order updates, customer reviews, and refunds will appear here."}
               </p>
             </div>
           ) : (
@@ -259,15 +261,15 @@ export function NotificationDropdown({
               <div
                 key={item.id}
                 onClick={() => handleNotificationClick(item)}
-                className={`group relative flex items-start gap-3.5 p-4 cursor-pointer transition-colors ${
+                className={`group relative flex items-start gap-3 p-3.5 cursor-pointer transition-colors ${
                   !item.isRead
-                    ? "bg-orange-50/25 hover:bg-orange-50/50"
-                    : "hover:bg-slate-50/80 bg-white"
+                    ? "bg-orange-50/20 hover:bg-orange-50/40"
+                    : "hover:bg-slate-50/70 bg-white"
                 }`}
               >
                 {/* Icon Badge */}
                 <div
-                  className={`size-9 rounded-2xl border flex items-center justify-center shrink-0 mt-0.5 ${getNotificationBg(
+                  className={`size-8 rounded-md border flex items-center justify-center shrink-0 mt-0.5 ${getNotificationBg(
                     item.type,
                   )}`}
                 >
@@ -280,26 +282,26 @@ export function NotificationDropdown({
                     <p
                       className={`text-xs truncate ${
                         !item.isRead
-                          ? "font-black text-slate-900"
-                          : "font-semibold text-slate-700"
+                          ? "font-semibold text-slate-900"
+                          : "font-medium text-slate-700"
                       }`}
                     >
                       {item.title}
                     </p>
                     {!item.isRead && (
-                      <span className="size-1.5 rounded-full bg-orange-600 shrink-0" />
+                      <span className="size-1.5 rounded-full bg-orange-500 shrink-0" />
                     )}
                   </div>
                   <p className="text-xs text-slate-500 line-clamp-2 mt-0.5 leading-relaxed">
                     {item.body}
                   </p>
-                  <span className="text-[10px] font-medium text-slate-400 mt-1 block">
+                  <span className="text-[10px] font-medium text-slate-400 mt-1 block tabular-nums">
                     {formatRelativeTime(item.createdAt)}
                   </span>
                 </div>
 
                 {/* Hover Quick Actions */}
-                <div className="absolute right-3 top-3.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute right-3 top-3 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   {!item.isRead && (
                     <button
                       onClick={(e) => {
@@ -307,7 +309,7 @@ export function NotificationDropdown({
                         markAsRead.mutate(item.id);
                       }}
                       title="Mark as read"
-                      className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                      className="p-1 rounded text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
                     >
                       <Check className="size-3.5" />
                     </button>
@@ -318,7 +320,7 @@ export function NotificationDropdown({
                       deleteNotification.mutate(item.id);
                     }}
                     title="Delete notification"
-                    className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                    className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                   >
                     <Trash2 className="size-3.5" />
                   </button>
