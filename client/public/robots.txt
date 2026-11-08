@@ -2,7 +2,6 @@
 User-agent: *
 Allow: /
 Allow: /about
-Allow: /how-it-works
 Allow: /help
 Allow: /contact
 Allow: /storefront/

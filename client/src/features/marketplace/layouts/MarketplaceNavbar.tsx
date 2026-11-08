@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ShoppingCart, Search, Command, User, LogOut,Receipt, Package, Heart, RotateCcw } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ShoppingCart, Search, Command, User, LogOut, Receipt, Package, Heart, RotateCcw } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuthStore } from "@/store/auth.store";
 import { useLogout } from "@/features/auth/auth.hooks";
@@ -191,40 +190,94 @@ export const MarketplaceNavbar = () => {
           </div>
 
 
-          {/* Mobile Cart Button */}
-          <button
-            onClick={() => navigate("/cart")}
-            className="relative ml-auto flex cursor-pointer items-center justify-center rounded-xl p-2 text-slate-700 transition-all hover:bg-orange-50 hover:text-orange-500 lg:hidden"
-            aria-label="Shopping cart"
-          >
-            <ShoppingCart className="size-6" />
-            {cartItemCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 flex items-center justify-center rounded-full bg-orange-500 text-[11px] font-extrabold text-white shadow-xs">
-                {cartItemCount}
-              </span>
-            )}
-          </button>
+          {/* Mobile Actions: Cart + Sign In (or User Menu) */}
+          <div className="ml-auto flex items-center gap-1.5 lg:hidden">
+            <button
+              onClick={() => navigate("/cart")}
+              className="relative flex size-8.5 cursor-pointer items-center justify-center rounded-full text-slate-700 transition-all hover:bg-orange-50 hover:text-orange-500 active:scale-95"
+              aria-label="Shopping cart"
+            >
+              <ShoppingCart className="size-5" />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 flex items-center justify-center rounded-full bg-orange-500 text-[9px] font-extrabold text-white shadow-xs">
+                  {cartItemCount}
+                </span>
+              )}
+            </button>
 
-          <div className="flex items-center gap-3">
+            {!isAuthenticated ? (
+              <Link
+                to="/login"
+                className="inline-flex items-center justify-center h-8.5 px-3.5 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
+              >
+                Sign in
+              </Link>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label="Open mobile account menu"
+                  className="flex items-center gap-1 outline-none cursor-pointer"
+                >
+                  <div className="size-8.5 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 font-bold text-xs shadow-2xs">
+                    {user?.name?.[0]?.toUpperCase() || <User className="size-3.5" />}
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 rounded-2xl border border-slate-200 bg-white p-1 shadow-2xl">
+                  <div className="border-b border-slate-100 px-3 py-2">
+                    <p className="text-[10px] font-medium text-slate-500">Signed in as</p>
+                    <p className="text-xs font-bold text-slate-900 truncate">{user?.name || user?.email}</p>
+                  </div>
+                  <div className="space-y-0.5 p-1 text-slate-700 text-xs">
+                    <DropdownMenuItem
+                      onClick={() => navigate("/account/settings")}
+                      className="cursor-pointer rounded-xl focus:bg-orange-50 focus:text-orange-600"
+                    >
+                      <User className="mr-2 size-4 text-slate-400" /> Profile Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => navigate("/customer-order")}
+                      className="cursor-pointer rounded-xl focus:bg-orange-50 focus:text-orange-600"
+                    >
+                      <Receipt className="mr-2 size-4 text-slate-400" /> Your Orders
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => navigate("/shops")}
+                      className="cursor-pointer rounded-xl focus:bg-orange-50 focus:text-orange-600"
+                    >
+                      <Package className="mr-2 size-4 text-slate-400" /> See Your Shops
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => navigate("/wishlist")}
+                      className="cursor-pointer rounded-xl focus:bg-rose-50 focus:text-rose-500"
+                    >
+                      <Heart className="mr-2 size-4 text-rose-400" /> My Wishlist
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="my-1" />
+                    <DropdownMenuItem
+                      onClick={() => logout()}
+                      className="cursor-pointer rounded-xl text-rose-600 focus:bg-rose-50 focus:text-rose-600"
+                    >
+                      <LogOut className="mr-2 size-4 text-rose-500" /> Sign Out
+                    </DropdownMenuItem>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+
+          <div className="hidden lg:flex items-center gap-3">
             {/* Auth Actions */}
             {!isAuthenticated ? (
-              <div className="hidden lg:flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => navigate("/login")}
-                  className="text-sm font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 h-9 px-4 rounded-full cursor-pointer"
+              <div className="flex items-center gap-2.5">
+                <Link
+                  to="/login"
+                  className="inline-flex items-center px-4.5 py-2 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
                 >
-                  Login
-                </Button>
-                <Button
-                  onClick={() => navigate("/register")}
-                  className="text-sm font-bold bg-orange-500 hover:bg-orange-600 text-white h-10 px-5 rounded-full shadow-md shadow-orange-500/25 cursor-pointer transition-all"
-                >
-                  Get Started
-                </Button>
+                  Sign in
+                </Link>
               </div>
             ) : (
-              <div className="hidden lg:flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <NotificationDropdown triggerClassName="p-2 text-slate-700 hover:text-slate-950 hover:bg-slate-100 rounded-full transition-all cursor-pointer" />
                 <DropdownMenu>
                 <DropdownMenuTrigger

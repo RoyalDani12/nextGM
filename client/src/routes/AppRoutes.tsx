@@ -20,7 +20,6 @@ const StorefrontPage         = lazy(() => import("@/features/marketplace/pages/S
 const AboutPage              = lazy(() => import("@/features/marketplace/pages/AboutPage"));
 const ContactSupportPage     = lazy(() => import("@/features/marketplace/pages/ContactSupportPage"));
 const HelpCenterPage         = lazy(() => import("@/features/marketplace/pages/HelpCenterPage"));
-const HowItWorksPage         = lazy(() => import("@/features/marketplace/pages/HowItWorksPage"));
 
 // Customer
 const WishlistPage           = lazy(() => import("@/features/customer/WishlistPage"));
@@ -98,7 +97,6 @@ export function AppRoutes() {
             <Routes>
                 {/* 1. PUBLIC & AUTH ROUTES */}
                 <Route path="/" element={<Home />} />
-                <Route path="/how-it-works" element={<HowItWorksPage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactSupportPage />} />
                 <Route path="/help" element={<HelpCenterPage />} />

@@ -3,7 +3,6 @@ import { Link, useNavigate, useLocation, useSearchParams } from "react-router-do
 import {
   Compass,
   Heart,
-  HelpCircle,
   Package,
   Store,
   Settings,
@@ -209,20 +208,14 @@ export const MarketplaceMobileMenu = ({
                   Sign in to track orders, save favorite items, and receive notifications.
                 </p>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
+              <div className="pt-1">
+                <button
+                  type="button"
                   onClick={() => goTo("/login")}
-                  className="flex-1 h-9 rounded-xl text-xs font-bold border-slate-300 text-slate-700 hover:bg-white"
+                  className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95"
                 >
-                  Sign In
-                </Button>
-                <Button
-                  onClick={() => goTo("/register")}
-                  className="flex-1 h-9 rounded-xl text-xs font-bold bg-orange-500 hover:bg-orange-600 text-white shadow-md shadow-orange-500/25"
-                >
-                  Join Free
-                </Button>
+                  Sign in
+                </button>
               </div>
             </div>
           )}
@@ -243,20 +236,6 @@ export const MarketplaceMobileMenu = ({
             >
               <span className="flex items-center gap-3">
                 <Compass className="size-4" /> Explore Catalog
-              </span>
-              <ChevronRight className="size-3.5 opacity-40" />
-            </button>
-
-            <button
-              onClick={() => goTo("/how-it-works")}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                isActive("/how-it-works")
-                  ? "bg-orange-50 text-orange-600 shadow-xs"
-                  : "text-slate-700 hover:bg-slate-100/70 hover:text-slate-900"
-              }`}
-            >
-              <span className="flex items-center gap-3">
-                <HelpCircle className="size-4" /> How It Works
               </span>
               <ChevronRight className="size-3.5 opacity-40" />
             </button>
