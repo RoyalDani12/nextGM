@@ -120,13 +120,15 @@ export function PayoutDashboard() {
 
   const balance = Number(status.balance) || 0;
   const reserveAmount =
-    Number(status.reserveAmount) ??
-    (balance > 0
+    status.reserveAmount != null
+      ? Number(status.reserveAmount)
+      : balance > 0
       ? Math.min(balance, Math.max(10, Math.round(balance * 0.1 * 100) / 100))
-      : 0);
+      : 0;
   const maxWithdrawable =
-    Number(status.maxWithdrawable) ??
-    Math.max(0, Math.round((balance - reserveAmount) * 100) / 100);
+    status.maxWithdrawable != null
+      ? Number(status.maxWithdrawable)
+      : Math.max(0, Math.round((balance - reserveAmount) * 100) / 100);
   const transactions = status.transactions || [];
 
   const totalWithdrawn =

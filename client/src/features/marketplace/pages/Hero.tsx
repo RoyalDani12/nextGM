@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, useCallback, type FormEvent } from "react";
 import { AlertCircle, ArrowRight, BadgeCheck, Grid2X2, List, Loader2, PackageOpen, RotateCcw, Search, ShoppingBag, Sparkles, Star, X } from "lucide-react";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -89,7 +89,7 @@ export default function Hero() {
     }
   }, [location.hash, location.search]);
 
-  const changeFilters = (next: CatalogFilters) => {
+  const changeFilters = useCallback((next: CatalogFilters) => {
     setFilters(next);
     const query = new URLSearchParams(params);
     if (next.categorySlug) query.set("categorySlug", next.categorySlug); else query.delete("categorySlug");
@@ -102,7 +102,7 @@ export default function Hero() {
     if (next.maxPrice) query.set("maxPrice", next.maxPrice); else query.delete("maxPrice");
     if (next.minRating) query.set("minRating", String(next.minRating)); else query.delete("minRating");
     setParams(query, { replace: true });
-  };
+  }, [params, setParams]);
 
   const reset = () => {
     setSearch("");
@@ -121,7 +121,7 @@ export default function Hero() {
       filters.verifiedShopsOnly ? { label: "Verified Stores", clear: () => changeFilters({ ...filters, verifiedShopsOnly: undefined }) } : null,
       filters.type ? { label: `Format: ${filters.type === "PHYSICAL" ? "Physical" : "Digital"}`, clear: () => changeFilters({ ...filters, type: undefined }) } : null,
     ].filter(Boolean) as Array<{ label: string; clear: () => void }>;
-  }, [categories, filters]);
+  }, [categories, filters, changeFilters]);
   const selectedSort = `${filters.sort || "createdAt"}:${filters.order || "desc"}`;
 
   const heroProducts = products.slice(0, 3);
