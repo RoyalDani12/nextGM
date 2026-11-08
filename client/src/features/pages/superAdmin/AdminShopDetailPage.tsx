@@ -4,21 +4,25 @@ import {
     ArrowLeft,
     Loader2,
     Store,
-    AlertTriangle,
+    Building2,
+    User,
+    FileText,
+    ShieldAlert,
+    MessageSquare,
+    Star,
     CheckCircle2,
     XCircle,
-    FileText,
     ExternalLink,
     Plus,
     Trash2,
     RotateCcw,
     Lock,
     X,
-    Star,
     Search,
     ZoomIn,
     Ban,
-    ShieldAlert,
+    ChevronDown,
+    AlertTriangle,
 } from "lucide-react";
 import {
     useAdminShop,
@@ -71,6 +75,9 @@ export const AdminShopDetailPage = () => {
         setActiveTab(tab);
         navigate(`?tab=${tab}`, { replace: true });
     };
+
+    // Quick Actions dropdown state
+    const [actionsOpen, setActionsOpen] = useState(false);
 
     // Dialog state
     const [showApproveModal, setShowApproveModal] = useState(false);
@@ -413,20 +420,52 @@ export const AdminShopDetailPage = () => {
         }
     };
 
-    const NAV_SECTIONS: {
-        id: "overview" | "verification" | "kyc" | "documents" | "risk" | "notes" | "reviews";
-        label: string;
-        badge: string;
-        badgeColor: string;
-    }[] = [
-        { id: "overview", label: "Overview & Checklist", badge: `${checklist.filter((i: any) => i.status === "COMPLETED").length}/8 Ready`, badgeColor: "bg-emerald-50 text-emerald-800 border-emerald-200" },
-        { id: "verification", label: "Business & Tax ID", badge: legal?.businessVerificationStatus || "UNVERIFIED", badgeColor: legal?.businessVerificationStatus === "VERIFIED" ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200" },
-        { id: "kyc", label: "Owner Identity (KYC)", badge: legal?.ownerKycStatus || "UNVERIFIED", badgeColor: legal?.ownerKycStatus === "VERIFIED" ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200" },
-        { id: "documents", label: "Legal Documents Vault", badge: `${legal?.documents?.length ?? 0} Docs`, badgeColor: "bg-slate-50 text-slate-700 border-slate-200" },
-        { id: "risk", label: "Risk Flags & Holds", badge: openFlags.length > 0 ? `${openFlags.length} Flags` : "Clean", badgeColor: openFlags.length > 0 ? "bg-rose-50 text-rose-800 border-rose-200 font-semibold" : "bg-emerald-50 text-emerald-800 border-emerald-200" },
-        { id: "notes", label: "Audit Notes & Log", badge: `${shop.adminNotesList?.length ?? 0} Notes`, badgeColor: "bg-slate-50 text-slate-700 border-slate-200" },
-        { id: "reviews", label: "Customer Reviews", badge: reviewsData ? `${reviewsData.total} Reviews` : "Reviews", badgeColor: "bg-slate-50 text-slate-700 border-slate-200" },
+    const NAV_SECTIONS = [
+        {
+            id: "overview" as const,
+            label: "Overview",
+            icon: Store,
+            description: "Store operational overview, health score, owner details, and activity metrics",
+        },
+        {
+            id: "verification" as const,
+            label: "Business & Tax ID",
+            icon: Building2,
+            description: "Official registered entity classification, EIN/Tax identifier, and operating address",
+        },
+        {
+            id: "kyc" as const,
+            label: "Owner KYC",
+            icon: User,
+            description: "Beneficial owner identity audit and government-issued credential validation",
+        },
+        {
+            id: "documents" as const,
+            label: "Legal Documents",
+            icon: FileText,
+            description: "Compliance vault containing articles of incorporation, permits, and licenses",
+        },
+        {
+            id: "risk" as const,
+            label: "Risk & Holds",
+            icon: ShieldAlert,
+            description: "Active compliance risk flags, administrative dispute holds, and incident reports",
+        },
+        {
+            id: "notes" as const,
+            label: "Audit Notes",
+            icon: MessageSquare,
+            description: "Confidential administrative investigation notes and compliance audit trails",
+        },
+        {
+            id: "reviews" as const,
+            label: "Customer Reviews",
+            icon: Star,
+            description: "Customer ratings breakdown, reviews moderation, and storefront visibility",
+        },
     ];
+
+    const currentTabMeta = NAV_SECTIONS.find((t) => t.id === activeTab) || NAV_SECTIONS[0];
 
     return (
         <div className="space-y-5 pb-16">
@@ -513,8 +552,8 @@ export const AdminShopDetailPage = () => {
                                 className="size-13 rounded-lg object-cover border border-slate-200 shadow-2xs shrink-0"
                             />
                         ) : (
-                            <div className="size-13 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 font-semibold shrink-0">
-                                <Store size={22} />
+                            <div className="size-13 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-sm shrink-0">
+                                {(shop.profile?.name || shop.slug).slice(0, 2).toUpperCase()}
                             </div>
                         )}
                         <div>
@@ -548,96 +587,110 @@ export const AdminShopDetailPage = () => {
                         </div>
                     </div>
 
-                    {/* Quick Workflow Action Buttons */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                        {shop.status === "PENDING" && (
-                            <>
-                                <button
-                                    onClick={() => setShowApproveModal(true)}
-                                    className="h-8 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                                >
-                                    <CheckCircle2 size={14} />
-                                    <span>Approve</span>
-                                </button>
-                                <button
-                                    onClick={() => setShowRejectModal(true)}
-                                    className="h-8 px-3 bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
-                                >
-                                    <XCircle size={14} />
-                                    <span>Reject</span>
-                                </button>
-                            </>
-                        )}
-
-                        {shop.status === "ACTIVE" && (
-                            <>
-                                <button
-                                    onClick={() => setShowSuspendModal(true)}
-                                    className="h-8 px-3 bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
-                                >
-                                    <Ban size={14} />
-                                    <span>Suspend</span>
-                                </button>
-                                <button
-                                    onClick={() => setShowCloseModal(true)}
-                                    className="h-8 px-3 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
-                                >
-                                    <Lock size={13} className="text-slate-500" />
-                                    <span>Close</span>
-                                </button>
-                            </>
-                        )}
-
-                        {(shop.status === "SUSPENDED" || shop.status === "CLOSED" || shop.status === "REJECTED") && (
-                            <button
-                                onClick={() => setShowReopenModal(true)}
-                                className="h-8 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                            >
-                                <RotateCcw size={14} />
-                                <span>Reopen</span>
-                            </button>
-                        )}
-
+                    {/* Unified Actions Dropdown */}
+                    <div className="relative">
                         <button
-                            onClick={() => setShowAddRiskModal(true)}
-                            className="h-8 px-3 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
+                            type="button"
+                            onClick={() => setActionsOpen(!actionsOpen)}
+                            className="h-8 px-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
                         >
-                            <ShieldAlert size={14} className="text-rose-500" />
-                            <span>Flag Risk</span>
+                            <span>Actions</span>
+                            <ChevronDown size={13} className={`transition-transform duration-150 ${actionsOpen ? "rotate-180" : ""}`} />
                         </button>
+
+                        {actionsOpen && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setActionsOpen(false)} />
+                                <div className="absolute right-0 mt-1.5 w-52 bg-white rounded-md border border-slate-200 shadow-lg py-1 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
+                                    {shop.status === "PENDING" && (
+                                        <>
+                                            <button
+                                                onClick={() => { setShowApproveModal(true); setActionsOpen(false); }}
+                                                className="w-full text-left px-3.5 py-2 text-emerald-700 hover:bg-emerald-50 font-medium transition-colors cursor-pointer"
+                                            >
+                                                Approve Store
+                                            </button>
+                                            <button
+                                                onClick={() => { setShowRejectModal(true); setActionsOpen(false); }}
+                                                className="w-full text-left px-3.5 py-2 text-rose-700 hover:bg-rose-50 font-medium transition-colors cursor-pointer"
+                                            >
+                                                Reject Application
+                                            </button>
+                                        </>
+                                    )}
+
+                                    {shop.status === "ACTIVE" && (
+                                        <>
+                                            <button
+                                                onClick={() => { setShowSuspendModal(true); setActionsOpen(false); }}
+                                                className="w-full text-left px-3.5 py-2 text-rose-700 hover:bg-rose-50 font-medium transition-colors cursor-pointer"
+                                            >
+                                                Suspend Store
+                                            </button>
+                                            <button
+                                                onClick={() => { setShowCloseModal(true); setActionsOpen(false); }}
+                                                className="w-full text-left px-3.5 py-2 text-slate-700 hover:bg-slate-50 font-medium transition-colors cursor-pointer"
+                                            >
+                                                Close Store Permanently
+                                            </button>
+                                        </>
+                                    )}
+
+                                    {(shop.status === "SUSPENDED" || shop.status === "CLOSED" || shop.status === "REJECTED") && (
+                                        <button
+                                            onClick={() => { setShowReopenModal(true); setActionsOpen(false); }}
+                                            className="w-full text-left px-3.5 py-2 text-slate-900 hover:bg-slate-50 font-medium transition-colors cursor-pointer"
+                                        >
+                                            Reopen Store
+                                        </button>
+                                    )}
+
+                                    <div className="border-t border-slate-100 my-1" />
+
+                                    <button
+                                        onClick={() => { setShowAddRiskModal(true); setActionsOpen(false); }}
+                                        className="w-full text-left px-3.5 py-2 text-amber-800 hover:bg-amber-50 font-medium transition-colors cursor-pointer"
+                                    >
+                                        Flag for Risk Audit
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
 
-            {/* Horizontal Navigation Tabs: Sections & Audits */}
-            <div className="border-b border-slate-200 bg-white rounded-lg px-3 pt-1 shadow-2xs">
-                <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
-                    {NAV_SECTIONS.map((sec) => {
-                        const isActive = activeTab === sec.id;
-                        return (
-                            <button
-                                key={sec.id}
-                                onClick={() => handleTabChange(sec.id)}
-                                className={`px-4 py-2.5 border-b-2 -mb-px text-xs whitespace-nowrap transition-colors cursor-pointer flex items-center gap-2 ${
-                                    isActive
-                                        ? "border-orange-500 text-slate-900 font-semibold"
-                                        : "border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300 font-medium"
-                                }`}
-                            >
-                                <span>{sec.label}</span>
-                                {sec.badge && (
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${sec.badgeColor}`}>
-                                        {sec.badge}
-                                    </span>
-                                )}
-                            </button>
-                        );
-                    })}
-                </div>
+            {/* Navigation Tabs (Matching SettingsPage) */}
+            <div className="flex items-center gap-1 border-b border-slate-200 mt-5 overflow-x-auto no-scrollbar">
+                {NAV_SECTIONS.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => handleTabChange(tab.id)}
+                            className={`flex items-center gap-2 px-3.5 py-2.5 text-xs border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
+                                isActive
+                                    ? "border-orange-500 font-semibold text-slate-900"
+                                    : "border-transparent font-medium text-slate-500 hover:text-slate-800 hover:border-slate-300"
+                            }`}
+                        >
+                            <Icon className={`size-3.5 ${isActive ? "text-orange-600" : "text-slate-400"}`} />
+                            <span>{tab.label}</span>
+                        </button>
+                    );
+                })}
             </div>
 
-            {/* Tab Content Canvas (Full Width) */}
-            <div className="space-y-5">
+            {/* Tab Content Box (Matching SettingsPage Card Structure) */}
+            <div className="mt-5 rounded-lg border border-slate-200 bg-white shadow-xs overflow-hidden">
+                {/* Card Top Title / Description */}
+                <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+                    <h2 className="text-xs font-semibold text-slate-900">{currentTabMeta.label}</h2>
+                    <p className="text-[11px] text-slate-500 mt-0.5">{currentTabMeta.description}</p>
+                </div>
+
+                <div className="p-5 space-y-5">
                 {/* SECTION 1: Overview & Onboarding Checklist */}
                 {activeTab === "overview" && (
                     <div className="space-y-5">
@@ -1508,6 +1561,7 @@ export const AdminShopDetailPage = () => {
                         </div>
                     )}
                 </div>
+            </div>
 
             {/* MODAL: Approve Shop Application */}
             {showApproveModal && (
