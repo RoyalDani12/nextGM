@@ -1,17 +1,38 @@
 import { type FormEvent, useState } from "react";
-import { AlertCircle, CheckCircle2, Copy, Pencil, Plus, Power, Tag, Trash2, X } from "lucide-react";
+import {
+  Copy,
+  Pencil,
+  Plus,
+  Power,
+  Tag,
+  Trash2,
+  Loader2,
+  Check,
+} from "lucide-react";
 import hotToast from "react-hot-toast";
 import { useParams } from "react-router-dom";
 import type { Coupon, CouponInput } from "./coupons.api";
-import { useCoupons, useCreateCoupon, useDeleteCoupon, useUpdateCoupon } from "./coupons.hooks";
+import {
+  useCoupons,
+  useCreateCoupon,
+  useDeleteCoupon,
+  useUpdateCoupon,
+} from "./coupons.hooks";
 import { useShopProducts } from "../product/product.hooks";
 import { toast } from "@/components/ui/toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type TargetMode = "ALL" | "SELECTED";
 
-/**
- * Converts any date or ISO string into the HTML5 datetime-local format: YYYY-MM-DDTHH:mm
- */
 const toLocalInputValue = (dateInput?: string | Date | null): string => {
   if (!dateInput) return "";
   const d = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
@@ -32,14 +53,17 @@ const emptyCoupon = (): CouponInput => ({
 });
 
 const extractErrorMessage = (error: any): string => {
-  const raw = error?.response?.data?.message || error?.message || "Could not save the coupon";
+  const raw =
+    error?.response?.data?.message ||
+    error?.message ||
+    "Could not save coupon.";
   try {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
       return parsed.map((item: any) => item.message || item.field).join(". ");
     }
   } catch {
-    // raw is not a JSON string, keep it as-is
+    // not JSON
   }
   return raw;
 };
@@ -47,7 +71,10 @@ const extractErrorMessage = (error: any): string => {
 export default function CouponsPage() {
   const { shopId = "" } = useParams<{ shopId: string }>();
   const { data: coupons = [], isLoading } = useCoupons(shopId);
-  const { data: productsResponse } = useShopProducts(shopId, { status: "ACTIVE", limit: 100 });
+  const { data: productsResponse } = useShopProducts(shopId, {
+    status: "ACTIVE",
+    limit: 100,
+  });
   const products = productsResponse?.data?.products ?? [];
 
   const createCoupon = useCreateCoupon(shopId);
@@ -57,19 +84,20 @@ export default function CouponsPage() {
   const [form, setForm] = useState<CouponInput>(emptyCoupon);
   const [targetMode, setTargetMode] = useState<TargetMode>("ALL");
   const [editing, setEditing] = useState<Coupon | null>(null);
-  const [open, setOpen] = useState(false);
-  const [banner, setBanner] = useState<{ type: "success" | "error"; message: string; details?: string } | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [couponToDelete, setCouponToDelete] = useState<Coupon | null>(null);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   const busy = createCoupon.isPending || updateCoupon.isPending;
 
-  const reset = () => {
+  const resetForm = () => {
     setForm(emptyCoupon());
     setTargetMode("ALL");
     setEditing(null);
-    setOpen(false);
+    setModalOpen(false);
   };
 
-  const edit = (coupon: Coupon) => {
+  const handleEdit = (coupon: Coupon) => {
     const productIds = coupon.products?.map((entry) => entry.productId) ?? [];
     setEditing(coupon);
     setTargetMode(productIds.length ? "SELECTED" : "ALL");
@@ -77,40 +105,56 @@ export default function CouponsPage() {
       code: coupon.code,
       type: coupon.type,
       value: Number(coupon.value),
-      minOrderAmount: coupon.minOrderAmount === null ? null : Number(coupon.minOrderAmount),
+      minOrderAmount:
+        coupon.minOrderAmount === null ? null : Number(coupon.minOrderAmount),
       maxUses: coupon.maxUses,
       expiresAt: toLocalInputValue(coupon.expiresAt),
       isActive: coupon.isActive,
       productIds,
     });
-    setOpen(true);
+    setModalOpen(true);
   };
 
-  const submit = async (event: FormEvent) => {
+  const handleCopy = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 1500);
+    toast.add({
+      title: "Code copied",
+      description: `${code} copied to clipboard.`,
+      type: "info",
+    });
+    hotToast.success("Code copied");
+  };
+
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    setBanner(null);
 
     const productIds = targetMode === "SELECTED" ? form.productIds ?? [] : [];
     if (targetMode === "SELECTED" && !productIds.length) {
-      const msg = "Select at least one product, or choose 'All products'.";
-      setBanner({ type: "error", message: "Incomplete selection", details: msg });
-      toast.add({ title: "Product selection required", description: msg, type: "warning" });
+      const msg = "Select at least one product or choose all products.";
+      toast.add({
+        title: "Product selection required",
+        description: msg,
+        type: "warning",
+      });
       hotToast.error(msg);
       return;
     }
 
-    // Convert local datetime to UTC ISO string if set
     let expiresAtIso: string | null = null;
     if (form.expiresAt && form.expiresAt.trim()) {
       const dateObj = new Date(form.expiresAt);
       if (isNaN(dateObj.getTime())) {
-        const msg = "Please provide a valid expiration date and time.";
-        setBanner({ type: "error", message: "Invalid date", details: msg });
+        toast.add({
+          title: "Invalid date",
+          description: "Please specify a valid expiration date.",
+          type: "error",
+        });
         return;
       }
       if (dateObj.getTime() <= Date.now() - 60_000) {
         const msg = "Expiration date must be in the future.";
-        setBanner({ type: "error", message: "Invalid date", details: msg });
         toast.add({ title: "Invalid date", description: msg, type: "error" });
         hotToast.error(msg);
         return;
@@ -122,8 +166,18 @@ export default function CouponsPage() {
       ...form,
       code: form.code.trim().toUpperCase(),
       expiresAt: expiresAtIso,
-      minOrderAmount: form.minOrderAmount !== null && form.minOrderAmount !== undefined && !isNaN(Number(form.minOrderAmount)) ? Number(form.minOrderAmount) : null,
-      maxUses: form.maxUses !== null && form.maxUses !== undefined && !isNaN(Number(form.maxUses)) ? Number(form.maxUses) : null,
+      minOrderAmount:
+        form.minOrderAmount !== null &&
+        form.minOrderAmount !== undefined &&
+        !isNaN(Number(form.minOrderAmount))
+          ? Number(form.minOrderAmount)
+          : null,
+      maxUses:
+        form.maxUses !== null &&
+        form.maxUses !== undefined &&
+        !isNaN(Number(form.maxUses))
+          ? parseInt(String(form.maxUses), 10)
+          : null,
       productIds,
     };
 
@@ -141,39 +195,42 @@ export default function CouponsPage() {
             productIds,
           },
         });
-
-        const successTitle = `Coupon "${payload.code}" updated successfully!`;
-        const successDesc = "Changes to your discount configuration have been saved.";
-        setBanner({ type: "success", message: successTitle, details: successDesc });
-        toast.add({ title: "Coupon updated", description: successDesc, type: "success" });
-        hotToast.success(successTitle);
+        toast.add({
+          title: "Coupon updated",
+          description: `Coupon ${payload.code} has been saved.`,
+          type: "success",
+        });
+        hotToast.success(`Coupon ${payload.code} updated.`);
       } else {
         await createCoupon.mutateAsync(payload);
-
-        const successTitle = `Coupon "${payload.code}" created successfully!`;
-        const successDesc = "Your new coupon is now live and can be redeemed by customers at checkout.";
-        setBanner({ type: "success", message: successTitle, details: successDesc });
-        toast.add({ title: "Coupon created", description: successDesc, type: "success" });
-        hotToast.success(successTitle);
+        toast.add({
+          title: "Coupon created",
+          description: `Coupon ${payload.code} is now active.`,
+          type: "success",
+        });
+        hotToast.success(`Coupon ${payload.code} created.`);
       }
-
-      reset();
+      resetForm();
     } catch (error: any) {
       const errorMsg = extractErrorMessage(error);
-      setBanner({
+      toast.add({
+        title: "Error saving coupon",
+        description: errorMsg,
         type: "error",
-        message: editing ? "Failed to update coupon" : "Failed to create coupon",
-        details: errorMsg,
       });
-      toast.add({ title: "Error saving coupon", description: errorMsg, type: "error" });
       hotToast.error(errorMsg);
     }
   };
 
-  const toggle = async (coupon: Coupon) => {
+  const handleToggle = async (coupon: Coupon) => {
     try {
-      await updateCoupon.mutateAsync({ couponId: coupon.id, input: { isActive: !coupon.isActive } });
-      const msg = coupon.isActive ? `Coupon ${coupon.code} paused.` : `Coupon ${coupon.code} activated.`;
+      await updateCoupon.mutateAsync({
+        couponId: coupon.id,
+        input: { isActive: !coupon.isActive },
+      });
+      const msg = coupon.isActive
+        ? `Coupon ${coupon.code} paused.`
+        : `Coupon ${coupon.code} activated.`;
       toast.add({ title: "Status updated", description: msg, type: "info" });
       hotToast.success(msg);
     } catch (error: any) {
@@ -183,395 +240,579 @@ export default function CouponsPage() {
     }
   };
 
-  const remove = async (coupon: Coupon) => {
-    if (!window.confirm(`Are you sure you want to delete coupon ${coupon.code}?`)) return;
+  const handleDeleteConfirm = async () => {
+    if (!couponToDelete) return;
     try {
-      await deleteCoupon.mutateAsync(coupon.id);
-      const msg = `Coupon ${coupon.code} was deleted successfully.`;
-      setBanner({ type: "success", message: msg });
+      await deleteCoupon.mutateAsync(couponToDelete.id);
+      const msg = `Coupon ${couponToDelete.code} was deleted.`;
       toast.add({ title: "Coupon deleted", description: msg, type: "success" });
       hotToast.success(msg);
+      setCouponToDelete(null);
     } catch (error: any) {
       const msg = extractErrorMessage(error);
-      setBanner({ type: "error", message: "Could not delete coupon", details: msg });
       toast.add({ title: "Delete failed", description: msg, type: "error" });
       hotToast.error(msg);
     }
   };
 
+  // Metrics summary
+  const totalActive = coupons.filter((c) => {
+    const isExpired = c.expiresAt && new Date(c.expiresAt) <= new Date();
+    return c.isActive && !isExpired;
+  }).length;
+
+  const totalRedemptions = coupons.reduce(
+    (acc, curr) => acc + (curr.usedCount ?? 0),
+    0
+  );
+
   return (
-    <div className="mx-auto max-w-6xl space-y-7">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="mx-auto w-full max-w-[1200px] space-y-5">
+      {/* HEADER */}
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[.18em] text-orange-600">Promotions</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">Coupons & discounts</h1>
-          <p className="mt-1 text-sm text-slate-500">Build offers for your entire shop or for particular products.</p>
+          <h1 className="text-base font-semibold text-slate-900">
+            Discounts & coupons
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Manage promotional codes, percentage discounts, and redemptions.
+          </p>
         </div>
-        <button
+
+        <Button
           onClick={() => {
-            reset();
-            setBanner(null);
-            setOpen(true);
+            resetForm();
+            setModalOpen(true);
           }}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700 transition"
+          className="h-8 px-3.5 text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white rounded-lg inline-flex items-center gap-1.5 cursor-pointer shadow-none self-start sm:self-auto"
         >
-          <Plus className="size-4" /> Create coupon
-        </button>
+          <Plus size={13} />
+          <span>Create coupon</span>
+        </Button>
       </header>
 
-      {/* Prominent Dismissible Banner Alert */}
-      {banner && (
-        <div
-          role="alert"
-          className={`flex items-start justify-between rounded-2xl border p-4 shadow-sm transition-all duration-300 ${
-            banner.type === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-              : "border-rose-200 bg-rose-50 text-rose-900"
-          }`}
-        >
-          <div className="flex items-start gap-3">
-            {banner.type === "success" ? (
-              <CheckCircle2 className="size-5 shrink-0 text-emerald-600 mt-0.5" />
-            ) : (
-              <AlertCircle className="size-5 shrink-0 text-rose-600 mt-0.5" />
-            )}
-            <div>
-              <p className="text-sm font-bold">{banner.message}</p>
-              {banner.details && (
-                <p
-                  className={`mt-0.5 text-xs ${
-                    banner.type === "success" ? "text-emerald-700" : "text-rose-700"
-                  }`}
-                >
-                  {banner.details}
-                </p>
-              )}
-            </div>
+      {/* KPI STAT CARDS */}
+      <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <span className="text-xs font-medium text-slate-500 block">
+            Active coupons
+          </span>
+          <div className="mt-2 flex items-baseline justify-between">
+            <span className="text-2xl font-semibold text-slate-900 tabular-nums">
+              {totalActive}
+            </span>
+            <span className="text-xs text-slate-400">
+              of {coupons.length} total
+            </span>
           </div>
-          <button
-            onClick={() => setBanner(null)}
-            className={`rounded-lg p-1 transition ${
-              banner.type === "success" ? "text-emerald-600 hover:bg-emerald-100" : "text-rose-600 hover:bg-rose-100"
-            }`}
-            aria-label="Dismiss alert"
-          >
-            <X className="size-4" />
-          </button>
         </div>
-      )}
 
-      {/* Create / Edit Form */}
-      {open && (
-        <form
-          onSubmit={submit}
-          className="rounded-3xl border border-orange-100 bg-gradient-to-br from-orange-50 via-white to-white p-5 shadow-sm md:p-6"
-        >
-          <div className="mb-5 flex items-center justify-between">
-            <div>
-              <h2 className="font-bold text-slate-900">{editing ? `Edit ${editing.code}` : "New coupon"}</h2>
-              <p className="mt-1 text-sm text-slate-500">Set the value, duration, and exactly where customers can use it.</p>
-            </div>
-            <button
-              type="button"
-              onClick={reset}
-              className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
-              aria-label="Close form"
-            >
-              <X className="size-5" />
-            </button>
+        <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <span className="text-xs font-medium text-slate-500 block">
+            Total redemptions
+          </span>
+          <div className="mt-2 flex items-baseline justify-between">
+            <span className="text-2xl font-semibold text-slate-900 tabular-nums">
+              {totalRedemptions}
+            </span>
+            <span className="text-xs text-slate-400">times used</span>
           </div>
+        </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            {/* Coupon Code */}
-            <label className="text-sm font-medium text-slate-700">
-              Coupon code <span className="text-rose-500">*</span>
-              <input
+        <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <span className="text-xs font-medium text-slate-500 block">
+            Active product offers
+          </span>
+          <div className="mt-2 flex items-baseline justify-between">
+            <span className="text-2xl font-semibold text-slate-900 tabular-nums">
+              {
+                coupons.filter(
+                  (c) => c.products && c.products.length > 0 && c.isActive
+                ).length
+              }
+            </span>
+            <span className="text-xs text-slate-400">targeted codes</span>
+          </div>
+        </div>
+      </section>
+
+      {/* COUPONS TABLE */}
+      <section className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+        {isLoading ? (
+          <div className="py-16 text-center text-xs text-slate-400">
+            <Loader2 className="mx-auto size-5 animate-spin text-slate-400 mb-2" />
+            <p>Loading coupons…</p>
+          </div>
+        ) : coupons.length === 0 ? (
+          <div className="py-16 text-center text-xs text-slate-400">
+            <Tag className="mx-auto size-6 text-slate-300 mb-2" />
+            <p className="font-medium text-slate-600">No coupons created yet</p>
+            <p className="text-slate-400 mt-0.5">
+              Create promotional discount codes for your customers to apply at checkout.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/75 text-xs font-medium text-slate-500">
+                  <th className="py-2.5 px-4 font-medium">Coupon code</th>
+                  <th className="py-2.5 px-4 font-medium">Discount</th>
+                  <th className="py-2.5 px-4 font-medium">Redemptions</th>
+                  <th className="py-2.5 px-4 font-medium">Eligibility</th>
+                  <th className="py-2.5 px-4 font-medium">Expiration</th>
+                  <th className="py-2.5 px-4 font-medium">Status</th>
+                  <th className="py-2.5 px-4 font-medium text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs">
+                {coupons.map((coupon) => {
+                  const isExpired = Boolean(
+                    coupon.expiresAt && new Date(coupon.expiresAt) <= new Date()
+                  );
+                  const productCount = coupon.products?.length ?? 0;
+                  const isCopied = copiedCode === coupon.code;
+
+                  return (
+                    <tr
+                      key={coupon.id}
+                      className="hover:bg-slate-50/60 transition-colors"
+                    >
+                      {/* Code */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-xs font-semibold text-slate-900 tracking-wide">
+                            {coupon.code}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(coupon.code)}
+                            title="Copy coupon code"
+                            className="text-slate-400 hover:text-slate-600 p-1 rounded transition-colors cursor-pointer"
+                          >
+                            {isCopied ? (
+                              <Check size={12} className="text-emerald-600" />
+                            ) : (
+                              <Copy size={12} />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+
+                      {/* Discount */}
+                      <td className="py-3 px-4">
+                        <span className="font-medium text-slate-900">
+                          {coupon.type === "PERCENTAGE"
+                            ? `${Number(coupon.value)}% off`
+                            : `$${Number(coupon.value).toFixed(2)} off`}
+                        </span>
+                        {coupon.minOrderAmount && (
+                          <span className="block text-[11px] text-slate-400 font-normal">
+                            Min order ${Number(coupon.minOrderAmount).toFixed(2)}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Usage */}
+                      <td className="py-3 px-4 text-slate-700 tabular-nums">
+                        {coupon.usedCount}
+                        <span className="text-slate-400 font-normal">
+                          {coupon.maxUses ? ` / ${coupon.maxUses}` : " uses"}
+                        </span>
+                      </td>
+
+                      {/* Scope */}
+                      <td className="py-3 px-4 text-slate-600">
+                        {productCount > 0 ? (
+                          <span className="text-slate-700">
+                            {productCount} selected {productCount === 1 ? "product" : "products"}
+                          </span>
+                        ) : (
+                          <span className="text-slate-500">All products</span>
+                        )}
+                      </td>
+
+                      {/* Expiration */}
+                      <td className="py-3 px-4 text-slate-500 whitespace-nowrap">
+                        {coupon.expiresAt ? (
+                          <span>
+                            {new Date(coupon.expiresAt).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">Never</span>
+                        )}
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3 px-4">
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium">
+                          <span
+                            className={`size-1.5 rounded-full ${
+                              isExpired
+                                ? "bg-slate-400"
+                                : coupon.isActive
+                                ? "bg-emerald-500"
+                                : "bg-amber-500"
+                            }`}
+                          />
+                          <span
+                            className={
+                              isExpired
+                                ? "text-slate-500"
+                                : coupon.isActive
+                                ? "text-emerald-700"
+                                : "text-amber-700"
+                            }
+                          >
+                            {isExpired
+                              ? "Expired"
+                              : coupon.isActive
+                              ? "Active"
+                              : "Paused"}
+                          </span>
+                        </span>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(coupon)}
+                            title="Edit coupon"
+                            className="size-7 rounded-md border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 flex items-center justify-center transition-colors cursor-pointer"
+                          >
+                            <Pencil size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isExpired}
+                            onClick={() => handleToggle(coupon)}
+                            title={coupon.isActive ? "Pause coupon" : "Activate coupon"}
+                            className="size-7 rounded-md border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 disabled:opacity-30 flex items-center justify-center transition-colors cursor-pointer"
+                          >
+                            <Power size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCouponToDelete(coupon)}
+                            title="Delete coupon"
+                            className="size-7 rounded-md border border-slate-200 text-slate-600 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors cursor-pointer"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* CREATE / EDIT DIALOG MODAL */}
+      <Dialog open={modalOpen} onOpenChange={(open) => !open && resetForm()}>
+        <DialogContent className="sm:max-w-[540px] max-h-[90vh] overflow-y-auto p-5 rounded-lg border border-slate-200 bg-white shadow-xl">
+          <DialogHeader className="space-y-1 pb-2 border-b border-slate-100">
+            <DialogTitle className="text-base font-semibold text-slate-900">
+              {editing ? `Edit coupon ${editing.code}` : "Create coupon"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Configure discount rate, usage limits, and product eligibility.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4 pt-3">
+            {/* Code */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-slate-700">
+                Coupon code <span className="text-rose-500">*</span>
+              </label>
+              <Input
                 required
                 disabled={Boolean(editing)}
                 value={form.code}
-                onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase().replace(/\s+/g, "") })}
-                placeholder="WELCOME10"
-                className="mt-1.5 w-full rounded-xl border bg-white px-3 py-2.5 font-mono uppercase outline-none focus:border-orange-500 disabled:bg-slate-100 text-sm"
-              />
-              <span className="mt-1 block text-[11px] text-slate-400">Letters, numbers, dashes and underscores</span>
-            </label>
-
-            {/* Discount Type */}
-            <label className="text-sm font-medium text-slate-700">
-              Discount type <span className="text-rose-500">*</span>
-              <select
-                value={form.type}
-                onChange={(e) => setForm({ ...form, type: e.target.value as CouponInput["type"] })}
-                className="mt-1.5 w-full rounded-xl border bg-white px-3 py-2.5 text-sm outline-none focus:border-orange-500"
-              >
-                <option value="PERCENTAGE">Percentage off (%)</option>
-                <option value="FIXED_AMOUNT">Fixed amount off ($)</option>
-              </select>
-            </label>
-
-            {/* Discount Value */}
-            <label className="text-sm font-medium text-slate-700">
-              {form.type === "PERCENTAGE" ? "Percentage (%)" : "Amount ($)"} <span className="text-rose-500">*</span>
-              <input
-                required
-                min="0.01"
-                max={form.type === "PERCENTAGE" ? 100 : undefined}
-                step="0.01"
-                type="number"
-                value={form.value}
-                onChange={(e) => setForm({ ...form, value: Number(e.target.value) })}
-                className="mt-1.5 w-full rounded-xl border bg-white px-3 py-2.5 text-sm outline-none focus:border-orange-500"
-              />
-            </label>
-
-            {/* Minimum Order */}
-            <label className="text-sm font-medium text-slate-700">
-              Minimum order ($) <span className="font-normal text-slate-400">optional</span>
-              <input
-                min="0"
-                step="0.01"
-                type="number"
-                placeholder="No minimum"
-                value={form.minOrderAmount ?? ""}
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    minOrderAmount: e.target.value !== "" ? Number(e.target.value) : null,
+                    code: e.target.value.toUpperCase().replace(/\s+/g, ""),
                   })
                 }
-                className="mt-1.5 w-full rounded-xl border bg-white px-3 py-2.5 text-sm outline-none focus:border-orange-500"
+                placeholder="e.g. SUMMER20"
+                className="h-9 text-xs rounded-lg border-slate-200 font-mono uppercase text-slate-900 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:border-orange-500 disabled:bg-slate-50"
               />
-            </label>
+              <span className="text-[11px] text-slate-400">
+                Letters, numbers, and dashes only
+              </span>
+            </div>
 
-            {/* Maximum Uses */}
-            <label className="text-sm font-medium text-slate-700">
-              Maximum total uses <span className="font-normal text-slate-400">optional</span>
-              <input
-                min="1"
-                type="number"
-                placeholder="Unlimited"
-                value={form.maxUses ?? ""}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    maxUses: e.target.value !== "" ? parseInt(e.target.value, 10) : null,
-                  })
-                }
-                className="mt-1.5 w-full rounded-xl border bg-white px-3 py-2.5 text-sm outline-none focus:border-orange-500"
-              />
-            </label>
+            {/* Type & Value */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-700">
+                  Discount type <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={form.type}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      type: e.target.value as CouponInput["type"],
+                    })
+                  }
+                  className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-800 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                >
+                  <option value="PERCENTAGE">Percentage off (%)</option>
+                  <option value="FIXED_AMOUNT">Fixed amount off ($)</option>
+                </select>
+              </div>
 
-            {/* Expiration Date & Time */}
-            <label className="text-sm font-medium text-slate-700">
-              Expires on <span className="font-normal text-slate-400">optional</span>
-              <input
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-700">
+                  {form.type === "PERCENTAGE" ? "Percentage (%)" : "Amount ($)"}{" "}
+                  <span className="text-rose-500">*</span>
+                </label>
+                <Input
+                  required
+                  min="0.01"
+                  max={form.type === "PERCENTAGE" ? 100 : undefined}
+                  step="0.01"
+                  type="number"
+                  value={form.value}
+                  onChange={(e) =>
+                    setForm({ ...form, value: Number(e.target.value) })
+                  }
+                  className="h-9 text-xs rounded-lg border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:border-orange-500"
+                />
+              </div>
+            </div>
+
+            {/* Min order & Max uses */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-700">
+                  Minimum order ($){" "}
+                  <span className="text-slate-400 font-normal">(Optional)</span>
+                </label>
+                <Input
+                  min="0"
+                  step="0.01"
+                  type="number"
+                  placeholder="No minimum"
+                  value={form.minOrderAmount ?? ""}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      minOrderAmount:
+                        e.target.value !== "" ? Number(e.target.value) : null,
+                    })
+                  }
+                  className="h-9 text-xs rounded-lg border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:border-orange-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-700">
+                  Total usage limit{" "}
+                  <span className="text-slate-400 font-normal">(Optional)</span>
+                </label>
+                <Input
+                  min="1"
+                  type="number"
+                  placeholder="Unlimited"
+                  value={form.maxUses ?? ""}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      maxUses:
+                        e.target.value !== ""
+                          ? parseInt(e.target.value, 10)
+                          : null,
+                    })
+                  }
+                  className="h-9 text-xs rounded-lg border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:border-orange-500"
+                />
+              </div>
+            </div>
+
+            {/* Expiration date */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-slate-700">
+                Expiration date{" "}
+                <span className="text-slate-400 font-normal">(Optional)</span>
+              </label>
+              <Input
                 type="datetime-local"
                 min={toLocalInputValue(new Date())}
                 value={form.expiresAt ?? ""}
-                onChange={(e) => setForm({ ...form, expiresAt: e.target.value || null })}
-                className="mt-1.5 w-full rounded-xl border bg-white px-3 py-2.5 text-sm outline-none focus:border-orange-500"
+                onChange={(e) =>
+                  setForm({ ...form, expiresAt: e.target.value || null })
+                }
+                className="h-9 text-xs rounded-lg border-slate-200 text-slate-900 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:border-orange-500"
               />
-              <span className="mt-1 block text-[11px] text-slate-400">Leave blank for no expiration date</span>
-            </label>
-          </div>
-
-          <fieldset className="mt-6">
-            <legend className="font-semibold text-slate-900">Where should this coupon apply?</legend>
-            <p className="mt-1 text-sm text-slate-500">This controls checkout eligibility and which offers appear to customers.</p>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <label
-                className={`cursor-pointer rounded-2xl border p-4 transition ${
-                  targetMode === "ALL"
-                    ? "border-orange-500 bg-orange-50 ring-1 ring-orange-200"
-                    : "bg-white hover:border-slate-300"
-                }`}
-              >
-                <input
-                  className="sr-only"
-                  type="radio"
-                  name="targetMode"
-                  checked={targetMode === "ALL"}
-                  onChange={() => setTargetMode("ALL")}
-                />
-                <span className="font-bold text-slate-900">All products</span>
-                <span className="mt-1 block text-xs leading-5 text-slate-500">Use this code with any eligible item in your shop.</span>
-              </label>
-
-              <label
-                className={`cursor-pointer rounded-2xl border p-4 transition ${
-                  targetMode === "SELECTED"
-                    ? "border-orange-500 bg-orange-50 ring-1 ring-orange-200"
-                    : "bg-white hover:border-slate-300"
-                }`}
-              >
-                <input
-                  className="sr-only"
-                  type="radio"
-                  name="targetMode"
-                  checked={targetMode === "SELECTED"}
-                  onChange={() => setTargetMode("SELECTED")}
-                />
-                <span className="font-bold text-slate-900">Selected products</span>
-                <span className="mt-1 block text-xs leading-5 text-slate-500">Show this offer only on products you pick below.</span>
-              </label>
+              <span className="text-[11px] text-slate-400">
+                Leave empty for no expiration
+              </span>
             </div>
 
-            {targetMode === "SELECTED" && (
-              <div className="mt-4 rounded-2xl border bg-white p-4">
-                <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
-                  <Tag className="size-4 text-orange-600" /> Select products ({form.productIds?.length ?? 0} chosen)
-                </div>
-                <div className="grid max-h-48 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
-                  {products.length === 0 ? (
-                    <p className="text-sm text-slate-500">No active products are available yet.</p>
-                  ) : (
-                    products.map((product: any) => (
-                      <label
-                        key={product.id}
-                        className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-slate-50"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={form.productIds?.includes(product.id) ?? false}
-                          onChange={(e) =>
-                            setForm({
-                              ...form,
-                              productIds: e.target.checked
-                                ? [...(form.productIds ?? []), product.id]
-                                : (form.productIds ?? []).filter((id) => id !== product.id),
-                            })
-                          }
-                        />
-                        <span className="truncate">{product.name}</span>
-                      </label>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-          </fieldset>
+            {/* Scope / Eligibility */}
+            <div className="space-y-2 pt-1">
+              <label className="text-xs font-medium text-slate-700">
+                Product eligibility
+              </label>
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setTargetMode("ALL")}
+                  className={`p-3 rounded-lg border text-left transition-colors cursor-pointer ${
+                    targetMode === "ALL"
+                      ? "border-orange-500 bg-orange-50/50"
+                      : "border-slate-200 bg-white hover:bg-slate-50"
+                  }`}
+                >
+                  <span className="text-xs font-semibold text-slate-900 block">
+                    All products
+                  </span>
+                  <span className="text-[11px] text-slate-500 block mt-0.5">
+                    Valid across all catalog items
+                  </span>
+                </button>
 
-          <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setTargetMode("SELECTED")}
+                  className={`p-3 rounded-lg border text-left transition-colors cursor-pointer ${
+                    targetMode === "SELECTED"
+                      ? "border-orange-500 bg-orange-50/50"
+                      : "border-slate-200 bg-white hover:bg-slate-50"
+                  }`}
+                >
+                  <span className="text-xs font-semibold text-slate-900 block">
+                    Selected products
+                  </span>
+                  <span className="text-[11px] text-slate-500 block mt-0.5">
+                    Restrict to specific products
+                  </span>
+                </button>
+              </div>
+
+              {targetMode === "SELECTED" && (
+                <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50/50 p-3 space-y-2">
+                  <div className="flex items-center justify-between text-xs text-slate-600 font-medium">
+                    <span>Choose items ({form.productIds?.length ?? 0} selected)</span>
+                  </div>
+                  <div className="max-h-40 overflow-y-auto space-y-1 divide-y divide-slate-100">
+                    {products.length === 0 ? (
+                      <p className="text-xs text-slate-400 py-2">
+                        No active products found.
+                      </p>
+                    ) : (
+                      products.map((product: any) => (
+                        <label
+                          key={product.id}
+                          className="flex items-center gap-2 py-1.5 px-1 text-xs text-slate-800 hover:bg-white rounded cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={
+                              form.productIds?.includes(product.id) ?? false
+                            }
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                productIds: e.target.checked
+                                  ? [...(form.productIds ?? []), product.id]
+                                  : (form.productIds ?? []).filter(
+                                      (id) => id !== product.id
+                                    ),
+                              })
+                            }
+                            className="rounded border-slate-300 text-orange-500 focus:ring-orange-400"
+                          />
+                          <span className="truncate">{product.name}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={resetForm}
+                className="h-8 px-3 text-xs font-medium text-slate-700 border-slate-200 hover:bg-slate-50 rounded-lg cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={busy}
+                className="h-8 px-4 text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white rounded-lg cursor-pointer shadow-none"
+              >
+                {busy && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
+                {editing ? "Save changes" : "Create coupon"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <Dialog
+        open={Boolean(couponToDelete)}
+        onOpenChange={(open) => !open && setCouponToDelete(null)}
+      >
+        <DialogContent className="sm:max-w-md rounded-lg bg-white p-5 shadow-xl border border-slate-200">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-base font-semibold text-slate-900">
+              Delete coupon
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Are you sure you want to delete coupon{" "}
+              <strong className="text-slate-800">
+                "{couponToDelete?.code}"
+              </strong>
+              ? Customers will no longer be able to redeem this code at checkout.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex justify-end gap-2 pt-3">
             <button
               type="button"
-              onClick={reset}
-              className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition"
+              onClick={() => setCouponToDelete(null)}
+              className="px-3.5 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
-              disabled={busy}
-              className="rounded-xl bg-orange-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-orange-700 disabled:opacity-50 transition"
+              type="button"
+              disabled={deleteCoupon.isPending}
+              onClick={handleDeleteConfirm}
+              className="px-4 py-1.5 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
             >
-              {busy ? "Saving..." : editing ? "Save changes" : "Create coupon"}
+              {deleteCoupon.isPending ? (
+                <>
+                  <Loader2 size={12} className="animate-spin" />
+                  Deleting…
+                </>
+              ) : (
+                "Delete"
+              )}
             </button>
           </div>
-        </form>
-      )}
-
-      {/* Coupons List Section */}
-      <section className="overflow-hidden rounded-3xl border bg-white shadow-sm">
-        <div className="grid grid-cols-[1.3fr_.9fr_.9fr_.9fr_auto] gap-3 border-b bg-slate-50 px-5 py-3 text-xs font-bold uppercase tracking-wide text-slate-500">
-          <span>Coupon</span>
-          <span>Discount</span>
-          <span>Usage</span>
-          <span>Status</span>
-          <span className="text-right">Actions</span>
-        </div>
-        {isLoading ? (
-          <p className="p-8 text-center text-sm text-slate-500">Loading coupons...</p>
-        ) : coupons.length === 0 ? (
-          <div className="p-12 text-center">
-            <p className="text-sm font-medium text-slate-600">No coupons yet.</p>
-            <p className="mt-1 text-xs text-slate-400">Click &quot;Create coupon&quot; above to offer discounts to your buyers.</p>
-          </div>
-        ) : (
-          coupons.map((coupon) => {
-            const expired = Boolean(coupon.expiresAt && new Date(coupon.expiresAt) <= new Date());
-            const productCount = coupon.products?.length ?? 0;
-            return (
-              <div
-                key={coupon.id}
-                className="grid grid-cols-[1.3fr_.9fr_.9fr_.9fr_auto] items-center gap-3 border-b px-5 py-4 last:border-0 hover:bg-slate-50/50 transition"
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-slate-900">{coupon.code}</span>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(coupon.code);
-                        toast.add({ title: "Copied", description: `Code ${coupon.code} copied to clipboard`, type: "info" });
-                        hotToast.success("Code copied");
-                      }}
-                      title="Copy code"
-                      className="text-slate-400 hover:text-slate-700 transition"
-                    >
-                      <Copy className="size-3.5" />
-                    </button>
-                  </div>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {productCount ? `${productCount} selected product${productCount === 1 ? "" : "s"}` : "All shop products"}
-                  </p>
-                  {coupon.expiresAt && (
-                    <p className="mt-0.5 text-[11px] text-slate-400">
-                      Expires {new Date(coupon.expiresAt).toLocaleDateString()} {new Date(coupon.expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </p>
-                  )}
-                </div>
-
-                <span className="font-medium text-slate-900">
-                  {coupon.type === "PERCENTAGE" ? `${Number(coupon.value)}% off` : `$${Number(coupon.value).toFixed(2)} off`}
-                  {coupon.minOrderAmount && (
-                    <span className="block text-[11px] font-normal text-slate-400">
-                      Min. ${Number(coupon.minOrderAmount).toFixed(2)}
-                    </span>
-                  )}
-                </span>
-
-                <span className="text-sm text-slate-600">
-                  {coupon.usedCount}
-                  {coupon.maxUses ? ` / ${coupon.maxUses}` : " uses"}
-                </span>
-
-                <span
-                  className={`w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${
-                    coupon.isActive && !expired
-                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                      : "bg-slate-100 text-slate-600 border border-slate-200"
-                  }`}
-                >
-                  {expired ? "Expired" : coupon.isActive ? "Active" : "Paused"}
-                </span>
-
-                <div className="flex justify-end gap-1">
-                  <button
-                    onClick={() => edit(coupon)}
-                    title="Edit coupon"
-                    className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 transition"
-                  >
-                    <Pencil className="size-4" />
-                  </button>
-                  <button
-                    disabled={expired}
-                    onClick={() => toggle(coupon)}
-                    title={coupon.isActive ? "Pause coupon" : "Activate coupon"}
-                    className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition"
-                  >
-                    <Power className="size-4" />
-                  </button>
-                  <button
-                    onClick={() => remove(coupon)}
-                    title="Delete coupon"
-                    className="rounded-lg p-2 text-rose-600 hover:bg-rose-50 transition"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </section>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

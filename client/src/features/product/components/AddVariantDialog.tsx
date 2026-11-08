@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
 
 import {
   Dialog,
@@ -23,24 +24,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-import  { createVariantSchema, type CreateVariantFormValues } from "@/features/product/product.schema";
-  // createVariantSchema,
-  // type CreateVariantFormValues,
-// } from "@/schemas/product.schema";
-
-// import { useCreateVariant } from "@/hooks/useProductVariants";
+import { createVariantSchema, type CreateVariantFormValues } from "@/features/product/product.schema";
 import { useCreateVariant } from "@/features/product/product.hooks";
-
-// import type { ProductVariant } from "@/types/product.types";
-import  { type ProductVariant } from "@/features/product/product.types";
+import { type ProductVariant } from "@/features/product/product.types";
 
 interface AddVariantDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-
   shopId: string;
   productId: string;
-
   variant?: ProductVariant | null;
 }
 
@@ -52,15 +44,10 @@ export const AddVariantDialog = ({
   variant,
 }: AddVariantDialogProps) => {
   const isEditing = Boolean(variant);
-
-  const createVariant = useCreateVariant(
-    shopId,
-    productId
-  );
+  const createVariant = useCreateVariant(shopId, productId);
 
   const form = useForm<CreateVariantFormValues>({
     resolver: zodResolver(createVariantSchema),
-
     defaultValues: {
       name: "",
       price: "",
@@ -89,21 +76,16 @@ export const AddVariantDialog = ({
     }
   }, [open, variant, form]);
 
-  const onSubmit = async (
-    values: CreateVariantFormValues
-  ) => {
+  const onSubmit = async (values: CreateVariantFormValues) => {
     try {
       await createVariant.mutateAsync({
         name: values.name.trim(),
         price: values.price,
         stock: values.stock,
-        ...(values.sku?.trim()
-          ? { sku: values.sku.trim() }
-          : {}),
+        ...(values.sku?.trim() ? { sku: values.sku.trim() } : {}),
       });
 
       form.reset();
-
       onOpenChange(false);
     } catch (error) {
       console.error("Failed to create variant:", error);
@@ -115,140 +97,134 @@ export const AddVariantDialog = ({
       open={open}
       onOpenChange={(value) => {
         if (createVariant.isPending) return;
-
         onOpenChange(value);
       }}
     >
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing
-              ? "Edit Variant"
-              : "Add Product Variant"}
+      <DialogContent className="sm:max-w-[460px] p-5 rounded-lg border border-slate-200 bg-white shadow-xl">
+        <DialogHeader className="space-y-1 pb-2 border-b border-slate-100">
+          <DialogTitle className="text-base font-semibold text-slate-900">
+            {isEditing ? "Edit variant" : "Add variant"}
           </DialogTitle>
-
-          <DialogDescription>
+          <DialogDescription className="text-xs text-slate-500">
             {isEditing
-              ? "Update the variant information."
-              : "Add a variant such as size, color, or another product option."}
+              ? "Update variant options, pricing, and stock."
+              : "Add an option such as size, color, or material."}
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-5"
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-3">
             {/* Variant Name */}
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Variant Name</FormLabel>
-
+                <FormItem className="space-y-1.5">
+                  <FormLabel className="text-xs font-medium text-slate-700">
+                    Variant name
+                  </FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="e.g. Large / Black"
+                      placeholder="e.g. Large / Navy Blue"
+                      className="h-9 text-xs rounded-lg border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:border-orange-500"
                       {...field}
                     />
                   </FormControl>
-
-                  <FormMessage />
+                  <FormMessage className="text-xs text-rose-500" />
                 </FormItem>
               )}
             />
 
-            {/* Price */}
-            <FormField
-              control={form.control}
-              name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Price</FormLabel>
+            {/* Price & Stock */}
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem className="space-y-1.5">
+                    <FormLabel className="text-xs font-medium text-slate-700">
+                      Price ($)
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="0.00"
+                        className="h-9 text-xs rounded-lg border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:border-orange-500"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs text-rose-500" />
+                  </FormItem>
+                )}
+              />
 
-                  <FormControl>
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      placeholder="e.g. 349.99"
-                      {...field}
-                    />
-                  </FormControl>
-
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Stock */}
-            <FormField
-              control={form.control}
-              name="stock"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Stock</FormLabel>
-
-                  <FormControl>
-                    <Input
-                      type="number"
-                      min={0}
-                      {...field}
-                      onChange={(event) => {
-                        field.onChange(
-                          Number(event.target.value)
-                        );
-                      }}
-                    />
-                  </FormControl>
-
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="stock"
+                render={({ field }) => (
+                  <FormItem className="space-y-1.5">
+                    <FormLabel className="text-xs font-medium text-slate-700">
+                      Stock units
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={0}
+                        placeholder="0"
+                        className="h-9 text-xs rounded-lg border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:border-orange-500"
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs text-rose-500" />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             {/* SKU */}
             <FormField
               control={form.control}
               name="sku"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    SKU
-                    <span className="ml-1 text-muted-foreground">
-                      (optional)
-                    </span>
+                <FormItem className="space-y-1.5">
+                  <FormLabel className="text-xs font-medium text-slate-700">
+                    SKU <span className="text-slate-400 font-normal">(Optional)</span>
                   </FormLabel>
-
                   <FormControl>
                     <Input
-                      placeholder="e.g. SONY-BLK-L"
+                      placeholder="e.g. SONY-L-BLU"
+                      className="h-9 text-xs rounded-lg border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:border-orange-500"
                       {...field}
                     />
                   </FormControl>
-
-                  <FormMessage />
+                  <FormMessage className="text-xs text-rose-500" />
                 </FormItem>
               )}
             />
 
-            <DialogFooter>
+            <DialogFooter className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
                 disabled={createVariant.isPending}
                 onClick={() => onOpenChange(false)}
+                className="h-8 px-3 text-xs font-medium text-slate-700 border-slate-200 hover:bg-slate-50 rounded-lg cursor-pointer"
               >
                 Cancel
               </Button>
-
               <Button
                 type="submit"
+                size="sm"
                 disabled={createVariant.isPending}
+                className="h-8 px-4 text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white rounded-lg cursor-pointer"
               >
-                {createVariant.isPending
-                  ? "Adding..."
-                  : "Add Variant"}
+                {createVariant.isPending && (
+                  <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                )}
+                {isEditing ? "Save changes" : "Add variant"}
               </Button>
             </DialogFooter>
           </form>

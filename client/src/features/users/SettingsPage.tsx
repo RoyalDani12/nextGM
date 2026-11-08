@@ -1,95 +1,126 @@
-import { ArrowLeft, Bell, KeyRound, ShieldCheck, UserRound } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Bell, KeyRound, MonitorSmartphone, ShieldCheck, UserRound } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import ProfileSection from "./ProfileSection";
 import ChangePasswordSection from "./ChangePasswordSection";
 import SessionsSection from "./SessionsSection";
 import NotificationPreferencesSection from "./NotificationPreferencesSection";
 
+type SettingsTab = "profile" | "security" | "notifications" | "sessions";
+
+interface TabItem {
+  key: SettingsTab;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  description: string;
+}
+
+const TABS: TabItem[] = [
+  {
+    key: "profile",
+    label: "Personal Details",
+    icon: UserRound,
+    description: "Manage your name, email, phone, and delivery address.",
+  },
+  {
+    key: "security",
+    label: "Password & Security",
+    icon: KeyRound,
+    description: "Update your password and authentication credentials.",
+  },
+  {
+    key: "notifications",
+    label: "Notifications",
+    icon: Bell,
+    description: "Configure email alerts and marketplace updates.",
+  },
+  {
+    key: "sessions",
+    label: "Active Devices",
+    icon: MonitorSmartphone,
+    description: "Manage active web sessions and signed-in browsers.",
+  },
+];
+
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab") as SettingsTab | null;
+  const activeTab: SettingsTab = tabParam && ["profile", "security", "notifications", "sessions"].includes(tabParam)
+    ? tabParam
+    : "profile";
+
+  const handleTabChange = (tab: SettingsTab) => {
+    setSearchParams({ tab });
+  };
+
+  const currentTabMeta = TABS.find((t) => t.key === activeTab) || TABS[0];
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] px-4 py-6 sm:px-6 sm:py-10">
-      <div className="mx-auto max-w-5xl">
+    <main className="min-h-screen bg-slate-50/60 pb-16 pt-6 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-4xl">
+        {/* Back Link */}
         <button
           onClick={() => navigate(-1)}
-          className="mb-7 inline-flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-white hover:text-slate-900"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors mb-4 cursor-pointer"
         >
-          <ArrowLeft className="size-4" /> Back
+          <ArrowLeft className="size-3.5" />
+          <span>Back</span>
         </button>
 
-        <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-5 border-b border-slate-200">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-500">
-              Your account
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-bold tracking-tight text-slate-900">
+                Account Settings
+              </h1>
+              <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-800">
+                <ShieldCheck className="size-3 text-emerald-600" />
+                Protected
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              Manage your personal credentials, contact information, notifications, and device security.
             </p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-              Profile & security
-            </h1>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
-              Keep your details current, manage notifications, and control where your account is signed in.
-            </p>
-          </div>
-          <div className="inline-flex w-fit items-center gap-2 rounded-full bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
-            <ShieldCheck className="size-4" /> Account protected
           </div>
         </div>
 
-        <div className="space-y-6">
-          <section className="overflow-hidden rounded-3xl border border-white bg-white shadow-[0_12px_40px_rgba(15,23,42,0.06)]">
-            <div className="flex items-start gap-3 border-b border-slate-100 p-5 sm:p-6">
-              <div className="rounded-2xl bg-orange-50 p-2.5 text-orange-600">
-                <UserRound className="size-5" />
-              </div>
-              <div>
-                <h2 className="font-semibold text-slate-900">Personal details</h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  This is the information associated with your account.
-                </p>
-              </div>
-            </div>
-            <div className="p-5 sm:p-6">
-              <ProfileSection />
-            </div>
-          </section>
+        {/* Navigation Tabs */}
+        <div className="flex items-center gap-1 border-b border-slate-200 mt-5 overflow-x-auto no-scrollbar">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => handleTabChange(tab.key)}
+                className={`flex items-center gap-2 px-3.5 py-2.5 text-xs border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
+                  isActive
+                    ? "border-orange-500 font-semibold text-slate-900"
+                    : "border-transparent font-medium text-slate-500 hover:text-slate-800 hover:border-slate-300"
+                }`}
+              >
+                <Icon className={`size-3.5 ${isActive ? "text-orange-600" : "text-slate-400"}`} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
 
-          <section className="overflow-hidden rounded-3xl border border-white bg-white shadow-[0_12px_40px_rgba(15,23,42,0.06)]">
-            <div className="flex items-start gap-3 border-b border-slate-100 p-5 sm:p-6">
-              <div className="rounded-2xl bg-orange-50 p-2.5 text-orange-600">
-                <KeyRound className="size-5" />
-              </div>
-              <div>
-                <h2 className="font-semibold text-slate-900">Password & security</h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Update your password regularly to keep your NextG account safe.
-                </p>
-              </div>
-            </div>
-            <div className="p-5 sm:p-6">
-              <ChangePasswordSection />
-            </div>
-          </section>
+        {/* Tab Content Box */}
+        <div className="mt-5 rounded-lg border border-slate-200 bg-white shadow-xs overflow-hidden">
+          {/* Card Top Title / Description */}
+          <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+            <h2 className="text-xs font-semibold text-slate-900">{currentTabMeta.label}</h2>
+            <p className="text-[11px] text-slate-500 mt-0.5">{currentTabMeta.description}</p>
+          </div>
 
-          <section className="overflow-hidden rounded-3xl border border-white bg-white shadow-[0_12px_40px_rgba(15,23,42,0.06)]">
-            <div className="flex items-start gap-3 border-b border-slate-100 p-5 sm:p-6">
-              <div className="rounded-2xl bg-orange-50 p-2.5 text-orange-600">
-                <Bell className="size-5" />
-              </div>
-              <div>
-                <h2 className="font-semibold text-slate-900">Notifications & Alerts</h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Manage your marketplace notifications and email settings.
-                </p>
-              </div>
-            </div>
-            <div className="p-5 sm:p-6">
-              <NotificationPreferencesSection />
-            </div>
-          </section>
-
-          <section className="rounded-3xl border border-white bg-white p-5 shadow-[0_12px_40px_rgba(15,23,42,0.06)] sm:p-6">
-            <SessionsSection />
-          </section>
+          <div className="p-5 sm:p-6">
+            {activeTab === "profile" && <ProfileSection />}
+            {activeTab === "security" && <ChangePasswordSection />}
+            {activeTab === "notifications" && <NotificationPreferencesSection />}
+            {activeTab === "sessions" && <SessionsSection />}
+          </div>
         </div>
       </div>
     </main>

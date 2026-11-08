@@ -1,4 +1,3 @@
-import React from "react";
 import {
     Users,
     Store,
@@ -10,6 +9,9 @@ import {
     Shield,
     ArrowUpRight,
     Package,
+    TrendingUp,
+    Calendar,
+    Loader2,
 } from "lucide-react";
 import {
     AreaChart,
@@ -27,7 +29,6 @@ import {
 } from "recharts";
 import { useAdminStats } from "@/features/admin/admin.hooks";
 import { useNavigate } from "react-router-dom";
-import { PageEnter, PageHeader, LoadingState } from "@/components/ui/ds-components";
 
 const formatCurrency = (n: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
@@ -37,33 +38,36 @@ const formatMonth = (m: string) => {
     return new Date(Number(year), Number(month) - 1).toLocaleString("default", { month: "short", year: "2-digit" });
 };
 
-const StatCard = ({
-    title,
-    value,
-    icon: Icon,
-    iconBg,
-    sub,
-    onClick,
-}: {
+interface MetricCardProps {
     title: string;
     value: string | number;
     icon: React.ElementType;
-    iconBg: string;
-    sub?: string;
+    sub: string;
     onClick?: () => void;
-}) => (
+}
+
+const MetricCard = ({ title, value, icon: Icon, sub, onClick }: MetricCardProps) => (
     <div
         onClick={onClick}
-        className={`ds-stat-card ${onClick ? "cursor-pointer" : ""}`}
+        className={`rounded-lg border border-slate-200 bg-white p-4.5 shadow-xs transition-all ${
+            onClick ? "hover:border-slate-300 hover:shadow-xs cursor-pointer group" : ""
+        }`}
     >
         <div className="flex items-center justify-between">
-            <p className="ds-stat-label">{title}</p>
-            <div className={`ds-stat-icon-wrapper ${iconBg}`}>
-                <Icon size={18} className="text-white" />
+            <span className="text-xs font-medium text-slate-500">{title}</span>
+            <div className="size-8 rounded-md bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-600 group-hover:text-slate-900 transition-colors">
+                <Icon className="size-3.5" />
             </div>
         </div>
-        <p className="ds-stat-value">{value}</p>
-        {sub && <p className="ds-stat-sub">{sub}</p>}
+        <div className="mt-2.5">
+            <p className="text-2xl font-bold tracking-tight text-slate-900 tabular-nums">{value}</p>
+            <p className="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
+                <span>{sub}</span>
+                {onClick && (
+                    <ArrowUpRight className="size-3 text-slate-300 group-hover:text-slate-700 transition-colors" />
+                )}
+            </p>
+        </div>
     </div>
 );
 
@@ -71,24 +75,27 @@ export const SuperAdminHome = () => {
     const { data: stats, isLoading, isError } = useAdminStats();
     const navigate = useNavigate();
 
-    if (isLoading)
+    if (isLoading) {
         return (
-            <div className="min-h-[60vh] flex items-center justify-center">
-                <LoadingState label="Loading control center metrics..." size={32} />
+            <div className="min-h-[50vh] flex flex-col items-center justify-center gap-2">
+                <Loader2 className="size-6 animate-spin text-orange-500" />
+                <p className="text-xs font-medium text-slate-400">Loading platform metrics...</p>
             </div>
         );
+    }
 
-    if (isError || !stats)
+    if (isError || !stats) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3 bg-white rounded-2xl border border-red-100 p-8 text-center ds-shadow-sm">
-                <p className="text-base font-bold text-red-600">Failed to load platform stats</p>
-                <p className="text-xs text-slate-500 max-w-md">
-                    Check your connection or verify you have SUPER_ADMIN permissions.
+            <div className="flex flex-col items-center justify-center min-h-[40vh] gap-2 rounded-lg border border-rose-200 bg-rose-50/50 p-8 text-center">
+                <p className="text-sm font-semibold text-rose-700">Failed to load platform stats</p>
+                <p className="text-xs text-slate-500 max-w-sm">
+                    Verify your connection or ensure you have active Super Admin authorization.
                 </p>
             </div>
         );
+    }
 
-    // Merge monthly data into one unified dataset for combined chart
+    // Merge monthly data into one unified dataset
     const months = Array.from(
         new Set([
             ...stats.monthlyUsers.map((d) => d.month),
@@ -105,88 +112,182 @@ export const SuperAdminHome = () => {
         revenue: stats.monthlyOrders.find((d) => d.month === month)?.revenue ?? 0,
     }));
 
-    return (
-        <PageEnter className="space-y-8">
-            {/* Header */}
-            <PageHeader
-                title="Platform Control Center"
-                subtitle="Real-time metrics, store operations & system oversight across the marketplace"
-            />
+    const totalRecordedRevenue = stats.monthlyOrders.reduce((sum, item) => sum + (item.revenue || 0), 0);
 
-            {/* Stat Cards */}
+    const operationsLinks = [
+        {
+            title: "Orders & Fulfillment",
+            desc: "Global marketplace orders and dispute handling",
+            icon: ShoppingCart,
+            path: "/superadmin/orders",
+        },
+        {
+            title: "Product Catalog",
+            desc: "Inspect, moderate and review merchant items",
+            icon: Package,
+            path: "/superadmin/products",
+        },
+        {
+            title: "Tenant Stores",
+            desc: "Manage storefront verification, KYC & approvals",
+            icon: Store,
+            path: "/superadmin/shops",
+        },
+        {
+            title: "Users & Accounts",
+            desc: "User permissions, roles, and status control",
+            icon: Users,
+            path: "/superadmin/users",
+        },
+        {
+            title: "Platform Analytics",
+            desc: "Gross merchandise value, charts & trends",
+            icon: BarChart3,
+            path: "/superadmin/analytics",
+        },
+        {
+            title: "Coupons & Discounts",
+            desc: "Platform discount campaigns and rules",
+            icon: Ticket,
+            path: "/superadmin/coupons",
+        },
+        {
+            title: "Payouts & Balances",
+            desc: "Tenant wallet balances & Stripe oversight",
+            icon: CreditCard,
+            path: "/superadmin/payouts",
+        },
+        {
+            title: "Support Desk",
+            desc: "Inquiries from merchants and customers",
+            icon: LifeBuoy,
+            path: "/superadmin/support",
+        },
+        {
+            title: "Security & Audits",
+            desc: "System event logs and authorization trail",
+            icon: Shield,
+            path: "/superadmin/audits",
+        },
+    ];
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-5 border-b border-slate-200">
+                <div>
+                    <h1 className="text-lg font-bold tracking-tight text-slate-900">
+                        Platform Overview
+                    </h1>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                        Real-time aggregate performance, tenant metrics, and marketplace health.
+                    </p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800">
+                        <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Platform Live
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 shadow-2xs">
+                        <Calendar className="size-3 text-slate-400" />
+                        Last 6 Months
+                    </span>
+                </div>
+            </div>
+
+            {/* Top Metric Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard
-                    title="Total Users"
-                    value={stats.totalUsers.toLocaleString()}
-                    icon={Users}
-                    iconBg="bg-blue-600"
-                    sub="Registered platform users"
-                    onClick={() => navigate("/superadmin/users")}
-                />
-                <StatCard
-                    title="Active Shops"
-                    value={stats.totalShops.toLocaleString()}
-                    icon={Store}
-                    iconBg="bg-emerald-600"
-                    sub="Operational tenant stores"
-                    onClick={() => navigate("/superadmin/shops")}
-                />
-                <StatCard
-                    title="Total Orders"
-                    value={stats.totalOrders.toLocaleString()}
-                    icon={ShoppingCart}
-                    iconBg="bg-amber-600"
-                    sub="Across all tenant shops"
-                    onClick={() => navigate("/superadmin/orders")}
-                />
-                <StatCard
+                <MetricCard
                     title="Platform Balance"
                     value={formatCurrency(stats.platformBalance)}
                     icon={CreditCard}
-                    iconBg="bg-orange-600"
-                    sub="Net platform wallet funds"
+                    sub="Net platform wallet reserves"
                     onClick={() => navigate("/superadmin/billing")}
+                />
+                <MetricCard
+                    title="Gross Volume"
+                    value={formatCurrency(totalRecordedRevenue)}
+                    icon={TrendingUp}
+                    sub="Recorded order volume"
+                    onClick={() => navigate("/superadmin/analytics")}
+                />
+                <MetricCard
+                    title="Merchant Stores"
+                    value={stats.totalShops.toLocaleString()}
+                    icon={Store}
+                    sub="Registered tenant shops"
+                    onClick={() => navigate("/superadmin/shops")}
+                />
+                <MetricCard
+                    title="Total Accounts"
+                    value={stats.totalUsers.toLocaleString()}
+                    icon={Users}
+                    sub="Buyers, sellers & staff"
+                    onClick={() => navigate("/superadmin/users")}
                 />
             </div>
 
-            {/* Revenue Chart */}
-            <div className="ds-card p-6">
-                <div className="flex items-center justify-between mb-6">
+            {/* Platform Gross Revenue Trend Chart */}
+            <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-5">
                     <div>
-                        <h2 className="text-base font-bold text-slate-900 tracking-tight">Platform Gross Revenue</h2>
-                        <p className="text-xs text-slate-400 mt-0.5">Order revenue aggregated across all tenant shops</p>
+                        <h2 className="text-xs font-semibold text-slate-900">Platform Gross Revenue</h2>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                            Monthly aggregated merchandise volume across all active stores
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-medium text-slate-500">
+                            Total volume:{" "}
+                            <span className="font-semibold text-slate-900 tabular-nums">
+                                {formatCurrency(totalRecordedRevenue)}
+                            </span>
+                        </span>
                     </div>
                 </div>
+
                 {combinedData.length === 0 ? (
-                    <div className="h-56 flex items-center justify-center text-slate-400 text-sm border border-dashed border-slate-200 rounded-xl">
-                        No revenue recorded in the last 6 months yet
+                    <div className="h-56 flex items-center justify-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-md">
+                        No revenue recorded in the selected period.
                     </div>
                 ) : (
                     <ResponsiveContainer width="100%" height={260}>
-                        <AreaChart data={combinedData}>
+                        <AreaChart data={combinedData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.25} />
+                                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.12} />
                                     <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
                                 </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#64748b" }} />
-                            <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 12, fill: "#64748b" }} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                            <XAxis
+                                dataKey="month"
+                                tickLine={false}
+                                axisLine={false}
+                                tick={{ fontSize: 11, fill: "#64748b" }}
+                            />
+                            <YAxis
+                                tickLine={false}
+                                axisLine={false}
+                                tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                                tick={{ fontSize: 11, fill: "#64748b" }}
+                            />
                             <Tooltip
                                 contentStyle={{
                                     backgroundColor: "#ffffff",
                                     borderColor: "#e2e8f0",
-                                    borderRadius: "12px",
-                                    boxShadow: "0 10px 25px -5px rgb(15 23 42 / 0.1)",
+                                    borderRadius: "6px",
+                                    boxShadow: "0 4px 12px -2px rgb(15 23 42 / 0.08)",
+                                    fontSize: "11px",
+                                    padding: "8px 12px",
                                 }}
-                                formatter={(v: any) => [formatCurrency(Number(v || 0)), "Revenue"]}
+                                formatter={(v: any) => [formatCurrency(Number(v || 0)), "Gross Revenue"]}
                             />
                             <Area
                                 type="monotone"
                                 dataKey="revenue"
-                                stroke="#f97316"
-                                strokeWidth={2.5}
+                                stroke="#ea580c"
+                                strokeWidth={2}
                                 fill="url(#revenueGrad)"
                                 name="Revenue"
                             />
@@ -195,67 +296,101 @@ export const SuperAdminHome = () => {
                 )}
             </div>
 
-            {/* Users + Shops + Orders charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Split Charts: Signups & Order Volume */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 {/* User & Shop Signups */}
-                <div className="ds-card p-6">
-                    <h2 className="text-base font-bold text-slate-900 mb-1 tracking-tight">New Signups</h2>
-                    <p className="text-xs text-slate-400 mb-4">Users and shops created per month</p>
+                <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-xs">
+                    <div className="mb-4">
+                        <h2 className="text-xs font-semibold text-slate-900">New Signups</h2>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                            Monthly registration counts for users and tenant shops
+                        </p>
+                    </div>
+
                     {combinedData.length === 0 ? (
-                        <div className="h-44 flex items-center justify-center text-slate-400 text-sm border border-dashed border-slate-200 rounded-xl">
-                            No signup data in the selected period
+                        <div className="h-44 flex items-center justify-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-md">
+                            No signup data available
                         </div>
                     ) : (
                         <ResponsiveContainer width="100%" height={220}>
-                            <BarChart data={combinedData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#64748b" }} />
-                                <YAxis tick={{ fontSize: 11, fill: "#64748b" }} />
+                            <BarChart data={combinedData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                                <XAxis
+                                    dataKey="month"
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tick={{ fontSize: 11, fill: "#64748b" }}
+                                />
+                                <YAxis
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tick={{ fontSize: 11, fill: "#64748b" }}
+                                />
                                 <Tooltip
                                     contentStyle={{
                                         backgroundColor: "#ffffff",
                                         borderColor: "#e2e8f0",
-                                        borderRadius: "12px",
-                                        boxShadow: "0 10px 25px -5px rgb(15 23 42 / 0.1)",
+                                        borderRadius: "6px",
+                                        boxShadow: "0 4px 12px -2px rgb(15 23 42 / 0.08)",
+                                        fontSize: "11px",
                                     }}
                                 />
-                                <Legend />
-                                <Bar dataKey="users" fill="#f97316" name="Users" radius={[6, 6, 0, 0]} />
-                                <Bar dataKey="shops" fill="#10b981" name="Shops" radius={[6, 6, 0, 0]} />
+                                <Legend
+                                    wrapperStyle={{ fontSize: "11px", paddingTop: "12px" }}
+                                    iconType="circle"
+                                    iconSize={8}
+                                />
+                                <Bar dataKey="users" fill="#ea580c" name="Users" radius={[3, 3, 0, 0]} />
+                                <Bar dataKey="shops" fill="#0f172a" name="Shops" radius={[3, 3, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     )}
                 </div>
 
                 {/* Order volume */}
-                <div className="ds-card p-6">
-                    <h2 className="text-base font-bold text-slate-900 mb-1 tracking-tight">Order Volume</h2>
-                    <p className="text-xs text-slate-400 mb-4">Number of completed orders per month</p>
+                <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-xs">
+                    <div className="mb-4">
+                        <h2 className="text-xs font-semibold text-slate-900">Order Volume</h2>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                            Number of completed purchases fulfilled across all stores
+                        </p>
+                    </div>
+
                     {combinedData.length === 0 ? (
-                        <div className="h-44 flex items-center justify-center text-slate-400 text-sm border border-dashed border-slate-200 rounded-xl">
-                            No orders placed yet
+                        <div className="h-44 flex items-center justify-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-md">
+                            No orders placed in this period
                         </div>
                     ) : (
                         <ResponsiveContainer width="100%" height={220}>
-                            <LineChart data={combinedData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#64748b" }} />
-                                <YAxis tick={{ fontSize: 11, fill: "#64748b" }} />
+                            <LineChart data={combinedData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                                <XAxis
+                                    dataKey="month"
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tick={{ fontSize: 11, fill: "#64748b" }}
+                                />
+                                <YAxis
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tick={{ fontSize: 11, fill: "#64748b" }}
+                                />
                                 <Tooltip
                                     contentStyle={{
                                         backgroundColor: "#ffffff",
                                         borderColor: "#e2e8f0",
-                                        borderRadius: "12px",
-                                        boxShadow: "0 10px 25px -5px rgb(15 23 42 / 0.1)",
+                                        borderRadius: "6px",
+                                        boxShadow: "0 4px 12px -2px rgb(15 23 42 / 0.08)",
+                                        fontSize: "11px",
                                     }}
                                 />
                                 <Line
                                     type="monotone"
                                     dataKey="orders"
-                                    stroke="#f97316"
-                                    strokeWidth={2.5}
-                                    dot={{ r: 4, fill: "#f97316" }}
-                                    activeDot={{ r: 6 }}
+                                    stroke="#0f172a"
+                                    strokeWidth={2}
+                                    dot={{ r: 3, fill: "#0f172a" }}
+                                    activeDot={{ r: 5, fill: "#ea580c" }}
                                     name="Orders"
                                 />
                             </LineChart>
@@ -264,155 +399,41 @@ export const SuperAdminHome = () => {
                 </div>
             </div>
 
-            {/* Operations Quick Access Grid */}
-            <div>
-                <p className="ds-section-label mb-3">Operations & Management</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    <button
-                        onClick={() => navigate("/superadmin/orders")}
-                        className="ds-card-interactive p-5 text-left group"
-                    >
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="p-3 bg-orange-50 rounded-xl group-hover:bg-orange-100 transition-colors">
-                                <ShoppingCart size={20} className="text-orange-600" />
-                            </div>
-                            <ArrowUpRight size={16} className="text-slate-300 group-hover:text-orange-600 transition-colors" />
-                        </div>
-                        <div>
-                            <p className="font-bold text-slate-900 group-hover:text-orange-600 transition-colors">All Orders</p>
-                            <p className="text-xs text-slate-500 mt-1">Platform-wide fulfillment and order inspect</p>
-                        </div>
-                    </button>
+            {/* Operations Quick Access Directory */}
+            <div className="pt-2">
+                <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-semibold text-slate-900">Operations & Quick Access</p>
+                    <span className="text-[11px] text-slate-400">Direct navigation to system modules</span>
+                </div>
 
-                    <button
-                        onClick={() => navigate("/superadmin/products")}
-                        className="ds-card-interactive p-5 text-left group"
-                    >
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="p-3 bg-orange-50 rounded-xl group-hover:bg-orange-100 transition-colors">
-                                <Package size={20} className="text-orange-600" />
-                            </div>
-                            <ArrowUpRight size={16} className="text-slate-300 group-hover:text-orange-600 transition-colors" />
-                        </div>
-                        <div>
-                            <p className="font-bold text-slate-900 group-hover:text-orange-600 transition-colors">Product Catalog</p>
-                            <p className="text-xs text-slate-500 mt-1">Inspect & moderate all merchant products</p>
-                        </div>
-                    </button>
-
-                    <button
-                        onClick={() => navigate("/superadmin/analytics")}
-                        className="ds-card-interactive p-5 text-left group"
-                    >
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="p-3 bg-blue-50 rounded-xl group-hover:bg-blue-100 transition-colors">
-                                <BarChart3 size={20} className="text-blue-600" />
-                            </div>
-                            <ArrowUpRight size={16} className="text-slate-300 group-hover:text-blue-600 transition-colors" />
-                        </div>
-                        <div>
-                            <p className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">Analytics</p>
-                            <p className="text-xs text-slate-500 mt-1">GMV, top stores & growth trends</p>
-                        </div>
-                    </button>
-
-                    <button
-                        onClick={() => navigate("/superadmin/shops")}
-                        className="ds-card-interactive p-5 text-left group"
-                    >
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="p-3 bg-emerald-50 rounded-xl group-hover:bg-emerald-100 transition-colors">
-                                <Store size={20} className="text-emerald-600" />
-                            </div>
-                            <ArrowUpRight size={16} className="text-slate-300 group-hover:text-emerald-600 transition-colors" />
-                        </div>
-                        <div>
-                            <p className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">Tenants & Stores</p>
-                            <p className="text-xs text-slate-500 mt-1">Moderate shops, approve or suspend</p>
-                        </div>
-                    </button>
-
-                    <button
-                        onClick={() => navigate("/superadmin/users")}
-                        className="ds-card-interactive p-5 text-left group"
-                    >
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="p-3 bg-indigo-50 rounded-xl group-hover:bg-indigo-100 transition-colors">
-                                <Users size={20} className="text-indigo-600" />
-                            </div>
-                            <ArrowUpRight size={16} className="text-slate-300 group-hover:text-indigo-600 transition-colors" />
-                        </div>
-                        <div>
-                            <p className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">Users & Access</p>
-                            <p className="text-xs text-slate-500 mt-1">Manage accounts, roles and status</p>
-                        </div>
-                    </button>
-
-                    <button
-                        onClick={() => navigate("/superadmin/coupons")}
-                        className="ds-card-interactive p-5 text-left group"
-                    >
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="p-3 bg-purple-50 rounded-xl group-hover:bg-purple-100 transition-colors">
-                                <Ticket size={20} className="text-purple-600" />
-                            </div>
-                            <ArrowUpRight size={16} className="text-slate-300 group-hover:text-purple-600 transition-colors" />
-                        </div>
-                        <div>
-                            <p className="font-bold text-slate-900 group-hover:text-purple-600 transition-colors">Coupons</p>
-                            <p className="text-xs text-slate-500 mt-1">Platform-wide discount oversight</p>
-                        </div>
-                    </button>
-
-                    <button
-                        onClick={() => navigate("/superadmin/payouts")}
-                        className="ds-card-interactive p-5 text-left group"
-                    >
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="p-3 bg-amber-50 rounded-xl group-hover:bg-amber-100 transition-colors">
-                                <CreditCard size={20} className="text-amber-600" />
-                            </div>
-                            <ArrowUpRight size={16} className="text-slate-300 group-hover:text-amber-600 transition-colors" />
-                        </div>
-                        <div>
-                            <p className="font-bold text-slate-900 group-hover:text-amber-600 transition-colors">Payouts</p>
-                            <p className="text-xs text-slate-500 mt-1">Tenant wallet balances & Stripe oversight</p>
-                        </div>
-                    </button>
-
-                    <button
-                        onClick={() => navigate("/superadmin/support")}
-                        className="ds-card-interactive p-5 text-left group"
-                    >
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="p-3 bg-rose-50 rounded-xl group-hover:bg-rose-100 transition-colors">
-                                <LifeBuoy size={20} className="text-rose-600" />
-                            </div>
-                            <ArrowUpRight size={16} className="text-slate-300 group-hover:text-rose-600 transition-colors" />
-                        </div>
-                        <div>
-                            <p className="font-bold text-slate-900 group-hover:text-rose-600 transition-colors">Support Desk</p>
-                            <p className="text-xs text-slate-500 mt-1">Resolve customer & merchant tickets</p>
-                        </div>
-                    </button>
-
-                    <button
-                        onClick={() => navigate("/superadmin/audits")}
-                        className="ds-card-interactive p-5 text-left group"
-                    >
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="p-3 bg-slate-100 rounded-xl group-hover:bg-slate-200 transition-colors">
-                                <Shield size={20} className="text-slate-700" />
-                            </div>
-                            <ArrowUpRight size={16} className="text-slate-300 group-hover:text-slate-700 transition-colors" />
-                        </div>
-                        <div>
-                            <p className="font-bold text-slate-900 group-hover:text-slate-700 transition-colors">Security & Audits</p>
-                            <p className="text-xs text-slate-500 mt-1">Activity logs and security event trail</p>
-                        </div>
-                    </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {operationsLinks.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                            <button
+                                key={item.path}
+                                onClick={() => navigate(item.path)}
+                                className="rounded-lg border border-slate-200 bg-white p-3.5 hover:border-slate-300 hover:shadow-xs transition-all text-left group flex items-start justify-between cursor-pointer"
+                            >
+                                <div className="flex items-start gap-3 min-w-0">
+                                    <div className="size-8 rounded-md bg-slate-50 border border-slate-200/80 flex items-center justify-center shrink-0 text-slate-600 group-hover:text-slate-900 transition-colors">
+                                        <Icon className="size-3.5" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-xs font-semibold text-slate-900 group-hover:text-orange-600 transition-colors">
+                                            {item.title}
+                                        </p>
+                                        <p className="text-[11px] text-slate-500 leading-normal mt-0.5 line-clamp-1">
+                                            {item.desc}
+                                        </p>
+                                    </div>
+                                </div>
+                                <ArrowUpRight className="size-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0 ml-2 mt-0.5" />
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
-        </PageEnter>
+        </div>
     );
 };

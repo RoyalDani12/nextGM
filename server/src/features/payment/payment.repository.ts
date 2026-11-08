@@ -164,24 +164,31 @@ export const confirmPaymentWithEventLog = async (
             const shopCut = orderTotal - platformFee;
             totalPlatformFee += platformFee;
 
-            const shopWallet = await tx.shopWallet.findUnique({ where: { shopId: order.shopId } });
-            if (shopWallet) {
-                const newBalance = Number(shopWallet.balance) + shopCut;
-                await tx.shopWallet.update({
-                    where: { shopId: order.shopId },
-                    data: { balance: newBalance }
-                });
-                await tx.walletTransaction.create({
+            let shopWallet = await tx.shopWallet.findUnique({ where: { shopId: order.shopId } });
+            if (!shopWallet) {
+                shopWallet = await tx.shopWallet.create({
                     data: {
                         shopId: order.shopId,
-                        orderId: order.id,
-                        type: "CREDIT",
-                        amount: shopCut,
-                        balanceAfter: newBalance,
-                        note: "Order payout (90%)"
-                    }
+                        balance: 0,
+                        payoutsEnabled: false,
+                    },
                 });
             }
+            const newBalance = Number(shopWallet.balance) + shopCut;
+            await tx.shopWallet.update({
+                where: { shopId: order.shopId },
+                data: { balance: newBalance }
+            });
+            await tx.walletTransaction.create({
+                data: {
+                    shopId: order.shopId,
+                    orderId: order.id,
+                    type: "CREDIT",
+                    amount: shopCut,
+                    balanceAfter: newBalance,
+                    note: `Order settlement (90%) - Order #${order.id.slice(-6)}`
+                }
+            });
         }
 
         await tx.inventoryReservation.updateMany({

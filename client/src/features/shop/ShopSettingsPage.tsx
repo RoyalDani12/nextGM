@@ -2,37 +2,27 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   Store,
-  Building2,
   MapPin,
   Mail,
   Phone,
   Globe,
   FileText,
   ShieldCheck,
-  AlertTriangle,
   Upload,
   Loader2,
   CheckCircle2,
-  CircleDashed,
   ExternalLink,
   ArrowLeft,
-  Save,
-  BadgeCheck,
   ImageIcon,
-  UserCheck,
-  Camera,
   Eye,
-    AlertCircle,
+  AlertCircle,
   X,
-  Lock,
-  Sparkles,
   RefreshCw,
   Clock,
   Check,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -50,6 +40,15 @@ import type { UpdateShopProfilePayload, UpdateShopLegalInfoPayload } from "./sho
 
 type ShopSettingsProfileForm = UpdateShopProfilePayload & { name: string };
 
+const TABS = [
+  { key: "general", label: "Profile & branding" },
+  { key: "contact", label: "Contact & location" },
+  { key: "legal", label: "Legal business" },
+  { key: "kyc", label: "Identity & KYC" },
+  { key: "readiness", label: "Publishing" },
+  { key: "danger", label: "Store status" },
+];
+
 export function ShopSettingsPage() {
   const { shopId = "" } = useParams<{ shopId: string }>();
   const { data: shopsData, isLoading: isShopsLoading, refetch: refetchShops } = useMyShops();
@@ -61,7 +60,6 @@ export function ShopSettingsPage() {
   const readiness = usePublishReadiness(shopId);
   const publishShop = usePublishShop(shopId);
 
-  // Profile Form State
   const [profileForm, setProfileForm] = useState<ShopSettingsProfileForm>({
     name: "",
     description: "",
@@ -77,14 +75,12 @@ export function ShopSettingsPage() {
     returnsPolicy: "",
   });
 
-  // Legal Info Form State
   const [legalForm, setLegalForm] = useState<UpdateShopLegalInfoPayload>({
     legalBusinessName: "",
     taxId: "",
     entityType: "LLC",
   });
 
-  // KYC Form State
   const [kycForm, setKycForm] = useState({
     ownerIdType: "NATIONAL_ID",
     ownerIdNumber: "",
@@ -92,11 +88,12 @@ export function ShopSettingsPage() {
     ownerIdCardBack: "",
   });
 
-  const [activeTab, setActiveTab] = useState<"general" | "contact" | "legal" | "kyc" | "readiness" | "danger">("general");
+  const [activeTab, setActiveTab] = useState<
+    "general" | "contact" | "legal" | "kyc" | "readiness" | "danger"
+  >("general");
   const [profileSuccessMsg, setProfileSuccessMsg] = useState(false);
   const [legalSuccessMsg, setLegalSuccessMsg] = useState(false);
 
-  // Uploading state for KYC cards
   const [isUploadingFront, setIsUploadingFront] = useState(false);
   const [isUploadingBack, setIsUploadingBack] = useState(false);
   const [previewZoomUrl, setPreviewZoomUrl] = useState<string | null>(null);
@@ -140,26 +137,21 @@ export function ShopSettingsPage() {
 
   if (isShopsLoading) {
     return (
-      <div className="flex min-h-[450px] items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-slate-500">
-          <Loader2 className="size-8 animate-spin text-orange-500" />
-          <p className="text-sm font-semibold">Loading shop settings...</p>
-        </div>
+      <div className="flex min-h-[460px] items-center justify-center">
+        <Loader2 className="size-6 animate-spin text-slate-400" />
       </div>
     );
   }
 
   if (!shop) {
     return (
-      <div className="max-w-md mx-auto mt-16 rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-        <Store className="size-12 mx-auto text-slate-400" />
-        <h2 className="mt-4 text-xl font-bold text-slate-900">Shop Not Found</h2>
-        <p className="mt-2 text-sm text-slate-500">
-          We couldn't locate this store workspace. It may have been closed or moved.
-        </p>
+      <div className="max-w-sm mx-auto text-center py-20 space-y-3">
+        <Store className="size-8 text-slate-300 mx-auto" />
+        <p className="text-sm font-medium text-slate-700">Store not found</p>
+        <p className="text-xs text-slate-400">This workspace may have been closed or moved.</p>
         <Link
           to="/shops"
-          className="mt-6 inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-slate-800 transition-colors"
+          className="inline-block text-xs font-medium text-orange-600 hover:text-orange-700"
         >
           Return to My Shops
         </Link>
@@ -167,7 +159,6 @@ export function ShopSettingsPage() {
     );
   }
 
-  // Handle Logo & Banner upload
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -182,7 +173,7 @@ export function ShopSettingsPage() {
         shopId: shop.id,
         payload: { logo: url },
       });
-      toast.success("Logo updated successfully!");
+      toast.success("Logo updated.");
     } catch (err: any) {
       toast.error("Logo upload failed: " + (err?.message || "Please try again."));
     }
@@ -202,13 +193,12 @@ export function ShopSettingsPage() {
         shopId: shop.id,
         payload: { banner: url },
       });
-      toast.success("Store banner updated!");
+      toast.success("Banner updated.");
     } catch (err: any) {
       toast.error("Banner upload failed: " + (err?.message || "Please try again."));
     }
   };
 
-  // Submit Profile Form
   const handleProfileSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setProfileSuccessMsg(false);
@@ -225,7 +215,7 @@ export function ShopSettingsPage() {
       {
         onSuccess: () => {
           setProfileSuccessMsg(true);
-          toast.success("Store settings saved!");
+          toast.success("Settings saved.");
           setTimeout(() => setProfileSuccessMsg(false), 4000);
         },
         onError: (err: any) => {
@@ -235,7 +225,6 @@ export function ShopSettingsPage() {
     );
   };
 
-  // Submit Legal Info Form
   const handleLegalSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLegalSuccessMsg(false);
@@ -245,7 +234,7 @@ export function ShopSettingsPage() {
       {
         onSuccess: () => {
           setLegalSuccessMsg(true);
-          toast.success("Legal business information saved!");
+          toast.success("Legal information saved.");
           setTimeout(() => setLegalSuccessMsg(false), 4000);
         },
         onError: (err: any) => {
@@ -255,8 +244,10 @@ export function ShopSettingsPage() {
     );
   };
 
-  // Upload KYC ID Card (Front or Back)
-  const handleKycCardUpload = async (e: React.ChangeEvent<HTMLInputElement>, side: "front" | "back") => {
+  const handleKycCardUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    side: "front" | "back"
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -275,9 +266,9 @@ export function ShopSettingsPage() {
         [side === "front" ? "ownerIdCardFront" : "ownerIdCardBack"]: url,
       }));
 
-      toast.success(`${side === "front" ? "Front" : "Back"} ID scan uploaded!`);
+      toast.success(`${side === "front" ? "Front" : "Back"} document scan uploaded.`);
     } catch (err: any) {
-      toast.error(`Upload failed: ${err?.message || "Unable to upload document scan."}`);
+      toast.error(`Upload failed: ${err?.message || "Unable to upload document."}`);
     } finally {
       if (side === "front") setIsUploadingFront(false);
       else setIsUploadingBack(false);
@@ -285,19 +276,18 @@ export function ShopSettingsPage() {
     }
   };
 
-  // Submit KYC Verification Request to Admin
   const handleKycSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!kycForm.ownerIdNumber.trim()) {
-      toast.error("Please enter your Government ID / Document Number.");
+      toast.error("Please enter your document ID number.");
       return;
     }
     if (!kycForm.ownerIdCardFront) {
-      toast.error("Please upload the FRONT side scan of your ID card.");
+      toast.error("Please upload the front scan of your ID card.");
       return;
     }
     if (kycForm.ownerIdType !== "PASSPORT" && !kycForm.ownerIdCardBack) {
-      toast.error("Please upload the BACK side scan of your ID card.");
+      toast.error("Please upload the back scan of your ID card.");
       return;
     }
 
@@ -313,7 +303,7 @@ export function ShopSettingsPage() {
           submitForVerification: true,
         },
       });
-      toast.success("KYC Verification submitted! Admin will review your documents.");
+      toast.success("KYC verification submitted.");
       refetchShops();
     } catch (err: any) {
       toast.error(err?.message || "Failed to submit KYC verification.");
@@ -326,143 +316,117 @@ export function ShopSettingsPage() {
   const canPublish = isPassed && shop.status === "PENDING";
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-6 md:px-8">
-      {/* Header & Breadcrumb */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-5 max-w-[1200px]">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div className="space-y-1">
           <Link
             to={`/dashboard/shop/${shop.id}`}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
+            className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 transition-colors"
           >
-            <ArrowLeft className="size-3.5" /> Back to Dashboard
+            <ArrowLeft size={13} /> Back to dashboard
           </Link>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Store Settings & Compliance</h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl font-semibold text-slate-900">Store Settings</h1>
             <span
-              className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+              className={`inline-flex items-center gap-1 text-xs font-medium ${
                 shop.status === "ACTIVE"
-                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  ? "text-emerald-700"
                   : shop.status === "PAUSED"
-                  ? "bg-amber-50 text-amber-700 border border-amber-200"
-                  : "bg-slate-100 text-slate-700 border border-slate-200"
+                  ? "text-amber-700"
+                  : "text-slate-500"
               }`}
             >
+              <span
+                className={`size-1.5 rounded-full ${
+                  shop.status === "ACTIVE"
+                    ? "bg-emerald-500"
+                    : shop.status === "PAUSED"
+                    ? "bg-amber-500"
+                    : "bg-slate-400"
+                }`}
+              />
               {shop.status}
             </span>
             {kycStatus === "VERIFIED" && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
-                <ShieldCheck className="size-3 text-emerald-600" />
-                Verified Merchant
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
+                <ShieldCheck size={13} className="text-emerald-600" />
+                Verified
               </span>
             )}
           </div>
           <p className="text-sm text-slate-500">
-            Manage your store branding, public contact info, KYC identity verification, and lifecycle.
+            Manage your store profile, branding, contact info, and legal compliance
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-full gap-1.5 text-xs font-bold"
+        <div>
+          <button
             onClick={() => window.open(`/${shop.slug}`, "_blank")}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
           >
-            <ExternalLink className="size-3.5" /> View Public Storefront
-          </Button>
+            <ExternalLink size={13} />
+            View storefront
+          </button>
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
-        {[
-          { key: "general", label: "Branding & Profile", icon: Store },
-          { key: "contact", label: "Contact & Location", icon: MapPin },
-          { key: "legal", label: "Legal Business", icon: Building2 },
-          {
-            key: "kyc",
-            label: "Identity & KYC",
-            icon: ShieldCheck,
-            badge:
-              kycStatus === "VERIFIED"
-                ? "Verified"
-                : kycStatus === "PENDING"
-                ? "In Review"
-                : kycStatus === "REJECTED"
-                ? "Rejected"
-                : "Required",
-            badgeColor:
-              kycStatus === "VERIFIED"
-                ? "bg-emerald-100 text-emerald-800"
-                : kycStatus === "PENDING"
-                ? "bg-amber-100 text-amber-800 animate-pulse"
-                : kycStatus === "REJECTED"
-                ? "bg-rose-100 text-rose-800 font-bold"
-                : "bg-orange-100 text-orange-800",
-          },
-          { key: "readiness", label: "Publishing Readiness", icon: BadgeCheck },
-          { key: "danger", label: "Status & Danger Zone", icon: AlertTriangle },
-        ].map((tab) => {
-          const Icon = tab.icon;
+      {/* Tabs */}
+      <div className="flex items-center gap-1 border-b border-slate-200 overflow-x-auto text-xs font-medium">
+        {TABS.map((tab) => {
           const isActive = activeTab === tab.key;
           return (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as any)}
-              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3.5 py-2 border-b-2 -mb-px transition-colors whitespace-nowrap cursor-pointer ${
                 isActive
-                  ? "bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-sm shadow-orange-500/20"
-                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  ? "border-orange-500 text-slate-900 font-semibold"
+                  : "border-transparent text-slate-500 hover:text-slate-700"
               }`}
             >
-              <Icon className="size-4" />
-              <span>{tab.label}</span>
-              {tab.badge && (
-                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ml-1 ${tab.badgeColor}`}>
-                  {tab.badge}
-                </span>
-              )}
+              {tab.label}
             </button>
           );
         })}
       </div>
 
-      {/* Tab 1: General Branding & Profile */}
+      {/* Tab 1: Profile & Branding */}
       {activeTab === "general" && (
-        <form onSubmit={handleProfileSubmit} className="space-y-6">
-          <div className="rounded-3xl border border-slate-200/80 bg-white p-6 md:p-8 shadow-xs space-y-6">
+        <form onSubmit={handleProfileSubmit} className="space-y-4">
+          <div className="bg-white border border-slate-200 rounded-lg p-5 space-y-5">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Brand Identity</h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Upload your storefront logo and banner seen by marketplace customers.
+              <h2 className="text-sm font-medium text-slate-800">Brand identity</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Logo and banner images visible on your store page
               </p>
             </div>
 
-            {/* Banner Section */}
-            <div className="space-y-2">
-              <Label className="text-xs font-bold text-slate-700">Store Banner</Label>
-              <div className="relative h-44 w-full rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center group hover:border-orange-300 transition-colors">
+            {/* Banner */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-slate-700">Store banner</Label>
+              <div className="relative h-36 w-full rounded-lg border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center group hover:border-slate-300 transition-colors">
                 {profileForm.banner ? (
                   <img
                     src={profileForm.banner}
                     alt="Banner preview"
-                    className="h-full w-full object-cover"
+                    className="size-full object-cover"
                   />
                 ) : (
-                  <div className="flex flex-col items-center gap-2 text-slate-400">
-                    <ImageIcon className="size-8 stroke-1 text-slate-300" />
-                    <span className="text-xs font-medium">Recommended: 1200 x 300px JPG or PNG</span>
+                  <div className="flex flex-col items-center gap-1 text-slate-400">
+                    <ImageIcon size={20} className="text-slate-300" />
+                    <span className="text-xs">Recommended 1200 × 300px</span>
                   </div>
                 )}
-                <label className="absolute inset-0 flex items-center justify-center bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                  <div className="rounded-full bg-white px-4 py-2 text-xs font-bold text-slate-900 shadow-md flex items-center gap-2">
+                <label className="absolute inset-0 flex items-center justify-center bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                  <span className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-slate-800 shadow-sm flex items-center gap-1.5">
                     {uploadImage.isPending ? (
-                      <Loader2 className="size-4 animate-spin" />
+                      <Loader2 size={13} className="animate-spin" />
                     ) : (
-                      <Upload className="size-4" />
+                      <Upload size={13} />
                     )}
-                    Change Store Banner
-                  </div>
+                    Upload banner
+                  </span>
                   <input
                     type="file"
                     accept="image/*"
@@ -474,9 +438,9 @@ export function ShopSettingsPage() {
               </div>
             </div>
 
-            {/* Logo Section */}
-            <div className="flex items-center gap-6 pt-2">
-              <div className="relative size-24 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center group hover:border-orange-300 transition-colors shrink-0">
+            {/* Logo */}
+            <div className="flex items-center gap-4 pt-1">
+              <div className="relative size-16 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center group hover:border-slate-300 transition-colors shrink-0">
                 {profileForm.logo ? (
                   <img
                     src={profileForm.logo}
@@ -484,10 +448,10 @@ export function ShopSettingsPage() {
                     className="size-full object-cover"
                   />
                 ) : (
-                  <Store className="size-8 stroke-1 text-slate-300" />
+                  <Store size={20} className="text-slate-300" />
                 )}
-                <label className="absolute inset-0 flex items-center justify-center bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                  <Upload className="size-5 text-white" />
+                <label className="absolute inset-0 flex items-center justify-center bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                  <Upload size={14} className="text-white" />
                   <input
                     type="file"
                     accept="image/*"
@@ -497,65 +461,61 @@ export function ShopSettingsPage() {
                   />
                 </label>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-700">Store Logo Avatar</Label>
-                <p className="text-xs text-slate-500">
-                  Recommended: 400 x 400px square image. Click the box to browse and upload.
+              <div>
+                <Label className="text-xs font-medium text-slate-700">Store logo</Label>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Square image, recommended 400 × 400px
                 </p>
               </div>
             </div>
 
             {/* Store Name & Description */}
-            <div className="grid gap-5 sm:grid-cols-2 pt-2">
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="storeName" className="text-xs font-bold text-slate-700">
-                  Store Public Name *
+            <div className="space-y-3 pt-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="storeName" className="text-xs font-medium text-slate-700">
+                  Store name
                 </Label>
                 <Input
                   id="storeName"
                   value={profileForm.name || ""}
                   readOnly
-                  className="rounded-xl bg-muted"
-                  placeholder="e.g. Nexus Premium Outfitter"
-                  required
+                  className="rounded-lg bg-slate-50 text-slate-500 text-sm"
                 />
               </div>
 
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="storeDescription" className="text-xs font-bold text-slate-700">
-                  Store Bio / Description
+              <div className="space-y-1.5">
+                <Label htmlFor="storeDescription" className="text-xs font-medium text-slate-700">
+                  Description
                 </Label>
                 <Textarea
                   id="storeDescription"
-                  rows={4}
+                  rows={3}
                   value={profileForm.description || ""}
-                  onChange={(e) => setProfileForm({ ...profileForm, description: e.target.value })}
-                  placeholder="Tell buyers what makes your brand, products, and craftsmanship special…"
-                  className="rounded-xl text-sm"
+                  onChange={(e) =>
+                    setProfileForm({ ...profileForm, description: e.target.value })
+                  }
+                  placeholder="Tell buyers about your brand and products…"
+                  className="rounded-lg text-sm"
                 />
               </div>
             </div>
 
             {profileSuccessMsg && (
-              <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-3.5 flex items-center gap-2.5 text-xs font-bold text-emerald-800">
-                <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                Store branding information updated successfully!
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-50 text-xs text-emerald-700 border border-emerald-200">
+                <CheckCircle2 size={13} className="shrink-0" />
+                Store settings saved.
               </div>
             )}
 
             <div className="flex justify-end pt-2">
-              <Button
+              <button
                 type="submit"
                 disabled={updateProfile.isPending}
-                className="rounded-full bg-slate-900 px-6 font-bold text-white hover:bg-slate-800 gap-2 cursor-pointer"
+                className="px-4 py-2 text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-40 inline-flex items-center gap-1.5"
               >
-                {updateProfile.isPending ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Save className="size-4" />
-                )}
-                Save Brand Profile
-              </Button>
+                {updateProfile.isPending && <Loader2 size={13} className="animate-spin" />}
+                Save changes
+              </button>
             </div>
           </div>
         </form>
@@ -563,138 +523,158 @@ export function ShopSettingsPage() {
 
       {/* Tab 2: Contact & Location */}
       {activeTab === "contact" && (
-        <form onSubmit={handleProfileSubmit} className="space-y-6">
-          <div className="rounded-3xl border border-slate-200/80 bg-white p-6 md:p-8 shadow-xs space-y-6">
+        <form onSubmit={handleProfileSubmit} className="space-y-4">
+          <div className="bg-white border border-slate-200 rounded-lg p-5 space-y-4">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Contact & Fulfillment Location</h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Public support contact details and business dispatch origin for delivery calculations.
+              <h2 className="text-sm font-medium text-slate-800">Contact & fulfillment</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Public support contact details and shipping origin
               </p>
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="contactEmail" className="text-xs font-bold text-slate-700">
-                  Customer Support Email
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="contactEmail" className="text-xs font-medium text-slate-700">
+                  Support email
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                  <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <Input
                     id="contactEmail"
                     type="email"
                     value={profileForm.email || ""}
                     onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                    placeholder="support@yourbrand.com"
-                    className="pl-10 rounded-xl"
+                    placeholder="support@example.com"
+                    className="pl-9 rounded-lg text-sm"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="contactPhone" className="text-xs font-bold text-slate-700">
-                  Contact Phone
+              <div className="space-y-1.5">
+                <Label htmlFor="contactPhone" className="text-xs font-medium text-slate-700">
+                  Phone number
                 </Label>
                 <div className="relative">
-                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                  <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <Input
                     id="contactPhone"
                     type="tel"
                     value={profileForm.phone || ""}
                     onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                    placeholder="+1234567890"
-                    className="pl-10 rounded-xl"
+                    placeholder="+1 (555) 000-0000"
+                    className="pl-9 rounded-lg text-sm"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="contactAddress" className="text-xs font-bold text-slate-700">
-                  Street Address *
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="contactAddress" className="text-xs font-medium text-slate-700">
+                  Street address
                 </Label>
                 <div className="relative">
-                  <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                  <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <Input
                     id="contactAddress"
                     value={profileForm.address || ""}
                     onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
-                    placeholder="123 Commerce Blvd, Suite 400"
-                    className="pl-10 rounded-xl"
+                    placeholder="123 Commerce St"
+                    className="pl-9 rounded-lg text-sm"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="contactCity" className="text-xs font-bold text-slate-700">
-                  City *
+              <div className="space-y-1.5">
+                <Label htmlFor="contactCity" className="text-xs font-medium text-slate-700">
+                  City
                 </Label>
                 <Input
                   id="contactCity"
                   value={profileForm.city || ""}
                   onChange={(e) => setProfileForm({ ...profileForm, city: e.target.value })}
                   placeholder="New York"
-                  className="rounded-xl"
+                  className="rounded-lg text-sm"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="contactCountry" className="text-xs font-bold text-slate-700">
-                  Country *
+              <div className="space-y-1.5">
+                <Label htmlFor="contactCountry" className="text-xs font-medium text-slate-700">
+                  Country
                 </Label>
                 <Input
                   id="contactCountry"
                   value={profileForm.country || ""}
                   onChange={(e) => setProfileForm({ ...profileForm, country: e.target.value })}
                   placeholder="United States"
-                  className="rounded-xl"
+                  className="rounded-lg text-sm"
                 />
               </div>
 
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="contactWebsite" className="text-xs font-bold text-slate-700">
-                  Official Website (Optional)
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="contactWebsite" className="text-xs font-medium text-slate-700">
+                  Website
                 </Label>
                 <div className="relative">
-                  <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                  <Globe size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <Input
                     id="contactWebsite"
                     type="url"
                     value={profileForm.website || ""}
                     onChange={(e) => setProfileForm({ ...profileForm, website: e.target.value })}
-                    placeholder="https://acmestudio.com"
-                    className="pl-10 rounded-xl"
+                    placeholder="https://example.com"
+                    className="pl-9 rounded-lg text-sm"
                   />
                 </div>
               </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="shippingPolicy" className="text-xs font-bold text-slate-700">Shipping policy</Label>
-                <Textarea id="shippingPolicy" rows={3} value={profileForm.shippingPolicy || ""} onChange={(e) => setProfileForm({ ...profileForm, shippingPolicy: e.target.value })} placeholder="Dispatch times, delivery regions, and pickup instructions…" className="rounded-xl text-sm" />
+
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="shippingPolicy" className="text-xs font-medium text-slate-700">
+                  Shipping policy
+                </Label>
+                <Textarea
+                  id="shippingPolicy"
+                  rows={2}
+                  value={profileForm.shippingPolicy || ""}
+                  onChange={(e) =>
+                    setProfileForm({ ...profileForm, shippingPolicy: e.target.value })
+                  }
+                  placeholder="Dispatch times, shipping methods, and estimated delivery…"
+                  className="rounded-lg text-sm"
+                />
               </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="returnsPolicy" className="text-xs font-bold text-slate-700">Returns & refunds policy</Label>
-                <Textarea id="returnsPolicy" rows={3} value={profileForm.returnsPolicy || ""} onChange={(e) => setProfileForm({ ...profileForm, returnsPolicy: e.target.value })} placeholder="Return window, condition requirements, and refund handling…" className="rounded-xl text-sm" />
+
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="returnsPolicy" className="text-xs font-medium text-slate-700">
+                  Returns & refunds policy
+                </Label>
+                <Textarea
+                  id="returnsPolicy"
+                  rows={2}
+                  value={profileForm.returnsPolicy || ""}
+                  onChange={(e) =>
+                    setProfileForm({ ...profileForm, returnsPolicy: e.target.value })
+                  }
+                  placeholder="Return window, return shipping terms, and conditions…"
+                  className="rounded-lg text-sm"
+                />
               </div>
             </div>
 
             {profileSuccessMsg && (
-              <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-3.5 flex items-center gap-2.5 text-xs font-bold text-emerald-800">
-                <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                Contact and location information updated successfully!
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-50 text-xs text-emerald-700 border border-emerald-200">
+                <CheckCircle2 size={13} className="shrink-0" />
+                Contact details saved.
               </div>
             )}
 
             <div className="flex justify-end pt-2">
-              <Button
+              <button
                 type="submit"
                 disabled={updateProfile.isPending}
-                className="rounded-full bg-slate-900 px-6 font-bold text-white hover:bg-slate-800 gap-2 cursor-pointer"
+                className="px-4 py-2 text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-40 inline-flex items-center gap-1.5"
               >
-                {updateProfile.isPending ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Save className="size-4" />
-                )}
-                Save Contact Details
-              </Button>
+                {updateProfile.isPending && <Loader2 size={13} className="animate-spin" />}
+                Save changes
+              </button>
             </div>
           </div>
         </form>
@@ -702,92 +682,84 @@ export function ShopSettingsPage() {
 
       {/* Tab 3: Legal Business Info */}
       {activeTab === "legal" && (
-        <form onSubmit={handleLegalSubmit} className="space-y-6">
-          <div className="rounded-3xl border border-slate-200/80 bg-white p-6 md:p-8 shadow-xs space-y-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">Legal Business Registration</h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Corporate entity and tax registration details for commercial compliance.
-                </p>
-              </div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                <Building2 className="size-3.5 text-slate-500" />
-                {legalForm.entityType || "Business Entity"}
-              </span>
+        <form onSubmit={handleLegalSubmit} className="space-y-4">
+          <div className="bg-white border border-slate-200 rounded-lg p-5 space-y-4">
+            <div>
+              <h2 className="text-sm font-medium text-slate-800">Legal business entity</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Registration and tax details for compliance
+              </p>
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="legalBusinessName" className="text-xs font-bold text-slate-700">
-                  Registered Legal Business Name *
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="legalBusinessName" className="text-xs font-medium text-slate-700">
+                  Legal business name *
                 </Label>
                 <Input
                   id="legalBusinessName"
                   value={legalForm.legalBusinessName}
-                  onChange={(e) => setLegalForm({ ...legalForm, legalBusinessName: e.target.value })}
-                  placeholder="e.g. Apex Global Retail Enterprises LLC"
-                  className="rounded-xl"
+                  onChange={(e) =>
+                    setLegalForm({ ...legalForm, legalBusinessName: e.target.value })
+                  }
+                  placeholder="Registered company name"
+                  className="rounded-lg text-sm"
                   required
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="taxId" className="text-xs font-bold text-slate-700">
-                  Tax Identification Number (EIN / VAT / SSN) *
+              <div className="space-y-1.5">
+                <Label htmlFor="taxId" className="text-xs font-medium text-slate-700">
+                  Tax ID / EIN / VAT *
                 </Label>
                 <div className="relative">
-                  <FileText className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                  <FileText size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <Input
                     id="taxId"
                     value={legalForm.taxId}
                     onChange={(e) => setLegalForm({ ...legalForm, taxId: e.target.value })}
                     placeholder="XX-XXXXXXX"
-                    className="pl-10 rounded-xl"
+                    className="pl-9 rounded-lg text-sm"
                     required
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="entityType" className="text-xs font-bold text-slate-700">
-                  Business Entity Type *
+              <div className="space-y-1.5">
+                <Label htmlFor="entityType" className="text-xs font-medium text-slate-700">
+                  Entity type *
                 </Label>
                 <select
                   id="entityType"
                   value={legalForm.entityType}
                   onChange={(e) => setLegalForm({ ...legalForm, entityType: e.target.value })}
-                  className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                  className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-400 cursor-pointer"
                 >
                   <option value="LLC">Limited Liability Company (LLC)</option>
                   <option value="Corporation">Corporation (Inc / Corp)</option>
                   <option value="Sole Proprietorship">Sole Proprietorship / Individual</option>
                   <option value="Partnership">Partnership</option>
-                  <option value="Non-Profit">Non-Profit Organization</option>
+                  <option value="Non-Profit">Non-Profit</option>
                 </select>
               </div>
             </div>
 
             {legalSuccessMsg && (
-              <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-3.5 flex items-center gap-2.5 text-xs font-bold text-emerald-800">
-                <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                Legal information saved and verified with compliance!
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-50 text-xs text-emerald-700 border border-emerald-200">
+                <CheckCircle2 size={13} className="shrink-0" />
+                Legal information saved.
               </div>
             )}
 
             <div className="flex justify-end pt-2">
-              <Button
+              <button
                 type="submit"
                 disabled={updateLegalInfo.isPending}
-                className="rounded-full bg-slate-900 px-6 font-bold text-white hover:bg-slate-800 gap-2 cursor-pointer"
+                className="px-4 py-2 text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-40 inline-flex items-center gap-1.5"
               >
-                {updateLegalInfo.isPending ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Save className="size-4" />
-                )}
-                Save Legal Information
-              </Button>
+                {updateLegalInfo.isPending && <Loader2 size={13} className="animate-spin" />}
+                Save legal details
+              </button>
             </div>
           </div>
         </form>
@@ -795,219 +767,148 @@ export function ShopSettingsPage() {
 
       {/* Tab 4: Identity & KYC Verification */}
       {activeTab === "kyc" && (
-        <form onSubmit={handleKycSubmit} className="space-y-6">
-          {/* KYC STATUS HERO BANNER */}
+        <form onSubmit={handleKycSubmit} className="space-y-4">
+          {/* Status banner */}
           {kycStatus === "VERIFIED" && (
-            <div className="rounded-3xl border border-emerald-200/90 bg-gradient-to-r from-emerald-50 to-teal-50/50 p-6 sm:p-7 shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-start gap-4">
-                  <div className="size-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
-                    <ShieldCheck className="size-6" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-base font-bold text-emerald-950">Identity Verified & Merchant Approved</h2>
-                      <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-800 border border-emerald-200">
-                        VERIFIED
-                      </span>
-                    </div>
-                    <p className="text-xs text-emerald-800/80 mt-1 max-w-xl">
-                      Your government-issued identification was reviewed and approved by the platform compliance officers. Your storefront proudly carries the official Verified Merchant badge.
-                    </p>
-                    {shop.legalInfo?.ownerKycVerifiedAt && (
-                      <p className="text-[11px] text-emerald-700/70 mt-1.5 flex items-center gap-1">
-                        <Clock className="size-3" /> Verified on{" "}
-                        {new Date(shop.legalInfo.ownerKycVerifiedAt).toLocaleDateString(undefined, {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="shrink-0 flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-xs font-bold text-emerald-700 border border-emerald-200 shadow-2xs">
-                    <Sparkles className="size-3.5 text-emerald-500" />
-                    Full Payout Authority Active
-                  </span>
-                </div>
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3.5 flex items-start gap-2.5 text-xs text-emerald-800">
+              <ShieldCheck size={16} className="text-emerald-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-emerald-900">Identity verified</p>
+                <p className="text-emerald-700 mt-0.5">
+                  Your merchant identification documents have been approved.
+                </p>
+                {shop.legalInfo?.ownerKycVerifiedAt && (
+                  <p className="text-[11px] text-emerald-600 mt-1">
+                    Verified on{" "}
+                    {new Date(shop.legalInfo.ownerKycVerifiedAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
+                )}
               </div>
             </div>
           )}
 
           {kycStatus === "PENDING" && (
-            <div className="rounded-3xl border border-amber-200/90 bg-gradient-to-r from-amber-50 to-orange-50/50 p-6 sm:p-7 shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-start gap-4">
-                  <div className="size-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-amber-500/20">
-                    <RefreshCw className="size-6 animate-spin" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-base font-bold text-amber-950">KYC Verification Under Review</h2>
-                      <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-extrabold text-amber-800 border border-amber-200 animate-pulse">
-                        PENDING AUDIT
-                      </span>
-                    </div>
-                    <p className="text-xs text-amber-900/80 mt-1 max-w-xl">
-                      Your government ID scans (Front & Back) have been submitted to the platform Super Admin compliance review queue. You can review your scans below or update them if needed.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="shrink-0">
-                  <span className="inline-flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-xs font-bold text-amber-800 border border-amber-200 shadow-2xs">
-                    <Clock className="size-3.5 text-amber-600" />
-                    Review typically completes in 24 hrs
-                  </span>
-                </div>
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3.5 flex items-start gap-2.5 text-xs text-amber-800">
+              <Clock size={16} className="text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-amber-900">Verification in review</p>
+                <p className="text-amber-700 mt-0.5">
+                  Your identity documents are currently being reviewed by compliance.
+                </p>
               </div>
             </div>
           )}
 
           {kycStatus === "REJECTED" && (
-            <div className="rounded-3xl border border-rose-200 bg-rose-50/70 p-6 sm:p-7 shadow-xs space-y-3">
-              <div className="flex items-start gap-4">
-                <div className="size-12 rounded-2xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-rose-500/20">
-                  <AlertCircle className="size-6" />
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base font-bold text-rose-950">KYC Verification Needs Correction</h2>
-                    <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-[10px] font-extrabold text-rose-800 border border-rose-200">
-                      REJECTED
-                    </span>
-                  </div>
-                  <p className="text-xs text-rose-900/80 leading-relaxed">
-                    The platform compliance team reviewed your submission and requested adjustments. Please see the compliance notes below and re-upload clear photos of your ID.
+            <div className="rounded-lg border border-rose-200 bg-rose-50 p-3.5 space-y-2 text-xs text-rose-800">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle size={16} className="text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-rose-900">Verification requires attention</p>
+                  <p className="text-rose-700 mt-0.5">
+                    Your document submission was not approved. Please review feedback and re-upload.
                   </p>
                 </div>
               </div>
-
               {shop.legalInfo?.ownerKycNotes && (
-                <div className="rounded-2xl border border-rose-200 bg-white p-4 text-xs text-rose-900 space-y-1">
-                  <span className="font-extrabold uppercase tracking-wider text-[10px] text-rose-700">
-                    Compliance Officer Feedback:
-                  </span>
-                  <p className="font-medium">{shop.legalInfo.ownerKycNotes}</p>
+                <div className="rounded border border-rose-200 bg-white p-2.5 text-rose-900">
+                  <span className="font-medium text-rose-700 block text-[11px]">Feedback:</span>
+                  <p className="mt-0.5">{shop.legalInfo.ownerKycNotes}</p>
                 </div>
               )}
             </div>
           )}
 
-          {kycStatus === "UNVERIFIED" && (
-            <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-xs">
-              <div className="flex items-start gap-4">
-                <div className="size-12 rounded-2xl bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-orange-500/20">
-                  <UserCheck className="size-6" />
-                </div>
-                <div>
-                  <h2 className="text-base font-bold text-slate-900">Merchant Identity Verification (KYC)</h2>
-                  <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
-                    To comply with international merchant payment regulations, prevent impersonation, and unlock the <strong className="text-slate-800">Verified Seller</strong> badge on your marketplace store, please upload scans of your official government-issued ID card.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* MAIN KYC FORM */}
-          <div className="rounded-3xl border border-slate-200/90 bg-white p-6 md:p-8 shadow-xs space-y-7">
+          <div className="bg-white border border-slate-200 rounded-lg p-5 space-y-4">
             <div>
-              <h3 className="text-base font-bold text-slate-900">Government Identity Information</h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Ensure details match the name and information on your legal photo ID card.
+              <h3 className="text-sm font-medium text-slate-800">Government ID details</h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Ensure details match your official identification card
               </p>
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="idType" className="text-xs font-bold text-slate-700">
-                  ID Document Type *
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="idType" className="text-xs font-medium text-slate-700">
+                  Document type *
                 </Label>
                 <select
                   id="idType"
                   value={kycForm.ownerIdType}
                   onChange={(e) => setKycForm({ ...kycForm, ownerIdType: e.target.value })}
                   disabled={kycStatus === "VERIFIED"}
-                  className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 disabled:bg-slate-50 disabled:text-slate-500"
+                  className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-400 disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer"
                 >
-                  <option value="NATIONAL_ID">National Identity Card (Government Issued)</option>
-                  <option value="PASSPORT">International Passport</option>
+                  <option value="NATIONAL_ID">National Identity Card</option>
+                  <option value="PASSPORT">Passport</option>
                   <option value="DRIVERS_LICENSE">Driver's License</option>
-                  <option value="RESIDENCE_PERMIT">Residence Permit / Alien ID</option>
+                  <option value="RESIDENCE_PERMIT">Residence Permit</option>
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="idNumber" className="text-xs font-bold text-slate-700">
-                  Document / ID Card Number *
+              <div className="space-y-1.5">
+                <Label htmlFor="idNumber" className="text-xs font-medium text-slate-700">
+                  Document number *
                 </Label>
                 <div className="relative">
-                  <FileText className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                  <FileText size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <Input
                     id="idNumber"
                     value={kycForm.ownerIdNumber}
                     onChange={(e) => setKycForm({ ...kycForm, ownerIdNumber: e.target.value })}
-                    placeholder="e.g. A923849102"
+                    placeholder="Document number"
                     disabled={kycStatus === "VERIFIED"}
-                    className="pl-10 rounded-xl"
+                    className="pl-9 rounded-lg text-sm"
                     required
                   />
                 </div>
               </div>
             </div>
 
-            {/* DUAL CARD UPLOAD & SCAN SECTION */}
-            <div className="space-y-3 pt-2">
-              <div>
-                <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
-                  Photo Identification Uploads (Front & Back)
-                </h4>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Import high-resolution image scans or capture photo with your device camera. Accepted formats: JPG, PNG, WEBP.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* 1. FRONT SIDE ID CARD */}
-                <div className="rounded-2xl border border-slate-200 p-4 space-y-3 bg-slate-50/50">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                      <Camera className="size-4 text-orange-500" /> Front Side of ID Card *
-                    </span>
+            {/* Document Scans */}
+            <div className="space-y-2 pt-2">
+              <Label className="text-xs font-medium text-slate-700">
+                Document scans (Front & Back)
+              </Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Front Side */}
+                <div className="rounded-lg border border-slate-200 p-3 space-y-2 bg-slate-50/50">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium text-slate-700">Front side *</span>
                     {kycForm.ownerIdCardFront && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                        <Check className="size-3" /> Scan Ready
+                      <span className="text-[11px] font-medium text-emerald-700 flex items-center gap-0.5">
+                        <Check size={11} /> Uploaded
                       </span>
                     )}
                   </div>
 
-                  <div className="relative h-44 rounded-xl border-2 border-dashed border-slate-200 bg-white overflow-hidden flex items-center justify-center group hover:border-orange-400 transition-colors">
+                  <div className="relative h-32 rounded-md border border-dashed border-slate-300 bg-white overflow-hidden flex items-center justify-center group hover:border-slate-400 transition-colors">
                     {kycForm.ownerIdCardFront ? (
                       <div className="relative size-full">
                         <img
                           src={kycForm.ownerIdCardFront}
-                          alt="ID Front Scan"
+                          alt="ID Front"
                           className="size-full object-cover"
                         />
-                        <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                           <button
                             type="button"
                             onClick={() => setPreviewZoomUrl(kycForm.ownerIdCardFront)}
-                            className="p-2 rounded-xl bg-white/90 text-slate-800 hover:bg-white text-xs font-bold flex items-center gap-1 cursor-pointer"
+                            className="px-2.5 py-1 rounded bg-white text-slate-800 text-xs font-medium flex items-center gap-1 cursor-pointer"
                           >
-                            <Eye className="size-3.5" /> Enlarge
+                            <Eye size={12} /> View
                           </button>
                           {kycStatus !== "VERIFIED" && (
                             <button
                               type="button"
                               onClick={() => frontInputRef.current?.click()}
-                              className="p-2 rounded-xl bg-orange-500 text-white hover:bg-orange-600 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                              className="px-2.5 py-1 rounded bg-orange-500 text-white text-xs font-medium flex items-center gap-1 cursor-pointer"
                             >
-                              <RefreshCw className="size-3.5" /> Replace
+                              <RefreshCw size={12} /> Replace
                             </button>
                           )}
                         </div>
@@ -1015,34 +916,24 @@ export function ShopSettingsPage() {
                     ) : (
                       <div
                         onClick={() => frontInputRef.current?.click()}
-                        className="flex flex-col items-center justify-center gap-2 text-slate-400 cursor-pointer size-full p-4"
+                        className="flex flex-col items-center justify-center gap-1 text-slate-400 cursor-pointer size-full p-3"
                       >
                         {isUploadingFront ? (
-                          <div className="flex flex-col items-center gap-2">
-                            <Loader2 className="size-8 animate-spin text-orange-500" />
-                            <span className="text-xs font-bold text-slate-600">Uploading front scan...</span>
-                          </div>
+                          <Loader2 size={16} className="animate-spin text-orange-500" />
                         ) : (
                           <>
-                            <div className="size-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center border border-orange-100">
-                              <Upload className="size-5" />
-                            </div>
-                            <span className="text-xs font-bold text-slate-700 text-center">
-                              Click to Import or Scan Front ID
-                            </span>
-                            <span className="text-[10px] text-slate-400 text-center">
-                              Clear color photo showing full name, photo, and ID number
+                            <Upload size={16} className="text-slate-400" />
+                            <span className="text-xs font-medium text-slate-600">
+                              Upload front scan
                             </span>
                           </>
                         )}
                       </div>
                     )}
-
                     <input
                       ref={frontInputRef}
                       type="file"
                       accept="image/*"
-                      capture="environment"
                       onChange={(e) => handleKycCardUpload(e, "front")}
                       className="hidden"
                       disabled={isUploadingFront || kycStatus === "VERIFIED"}
@@ -1050,43 +941,42 @@ export function ShopSettingsPage() {
                   </div>
                 </div>
 
-                {/* 2. BACK SIDE ID CARD */}
-                <div className="rounded-2xl border border-slate-200 p-4 space-y-3 bg-slate-50/50">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                      <Camera className="size-4 text-orange-500" /> Back Side of ID Card
-                      {kycForm.ownerIdType === "PASSPORT" ? " (Optional for Passport)" : " *"}
+                {/* Back Side */}
+                <div className="rounded-lg border border-slate-200 p-3 space-y-2 bg-slate-50/50">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium text-slate-700">
+                      Back side {kycForm.ownerIdType === "PASSPORT" ? "(Optional)" : "*"}
                     </span>
                     {kycForm.ownerIdCardBack && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                        <Check className="size-3" /> Scan Ready
+                      <span className="text-[11px] font-medium text-emerald-700 flex items-center gap-0.5">
+                        <Check size={11} /> Uploaded
                       </span>
                     )}
                   </div>
 
-                  <div className="relative h-44 rounded-xl border-2 border-dashed border-slate-200 bg-white overflow-hidden flex items-center justify-center group hover:border-orange-400 transition-colors">
+                  <div className="relative h-32 rounded-md border border-dashed border-slate-300 bg-white overflow-hidden flex items-center justify-center group hover:border-slate-400 transition-colors">
                     {kycForm.ownerIdCardBack ? (
                       <div className="relative size-full">
                         <img
                           src={kycForm.ownerIdCardBack}
-                          alt="ID Back Scan"
+                          alt="ID Back"
                           className="size-full object-cover"
                         />
-                        <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                           <button
                             type="button"
                             onClick={() => setPreviewZoomUrl(kycForm.ownerIdCardBack)}
-                            className="p-2 rounded-xl bg-white/90 text-slate-800 hover:bg-white text-xs font-bold flex items-center gap-1 cursor-pointer"
+                            className="px-2.5 py-1 rounded bg-white text-slate-800 text-xs font-medium flex items-center gap-1 cursor-pointer"
                           >
-                            <Eye className="size-3.5" /> Enlarge
+                            <Eye size={12} /> View
                           </button>
                           {kycStatus !== "VERIFIED" && (
                             <button
                               type="button"
                               onClick={() => backInputRef.current?.click()}
-                              className="p-2 rounded-xl bg-orange-500 text-white hover:bg-orange-600 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                              className="px-2.5 py-1 rounded bg-orange-500 text-white text-xs font-medium flex items-center gap-1 cursor-pointer"
                             >
-                              <RefreshCw className="size-3.5" /> Replace
+                              <RefreshCw size={12} /> Replace
                             </button>
                           )}
                         </div>
@@ -1094,34 +984,24 @@ export function ShopSettingsPage() {
                     ) : (
                       <div
                         onClick={() => backInputRef.current?.click()}
-                        className="flex flex-col items-center justify-center gap-2 text-slate-400 cursor-pointer size-full p-4"
+                        className="flex flex-col items-center justify-center gap-1 text-slate-400 cursor-pointer size-full p-3"
                       >
                         {isUploadingBack ? (
-                          <div className="flex flex-col items-center gap-2">
-                            <Loader2 className="size-8 animate-spin text-orange-500" />
-                            <span className="text-xs font-bold text-slate-600">Uploading back scan...</span>
-                          </div>
+                          <Loader2 size={16} className="animate-spin text-orange-500" />
                         ) : (
                           <>
-                            <div className="size-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center border border-orange-100">
-                              <Upload className="size-5" />
-                            </div>
-                            <span className="text-xs font-bold text-slate-700 text-center">
-                              Click to Import or Scan Back ID
-                            </span>
-                            <span className="text-[10px] text-slate-400 text-center">
-                              Clear barcode, issue date, or residential endorsement side
+                            <Upload size={16} className="text-slate-400" />
+                            <span className="text-xs font-medium text-slate-600">
+                              Upload back scan
                             </span>
                           </>
                         )}
                       </div>
                     )}
-
                     <input
                       ref={backInputRef}
                       type="file"
                       accept="image/*"
-                      capture="environment"
                       onChange={(e) => handleKycCardUpload(e, "back")}
                       className="hidden"
                       disabled={isUploadingBack || kycStatus === "VERIFIED"}
@@ -1131,40 +1011,21 @@ export function ShopSettingsPage() {
               </div>
             </div>
 
-            {/* SECURITY & DATA PROTECTION BADGE */}
-            <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4 flex items-center gap-3.5 text-xs text-slate-600">
-              <div className="size-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 shrink-0 shadow-2xs">
-                <Lock className="size-4" />
-              </div>
-              <p className="leading-relaxed">
-                <strong className="text-slate-900">Encrypted Compliance Vault:</strong> All government document scans are transmitted over TLS 1.3 and encrypted at rest with AES-256. Documents are strictly accessible by authorized Super Admin compliance personnel for regulatory AML/KYC review.
-              </p>
-            </div>
-
-            {/* SUBMIT BUTTON */}
-            <div className="flex items-center justify-end gap-3 pt-2">
+            <div className="flex justify-end pt-2">
               {kycStatus === "VERIFIED" ? (
-                <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 px-4 py-2.5 rounded-full border border-emerald-200">
-                  <CheckCircle2 className="size-4 text-emerald-600" />
-                  KYC Verification Active
-                </div>
+                <span className="text-xs font-medium text-emerald-700 flex items-center gap-1">
+                  <CheckCircle2 size={13} />
+                  Verification complete
+                </span>
               ) : (
-                <Button
+                <button
                   type="submit"
                   disabled={updateLegalInfo.isPending || isUploadingFront || isUploadingBack}
-                  className="rounded-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-7 font-bold text-xs h-11 gap-2 shadow-md shadow-orange-500/20 cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2 text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-40 inline-flex items-center gap-1.5"
                 >
-                  {updateLegalInfo.isPending ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <ShieldCheck className="size-4" />
-                  )}
-                  {kycStatus === "REJECTED"
-                    ? "Resubmit KYC Verification Request"
-                    : kycStatus === "PENDING"
-                    ? "Update & Re-Request Verification"
-                    : "Submit KYC Verification Request to Admin"}
-                </Button>
+                  {updateLegalInfo.isPending && <Loader2 size={13} className="animate-spin" />}
+                  Submit verification
+                </button>
               )}
             </div>
           </div>
@@ -1173,179 +1034,121 @@ export function ShopSettingsPage() {
 
       {/* Tab 5: Publishing Readiness */}
       {activeTab === "readiness" && (
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-slate-200/80 bg-white p-6 md:p-8 shadow-xs space-y-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">Publishing Readiness Verification</h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  All 8 requirements below are checked by the backend before your store can go live.
-                </p>
-              </div>
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${
-                  isPassed
-                    ? "bg-emerald-100 text-emerald-800"
-                    : "bg-amber-100 text-amber-800"
-                }`}
-              >
-                {isPassed ? (
-                  <>
-                    <CheckCircle2 className="size-4 text-emerald-600" /> Ready to Publish
-                  </>
-                ) : (
-                  <>
-                    <CircleDashed className="size-4 text-amber-600 animate-spin" /> Incomplete Setup
-                  </>
-                )}
-              </span>
+        <div className="bg-white border border-slate-200 rounded-lg p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-medium text-slate-800">Publishing readiness</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Requirements needed before store catalog goes live
+              </p>
             </div>
-
-            {checks ? (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {[
-                  {
-                    key: "hasProfile",
-                    title: "Store Profile Exists",
-                    ok: checks.hasProfile,
-                  },
-                  {
-                    key: "hasName",
-                    title: "Public Store Name",
-                    ok: checks.hasName,
-                  },
-                  {
-                    key: "hasDescription",
-                    title: "Store Description",
-                    ok: checks.hasDescription,
-                  },
-                  {
-                    key: "hasLogo",
-                    title: "Storefront Logo Uploaded",
-                    ok: checks.hasLogo,
-                  },
-                  {
-                    key: "hasContactInfo",
-                    title: "Support Contact (Email/Phone)",
-                    ok: checks.hasContactInfo,
-                  },
-                  {
-                    key: "hasAddress",
-                    title: "Physical Location (Address, City, Country)",
-                    ok: checks.hasAddress,
-                  },
-                  {
-                    key: "hasLegalInfo",
-                    title: "Legal & Tax Details (EIN/Name)",
-                    ok: checks.hasLegalInfo,
-                  },
-                  {
-                    key: "hasAtLeastOneActiveProduct",
-                    title: "At Least 1 Active Product",
-                    ok: checks.hasAtLeastOneActiveProduct,
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.key}
-                    className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/60 p-4"
-                  >
-                    <span className="text-xs font-bold text-slate-800">{item.title}</span>
-                    {item.ok ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600">
-                        <CheckCircle2 className="size-4" /> Passed
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600">
-                        <CircleDashed className="size-4" /> Missing
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="py-8 text-center text-slate-400 text-xs">
-                Checking readiness status...
-              </div>
-            )}
-
-            {canPublish && (
-              <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-sm font-bold text-emerald-900">Your store is 100% ready!</h3>
-                  <p className="text-xs text-emerald-700 mt-0.5">
-                    Click the button to publish and make your catalog visible across the entire marketplace.
-                  </p>
-                </div>
-                <Button
-                  onClick={() => publishShop.mutate()}
-                  disabled={publishShop.isPending}
-                  className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 shadow-sm shadow-emerald-600/20"
-                >
-                  {publishShop.isPending ? (
-                    <Loader2 className="size-4 animate-spin mr-2" />
-                  ) : (
-                    <CheckCircle2 className="size-4 mr-2" />
-                  )}
-                  Publish Store Now
-                </Button>
-              </div>
-            )}
+            <span
+              className={`inline-flex items-center gap-1 text-xs font-medium ${
+                isPassed ? "text-emerald-700" : "text-amber-700"
+              }`}
+            >
+              <span
+                className={`size-1.5 rounded-full ${isPassed ? "bg-emerald-500" : "bg-amber-500"}`}
+              />
+              {isPassed ? "Ready to publish" : "Incomplete"}
+            </span>
           </div>
+
+          {checks ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {[
+                { title: "Store profile created", ok: checks.hasProfile },
+                { title: "Store name configured", ok: checks.hasName },
+                { title: "Store description added", ok: checks.hasDescription },
+                { title: "Store logo uploaded", ok: checks.hasLogo },
+                { title: "Support contact details", ok: checks.hasContactInfo },
+                { title: "Physical location address", ok: checks.hasAddress },
+                { title: "Legal business & tax details", ok: checks.hasLegalInfo },
+                { title: "At least 1 active product", ok: checks.hasAtLeastOneActiveProduct },
+              ].map((item) => (
+                <div
+                  key={item.title}
+                  className="flex items-center justify-between p-3 rounded-lg border border-slate-100 bg-slate-50/50 text-xs"
+                >
+                  <span className="text-slate-700 font-medium">{item.title}</span>
+                  <span
+                    className={`font-medium ${item.ok ? "text-emerald-700" : "text-slate-400"}`}
+                  >
+                    {item.ok ? "Passed" : "Missing"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-400 py-6 text-center">Checking status…</p>
+          )}
+
+          {canPublish && (
+            <div className="p-3.5 rounded-lg border border-emerald-200 bg-emerald-50 flex items-center justify-between gap-3 text-xs">
+              <span className="text-emerald-800 font-medium">
+                All checks passed. You can now publish your storefront.
+              </span>
+              <button
+                onClick={() => publishShop.mutate()}
+                disabled={publishShop.isPending}
+                className="px-3.5 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+              >
+                {publishShop.isPending ? "Publishing…" : "Publish store"}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
       {/* Tab 6: Status & Danger Zone */}
       {activeTab === "danger" && (
-        <div className="space-y-6">
-          {/* Pause / Resume store */}
-          <div className="rounded-3xl border border-slate-200/80 bg-white p-6 md:p-8 shadow-xs space-y-4">
-            <h2 className="text-lg font-bold text-slate-900">Store Status Control</h2>
-            <p className="text-xs text-slate-500">
-              Temporarily pause operations during inventory replenishment or vacations. Paused stores cannot receive new orders.
-            </p>
-            <div className="pt-2">
+        <div className="space-y-4">
+          <div className="bg-white border border-slate-200 rounded-lg p-5 space-y-3">
+            <div>
+              <h2 className="text-sm font-medium text-slate-800">Store status</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Pause your store to temporarily hide catalog items
+              </p>
+            </div>
+            <div className="pt-1">
               <ShopStatusToggle shopId={shop.id} status={shop.status} />
             </div>
           </div>
 
-          {/* Close Store Danger Zone */}
-          <div className="rounded-3xl border border-rose-200 bg-rose-50/40 p-6 md:p-8 shadow-xs space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="size-9 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
-                <AlertTriangle className="size-5" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-base font-bold text-rose-950">Danger Zone: Close Storefront</h3>
-                <p className="text-xs text-rose-700 leading-relaxed">
-                  Permanently deactivates this store, archives all listed products, and halts payouts. This action cannot be reversed.
-                </p>
-              </div>
+          <div className="bg-white border border-rose-200 rounded-lg p-5 space-y-3">
+            <div>
+              <h3 className="text-sm font-medium text-rose-900">Close store</h3>
+              <p className="text-xs text-rose-700 mt-0.5">
+                Permanently deactivate this storefront. This action cannot be undone.
+              </p>
             </div>
-
-            <div className="pt-3">
+            <div className="pt-1">
               <CloseShopDialog shop={shop} />
             </div>
           </div>
         </div>
       )}
 
-      {/* IMAGE ZOOM PREVIEW MODAL */}
+      {/* Image Zoom Preview */}
       {previewZoomUrl && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-xs"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
           onClick={() => setPreviewZoomUrl(null)}
         >
-          <div className="relative max-w-4xl max-h-[90vh] bg-white rounded-3xl overflow-hidden shadow-2xl p-2" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="relative max-w-3xl max-h-[90vh] bg-white rounded-lg overflow-hidden shadow-xl p-2"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               onClick={() => setPreviewZoomUrl(null)}
-              className="absolute top-4 right-4 z-10 size-9 rounded-full bg-slate-900/70 hover:bg-slate-900 text-white flex items-center justify-center transition-colors cursor-pointer"
+              className="absolute top-3 right-3 z-10 size-7 rounded-full bg-slate-900/70 hover:bg-slate-900 text-white flex items-center justify-center cursor-pointer"
             >
-              <X className="size-5" />
+              <X size={14} />
             </button>
             <img
               src={previewZoomUrl}
-              alt="KYC ID Full Preview"
-              className="max-h-[82vh] w-auto rounded-2xl object-contain mx-auto"
+              alt="Document preview"
+              className="max-h-[80vh] w-auto rounded object-contain mx-auto"
             />
           </div>
         </div>

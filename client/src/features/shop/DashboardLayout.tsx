@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Navigate, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { DashboardSidebar } from "./DashboardSidebar";
 import { DashboardNavbar } from "./DashboardNavbar";
 import { useMyShops } from "./shop.hooks";
@@ -20,10 +21,10 @@ export function DashboardLayout() {
 
     if (isLoading) {
         return (
-            <div className="flex min-h-screen items-center justify-center text-sm font-medium bg-[#0B0F19]">
-                <div className="flex items-center gap-3">
-                    <span className="size-2.5 rounded-full bg-orange-500 animate-ping" />
-                    <span className="text-slate-300 font-semibold text-xs tracking-wide">Loading store workspace...</span>
+            <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-500">
+                <div className="flex items-center gap-2 text-xs">
+                    <Loader2 className="size-4 animate-spin text-orange-500" />
+                    <span>Loading workspace…</span>
                 </div>
             </div>
         );
