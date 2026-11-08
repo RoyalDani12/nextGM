@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ShoppingCart, Search, Command, User, LogOut,Receipt, Package, Heart, RotateCcw } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ShoppingCart, Search, Command, User, LogOut, Receipt, Package, Heart, RotateCcw, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuthStore } from "@/store/auth.store";
 import { useLogout } from "@/features/auth/auth.hooks";
@@ -191,17 +190,25 @@ export const MarketplaceNavbar = () => {
           </div>
 
 
-          {/* Mobile Actions: Sign In (or User Menu) + Cart */}
+          {/* Mobile Actions: Sign In / Sign Up (or User Menu) + Cart */}
           <div className="ml-auto flex items-center gap-1.5 sm:gap-2 lg:hidden">
             {!isAuthenticated ? (
-              <Button
-                size="sm"
-                onClick={() => navigate("/login")}
-                className="h-8.5 rounded-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-3 shadow-xs shadow-orange-500/25 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
-              >
-                <User className="size-3.5" />
-                <span>Sign In</span>
-              </Button>
+              <div className="flex items-center gap-1.5">
+                <Link
+                  to="/login"
+                  className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
+                >
+                  <span>Sign in</span>
+                  <ArrowRight className="size-3.5 text-slate-600 dark:text-slate-300" />
+                </Link>
+                <Link
+                  to="/register"
+                  className="hidden min-[380px]:inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
+                >
+                  <span>Sign up</span>
+                  <ArrowRight className="size-3.5 text-slate-600 dark:text-slate-300" />
+                </Link>
+              </div>
             ) : (
               <DropdownMenu>
                 <DropdownMenuTrigger
@@ -271,20 +278,21 @@ export const MarketplaceNavbar = () => {
           <div className="flex items-center gap-3">
             {/* Auth Actions */}
             {!isAuthenticated ? (
-              <div className="hidden lg:flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => navigate("/login")}
-                  className="text-sm font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 h-9 px-4 rounded-full cursor-pointer"
+              <div className="hidden lg:flex items-center gap-2.5">
+                <Link
+                  to="/login"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95"
                 >
-                  Login
-                </Button>
-                <Button
-                  onClick={() => navigate("/register")}
-                  className="text-sm font-bold bg-orange-500 hover:bg-orange-600 text-white h-10 px-5 rounded-full shadow-md shadow-orange-500/25 cursor-pointer transition-all"
+                  <span>Sign in</span>
+                  <ArrowRight className="size-3.5 text-slate-600 dark:text-slate-300" />
+                </Link>
+                <Link
+                  to="/register"
+                  className="inline-flex items-center gap-2 px-4.5 py-2 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95"
                 >
-                  Get Started
-                </Button>
+                  <span>Sign up</span>
+                  <ArrowRight className="size-3.5 text-slate-600 dark:text-slate-300" />
+                </Link>
               </div>
             ) : (
               <div className="hidden lg:flex items-center gap-2">
