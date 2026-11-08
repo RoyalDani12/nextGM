@@ -6,27 +6,29 @@ import {
   useGenerateOnboardingLink,
 } from "./payouts.hooks";
 import {
+  Wallet,
+  Download,
+  RefreshCw,
   ArrowUpRight,
   ArrowDownLeft,
-  Building2,
-  ShieldCheck,
-  RefreshCw,
-  Download,
   Search,
+  Filter,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Check,
   CheckCircle2,
   AlertCircle,
   HelpCircle,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  TrendingUp,
-  TrendingDown,
+  Package,
+  Landmark,
   Activity,
   BarChart3,
-  Landmark,
-  CreditCard,
+  Loader2,
+  ShieldCheck,
   ExternalLink,
-  Check,
 } from "lucide-react";
 import {
   AreaChart,
@@ -39,7 +41,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -64,6 +65,14 @@ const formatUSD = (val: number) => {
   }).format(val || 0);
 };
 
+const TYPE_OPTIONS = [
+  { value: "ALL", label: "All Types" },
+  { value: "CREDIT", label: "Credits (Orders)" },
+  { value: "DEBIT", label: "Payouts (Withdrawals)" },
+];
+
+const LIMIT_OPTIONS = [10, 20, 50, 100];
+
 export function PayoutDashboard() {
   const { shopId = "" } = useParams<{ shopId: string }>();
 
@@ -83,16 +92,13 @@ export function PayoutDashboard() {
   const [localError, setLocalError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Analytics & Filtering
-  const [activeChartTab, setActiveChartTab] = useState<"balance" | "cashflow">(
-    "balance"
-  );
-  const [filterType, setFilterType] = useState<"ALL" | "DEBIT" | "CREDIT">("ALL");
+  // Search & Filter Dropdowns matching the image UX
+  const [searchInput, setSearchInput] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
-
-  // Pagination states
-  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [filterType, setFilterType] = useState<"ALL" | "CREDIT" | "DEBIT">("ALL");
   const [pageSize, setPageSize] = useState<number>(10);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [openFilterDropdown, setOpenFilterDropdown] = useState<"type" | "status" | "limit" | null>(null);
 
   // Reset to page 1 whenever search, filter, or page size changes
   useEffect(() => {
@@ -104,8 +110,8 @@ export function PayoutDashboard() {
       <div className="flex min-h-[460px] items-center justify-center">
         <div className="text-center space-y-3">
           <Loader2 className="mx-auto size-7 animate-spin text-orange-500" />
-          <p className="text-xs font-medium text-slate-500 tracking-wide">
-            Retrieving ledger balances and bank settlement routing...
+          <p className="text-sm font-semibold text-slate-500">
+            Loading payout wallet & ledger balances...
           </p>
         </div>
       </div>
@@ -114,26 +120,25 @@ export function PayoutDashboard() {
 
   if (isError || !status) {
     return (
-      <div className="rounded-2xl border border-rose-200/90 bg-rose-50/50 p-8 text-center max-w-lg mx-auto space-y-4">
-        <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-8 text-center max-w-lg mx-auto space-y-4">
+        <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
           <AlertCircle className="size-6" />
         </div>
         <div>
           <h2 className="text-base font-bold text-slate-900">
-            Unable to connect to financial ledger
+            Failed to connect to ledger
           </h2>
-          <p className="mt-1 text-xs text-slate-600">
-            We encountered an issue retrieving your shop wallet balance. Please check
-            your connection and try again.
+          <p className="mt-1 text-xs text-slate-500">
+            Unable to reach the payout service. Please verify your connection and try again.
           </p>
         </div>
-        <Button
-          variant="outline"
+        <button
           onClick={() => refetch()}
-          className="rounded-xl border-slate-300 text-xs font-semibold cursor-pointer"
+          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-xl shadow-sm transition-all cursor-pointer"
         >
-          <RefreshCw className="mr-1.5 size-3.5" /> Retry Sync
-        </Button>
+          <RefreshCw size={14} />
+          Retry
+        </button>
       </div>
     );
   }
@@ -165,9 +170,6 @@ export function PayoutDashboard() {
     );
 
   const totalVolume = Math.max(balance + totalWithdrawn, totalEarned);
-  const withdrawablePct =
-    balance > 0 ? Math.round((maxWithdrawable / balance) * 100) : 0;
-  const reservePct = balance > 0 ? 100 - withdrawablePct : 0;
 
   // Chronological chart data
   const chronologicalTxs = [...transactions].reverse();
@@ -219,7 +221,7 @@ export function PayoutDashboard() {
 
     if (amountNum >= balance) {
       setLocalError(
-        "Sellers cannot withdraw their entire wallet balance. A 10% safety reserve must remain for refund and dispute security."
+        "Sellers cannot withdraw their entire wallet balance. A 10% safety reserve must remain for refund and dispute obligations."
       );
       return;
     }
@@ -262,6 +264,11 @@ export function PayoutDashboard() {
     }
   };
 
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearchQuery(searchInput);
+  };
+
   // Filter transactions
   const filteredTransactions = transactions.filter((tx) => {
     if (filterType !== "ALL" && tx.type !== filterType) return false;
@@ -283,6 +290,49 @@ export function PayoutDashboard() {
   const startIndex = (safePage - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, totalItems);
   const paginatedTransactions = filteredTransactions.slice(startIndex, endIndex);
+
+  // Pagination numbers helper (exact pattern from AdminUsersPage)
+  const renderPaginationNumbers = () => {
+    const pages: (number | string)[] = [];
+
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (safePage > 3) pages.push("...");
+      const start = Math.max(2, safePage - 1);
+      const end = Math.min(totalPages - 1, safePage + 1);
+      for (let i = start; i <= end; i++) {
+        if (!pages.includes(i)) pages.push(i);
+      }
+      if (safePage < totalPages - 2) pages.push("...");
+      if (!pages.includes(totalPages)) pages.push(totalPages);
+    }
+
+    return pages.map((p, idx) => {
+      if (p === "...") {
+        return (
+          <span key={`ellipsis-${idx}`} className="px-2 py-1 text-slate-400 text-xs select-none">
+            …
+          </span>
+        );
+      }
+      const isCurrent = p === safePage;
+      return (
+        <button
+          key={`page-${p}`}
+          onClick={() => setCurrentPage(Number(p))}
+          className={`size-8 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            isCurrent
+              ? "bg-orange-500 text-white font-bold shadow-sm shadow-orange-100"
+              : "text-slate-600 hover:bg-slate-100"
+          }`}
+        >
+          {p}
+        </button>
+      );
+    });
+  };
 
   // Export CSV handler
   const handleExportCSV = () => {
@@ -316,7 +366,7 @@ export function PayoutDashboard() {
         `"${Number(tx.balanceAfter).toFixed(2)}"`,
         `"${dateStr}"`,
         `"${timeStr}"`,
-        `"Settled"`,
+        `"Active"`,
         `"${(tx.note || "").replace(/"/g, '""')}"`,
         `"${tx.orderId || ""}"`,
       ].join(",");
@@ -324,98 +374,85 @@ export function PayoutDashboard() {
 
     const csvContent =
       "data:text/csv;charset=utf-8," + [headers.join(","), ...rows].join("\n");
-    const encodedUri = encodeURI(csvContent);
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute(
-      "download",
-      `ledger-${shopId || "shop"}-${new Date().toISOString().split("T")[0]}.csv`
-    );
+    link.href = url;
+    link.download = `ledger-report-${shopId || "shop"}-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const parsedWithdrawInput = parseFloat(withdrawAmount) || 0;
   const projectedRemaining = Math.max(0, balance - parsedWithdrawInput);
 
+  const currentTypeLabel =
+    TYPE_OPTIONS.find((t) => t.value === filterType)?.label || "All Types";
+
   return (
     <TooltipProvider>
-      <div className="mx-auto max-w-7xl space-y-6 sm:space-y-8 pb-12">
-        {/* ── 1. HEADER & GLOBAL ACTIONS ── */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200/80 pb-5">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-                Payouts & Balance
-              </h1>
-              {status.payoutsEnabled ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200/70">
-                  <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Stripe Direct Active
-                </span>
-              ) : status.stripeAccountId ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700 border border-amber-200/70">
-                  <span className="size-1.5 rounded-full bg-amber-500" />
-                  Verification In Review
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 border border-slate-200">
-                  <span className="size-1.5 rounded-full bg-slate-400" />
-                  Bank Account Unlinked
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-slate-500">
-              Audited shop wallet liquidity, automated order settlements, and bank wire transfers.
+      <div className="space-y-6">
+        {/* ── 1. HEADER SECTION (EXACT STYLE FROM IMAGE) ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2.5">
+              <Wallet className="size-6 text-orange-500" />
+              Payouts & Financial Center
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
+              {transactions.length > 0
+                ? `${transactions.length} total ledger records • Current balance: ${formatUSD(balance)}`
+                : "Real-time shop wallet liquidity, order settlement credits, and bank transfers"}
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-              disabled={isFetching}
-              className="h-9 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 text-xs font-semibold px-3 gap-1.5 cursor-pointer shadow-xs"
-              title="Refresh ledger balances"
-            >
-              <RefreshCw
-                className={`size-3.5 text-slate-500 ${isFetching ? "animate-spin" : ""}`}
-              />
-              <span>Sync</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
+          <div className="flex items-center gap-2.5">
+            {/* CSV Export Button */}
+            <button
               onClick={handleExportCSV}
               disabled={filteredTransactions.length === 0}
-              className="h-9 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 text-xs font-semibold px-3 gap-1.5 cursor-pointer shadow-xs"
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-40"
+              title="Export filtered transactions to CSV report"
             >
-              <Download className="size-3.5 text-slate-500" />
-              <span>Export CSV</span>
-            </Button>
+              <Download size={14} className="text-orange-500" />
+              Export CSV
+            </button>
 
-            <Button
-              size="sm"
+            {/* Sync Button */}
+            <button
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-40"
+              title="Sync live ledger balances"
+            >
+              <RefreshCw
+                size={14}
+                className={`text-slate-500 ${isFetching ? "animate-spin" : ""}`}
+              />
+              Sync
+            </button>
+
+            {/* Withdraw Button */}
+            <button
               onClick={() => {
                 setLocalError(null);
                 setWithdrawAmount("");
                 setIsTransferOpen(true);
               }}
               disabled={maxWithdrawable <= 0}
-              className="h-9 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold text-xs px-4 gap-1.5 cursor-pointer shadow-sm shadow-orange-600/20 disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-xl shadow-sm shadow-orange-100 transition-all cursor-pointer disabled:opacity-40"
             >
-              <ArrowUpRight className="size-3.5" />
-              <span>Withdraw Funds</span>
-            </Button>
+              <ArrowUpRight size={14} />
+              Withdraw Funds
+            </button>
           </div>
         </div>
 
-        {/* NOTIFICATIONS */}
+        {/* FEEDBACK ALERTS */}
         {localError && !isTransferOpen && (
-          <Alert variant="destructive" className="rounded-2xl border-rose-200 bg-rose-50/80 text-rose-900 py-3">
+          <Alert variant="destructive" className="rounded-2xl border-rose-200 bg-rose-50/80 text-rose-900 py-3 shadow-sm">
             <AlertCircle className="size-4 text-rose-600" />
             <AlertTitle className="text-xs font-bold">Transfer Notice</AlertTitle>
             <AlertDescription className="text-xs">{localError}</AlertDescription>
@@ -423,704 +460,733 @@ export function PayoutDashboard() {
         )}
 
         {successMsg && (
-          <Alert className="rounded-2xl border-emerald-200 bg-emerald-50/80 text-emerald-950 py-3 shadow-xs">
+          <Alert className="rounded-2xl border-emerald-200 bg-emerald-50/80 text-emerald-950 py-3 shadow-sm">
             <CheckCircle2 className="size-4 text-emerald-600" />
-            <AlertTitle className="text-xs font-bold">Payout Processed</AlertTitle>
+            <AlertTitle className="text-xs font-bold">Payout Completed</AlertTitle>
             <AlertDescription className="text-xs">{successMsg}</AlertDescription>
           </Alert>
         )}
 
-        {/* ── 2. FINANCIAL BALANCES OVERVIEW ── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* CARD 1: AVAILABLE LIVE BALANCE */}
-          <div className="relative rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex flex-col justify-between space-y-4">
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                  Wallet Balance
-                </span>
-                <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">
-                  USD
-                </span>
-              </div>
-              <div className="flex items-baseline gap-2 pt-0.5">
-                <span className="text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
+        {/* ── 2. FINANCIAL BALANCES OVERVIEW CARDS (PIPELINE STYLE FROM REFERENCE) ── */}
+        <div>
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">
+            Financial Metrics Overview
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* CARD 1: WALLET BALANCE (ORANGE THEME) */}
+            <div className="rounded-2xl border border-orange-200/70 bg-orange-50/50 p-3.5 sm:p-4 transition-all hover:shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-orange-800">Wallet Balance</span>
+                  <Wallet className="size-4 text-orange-600" />
+                </div>
+                <div className="mt-2 text-lg sm:text-xl lg:text-2xl font-black text-orange-950 tabular-nums">
                   {formatUSD(balance)}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 pt-0.5">
-                Total net funds held in double-entry merchant ledger.
-              </p>
-            </div>
-
-            {/* WITHDRAWABLE VS RESERVE TRACK */}
-            <div className="space-y-2 pt-2 border-t border-slate-100">
-              <div className="flex items-center justify-between text-[11px] text-slate-600">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <span className="size-1.5 rounded-full bg-emerald-500" />
-                  Withdrawable: <strong className="font-semibold text-slate-800">{formatUSD(maxWithdrawable)}</strong>
-                </span>
-                <span className="text-slate-400">({withdrawablePct}%)</span>
+                </div>
+                <p className="text-[11px] text-orange-700/80 mt-0.5 truncate">
+                  Net funds available in ledger
+                </p>
               </div>
 
-              <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden flex p-0.5 border border-slate-200/60">
-                {withdrawablePct > 0 && (
-                  <div
-                    style={{ width: `${withdrawablePct}%` }}
-                    className="h-full rounded-full bg-emerald-500 transition-all duration-300"
-                    title={`Available to transfer: ${formatUSD(maxWithdrawable)}`}
-                  />
-                )}
-                {reservePct > 0 && (
-                  <div
-                    style={{ width: `${reservePct}%` }}
-                    className="h-full rounded-full bg-amber-400 transition-all duration-300 ml-0.5"
-                    title={`Safety reserve buffer: ${formatUSD(reserveAmount)}`}
-                  />
+              <div className="mt-2.5 pt-2 border-t border-orange-200/60 flex items-center justify-between text-[11px] text-orange-900/80">
+                <span className="font-medium truncate">
+                  Withdrawable: <strong className="font-bold text-orange-950">{formatUSD(maxWithdrawable)}</strong>
+                </span>
+                {maxWithdrawable > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsTransferOpen(true)}
+                    className="font-bold text-orange-600 hover:text-orange-700 hover:underline cursor-pointer shrink-0 ml-1"
+                  >
+                    Withdraw →
+                  </button>
+                ) : (
+                  <span className="text-orange-600/70 text-[10px] font-semibold shrink-0">Reserve only</span>
                 )}
               </div>
-
-              <div className="flex items-center justify-between text-[10px] text-slate-400">
-                <span>Reserve Buffer (10%): {formatUSD(reserveAmount)}</span>
-                <button
-                  type="button"
-                  onClick={() => setIsTransferOpen(true)}
-                  disabled={maxWithdrawable <= 0}
-                  className="font-semibold text-orange-600 hover:text-orange-700 disabled:opacity-40 cursor-pointer"
-                >
-                  Withdraw →
-                </button>
-              </div>
             </div>
-          </div>
 
-          {/* CARD 2: SAFETY RESERVE BUFFER */}
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex flex-col justify-between space-y-4">
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                  Safety Reserve
-                </span>
-                <UiTooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      className="text-slate-400 hover:text-slate-600 transition-colors cursor-help"
-                    >
-                      <HelpCircle className="size-3.5" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs text-xs p-2.5 bg-slate-900 text-slate-100 rounded-xl">
-                    Standard 10% rolling reserve (min $10.00) held to cover customer refund settlements, chargeback disputes, and order adjustments.
-                  </TooltipContent>
-                </UiTooltip>
-              </div>
-              <div className="flex items-baseline gap-2 pt-0.5">
-                <span className="text-3xl font-bold tracking-tight text-amber-700 tabular-nums">
+            {/* CARD 2: SAFETY RESERVE (AMBER THEME) */}
+            <div className="rounded-2xl border border-amber-200/70 bg-amber-50/50 p-3.5 sm:p-4 transition-all hover:shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-800">Safety Reserve</span>
+                  <ShieldCheck className="size-4 text-amber-600" />
+                </div>
+                <div className="mt-2 text-lg sm:text-xl lg:text-2xl font-black text-amber-950 tabular-nums">
                   {formatUSD(reserveAmount)}
-                </span>
+                </div>
+                <p className="text-[11px] text-amber-700/80 mt-0.5 truncate">
+                  10% return & dispute buffer
+                </p>
               </div>
-              <p className="text-[11px] text-slate-500 pt-0.5">
-                10% minimum buffer retained for customer dispute protection.
-              </p>
+
+              <div className="mt-2.5 pt-2 border-t border-amber-200/60 flex items-center justify-between text-[11px] text-amber-900/80">
+                <span className="font-medium">Reserve Floor</span>
+                <span className="font-semibold text-amber-950">$10.00 min buffer</span>
+              </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-              <span className="inline-flex items-center gap-1.5 text-amber-700 font-medium">
-                <ShieldCheck className="size-3.5 text-amber-600" />
-                Reserve Protection
-              </span>
-              <span className="text-slate-400 font-mono text-[10px]">Min: $10.00</span>
-            </div>
-          </div>
-
-          {/* CARD 3: TOTAL WITHDRAWN */}
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex flex-col justify-between space-y-4">
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                  Total Withdrawn
-                </span>
-                <TrendingDown className="size-3.5 text-slate-400" />
-              </div>
-              <div className="flex items-baseline gap-2 pt-0.5">
-                <span className="text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
+            {/* CARD 3: TOTAL WITHDRAWN (VIOLET THEME) */}
+            <div className="rounded-2xl border border-violet-200/70 bg-violet-50/50 p-3.5 sm:p-4 transition-all hover:shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-violet-800">Total Withdrawn</span>
+                  <ArrowUpRight className="size-4 text-violet-600" />
+                </div>
+                <div className="mt-2 text-lg sm:text-xl lg:text-2xl font-black text-violet-950 tabular-nums">
                   {formatUSD(totalWithdrawn)}
+                </div>
+                <p className="text-[11px] text-violet-700/80 mt-0.5 truncate">
+                  Lifetime bank payouts
+                </p>
+              </div>
+
+              <div className="mt-2.5 pt-2 border-t border-violet-200/60 flex items-center justify-between text-[11px] text-violet-900/80">
+                <span className="font-medium">Settled Transfers</span>
+                <span className="font-semibold text-violet-950">
+                  {transactions.filter((t) => t.type === "DEBIT").length} completed
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 pt-0.5">
-                Lifetime funds transferred to your designated bank account.
-              </p>
             </div>
 
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-              <span>Payout Transfers</span>
-              <span className="font-semibold text-slate-800">
-                {transactions.filter((t) => t.type === "DEBIT").length} completed
-              </span>
-            </div>
-          </div>
-
-          {/* CARD 4: GROSS SALES EARNINGS */}
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex flex-col justify-between space-y-4">
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                  Net Order Earnings
-                </span>
-                <TrendingUp className="size-3.5 text-emerald-600" />
-              </div>
-              <div className="flex items-baseline gap-2 pt-0.5">
-                <span className="text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
+            {/* CARD 4: NET ORDER EARNINGS (EMERALD THEME) */}
+            <div className="rounded-2xl border border-emerald-200/70 bg-emerald-50/50 p-3.5 sm:p-4 transition-all hover:shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-emerald-800">Net Sales Credited</span>
+                  <CheckCircle2 className="size-4 text-emerald-600" />
+                </div>
+                <div className="mt-2 text-lg sm:text-xl lg:text-2xl font-black text-emerald-950 tabular-nums">
                   {formatUSD(totalEarned)}
-                </span>
+                </div>
+                <p className="text-[11px] text-emerald-700/80 mt-0.5 truncate">
+                  Net sales after 10% fee
+                </p>
               </div>
-              <p className="text-[11px] text-slate-500 pt-0.5">
-                90% merchant settlement credit from fulfilled orders.
-              </p>
-            </div>
 
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-              <span>Lifetime Gross</span>
-              <span className="font-semibold text-slate-800">{formatUSD(totalVolume)}</span>
+              <div className="mt-2.5 pt-2 border-t border-emerald-200/60 flex items-center justify-between text-[11px] text-emerald-900/80">
+                <span className="font-medium">Gross Sales</span>
+                <span className="font-semibold text-emerald-950">{formatUSD(totalVolume)}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* ── 3. CONNECTED BANK & PAYOUT DESTINATION STRIP ── */}
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start sm:items-center gap-3.5">
-              <div className="flex size-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700 shrink-0 border border-slate-200/60">
-                <Building2 className="size-5 text-slate-600" />
-              </div>
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xs font-bold text-slate-900">
-                    Stripe Express Bank Deposit
-                  </h3>
-                  {status.payoutsEnabled ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200">
-                      <Check className="size-3 text-emerald-600" />
-                      Active Route
-                    </span>
-                  ) : status.stripeAccountId ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 border border-amber-200">
-                      Pending Verification
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                      Not Linked
-                    </span>
-                  )}
-                </div>
-                <p className="text-[11px] text-slate-500">
-                  {status.stripeAccountId ? (
-                    <span>
-                      Account:{" "}
-                      <strong className="font-mono text-slate-700">
-                        {status.stripeAccountId}
-                      </strong>{" "}
-                      • Direct wire routing with zero platform transfer fee.
-                    </span>
-                  ) : (
-                    <span>
-                      Connect a bank account to enable direct payouts and instant withdrawals.
-                    </span>
-                  )}
+        {/* ── 3. CONNECTED BANK BANNER ── */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="size-10 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center font-bold text-slate-700 shrink-0">
+              <Landmark size={18} className="text-slate-600" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="font-semibold text-slate-900 text-sm">
+                  Stripe Express Direct Deposit
                 </p>
+                {status.payoutsEnabled ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border bg-emerald-50 text-emerald-700 border-emerald-200">
+                    <span className="size-1.5 rounded-full bg-emerald-500" />
+                    Active
+                  </span>
+                ) : status.stripeAccountId ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border bg-amber-50 text-amber-700 border-amber-200">
+                    <span className="size-1.5 rounded-full bg-amber-500" />
+                    Pending
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border bg-slate-100 text-slate-600 border-slate-200">
+                    <span className="size-1.5 rounded-full bg-slate-400" />
+                    Unlinked
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {status.stripeAccountId ? (
+                  <span>
+                    Connected Account:{" "}
+                    <strong className="font-mono text-slate-700">
+                      {status.stripeAccountId}
+                    </strong>{" "}
+                    • Zero platform wire fees
+                  </span>
+                ) : (
+                  "Connect your bank via Stripe Express to enable instant withdrawals."
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="shrink-0 self-end sm:self-auto">
+            {status.payoutsEnabled ? (
+              <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl inline-flex items-center gap-1.5">
+                <Check size={13} className="text-emerald-600" />
+                Settlement Ready
+              </span>
+            ) : (
+              <button
+                onClick={handleConnectBank}
+                disabled={onboardingMutation.isPending}
+                className="px-4 py-2 text-xs font-bold bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-sm shadow-orange-100 transition-all cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {onboardingMutation.isPending ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <ExternalLink size={13} />
+                    {status.stripeAccountId ? "Complete Verification" : "Connect Stripe Account"}
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ── 4. ANALYTICS & TRAJECTORY (SIDE BY SIDE) ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* CHART 1: WALLET BALANCE TRAJECTORY */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Activity size={15} className="text-orange-500" />
+                  Wallet Balance Trajectory
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Historical balance curve of available ledger funds
+                </p>
+              </div>
+
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-orange-50 text-orange-700 border-orange-200 shrink-0">
+                Current: {formatUSD(balance)}
+              </span>
+            </div>
+
+            {chartData.length === 0 ? (
+              <div className="h-60 w-full flex flex-col items-center justify-center text-center p-6 text-slate-400 space-y-1">
+                <Activity className="size-8 opacity-30 mb-2" />
+                <p className="font-semibold text-slate-700 text-sm">No balance history yet</p>
+                <p className="text-xs text-slate-400 max-w-xs">
+                  As orders settle and payouts transfer, your balance curve will track here.
+                </p>
+              </div>
+            ) : (
+              <div className="h-60 w-full pt-1">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={chartData}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="chartBalanceGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.18} />
+                        <stop offset="95%" stopColor="#f97316" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 11, fill: "#94a3b8" }}
+                      tickLine={false}
+                      axisLine={{ stroke: "#e2e8f0" }}
+                    />
+                    <YAxis
+                      tickFormatter={(v) => `$${v}`}
+                      tick={{ fontSize: 11, fill: "#94a3b8" }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#ffffff",
+                        borderColor: "#e2e8f0",
+                        borderRadius: "12px",
+                        boxShadow: "0 10px 25px -5px rgba(15, 23, 42, 0.08)",
+                        fontSize: "12px",
+                        color: "#0f172a",
+                        padding: "8px 12px",
+                        fontWeight: 600,
+                      }}
+                      itemStyle={{
+                        color: "#0f172a",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                      }}
+                      labelStyle={{
+                        color: "#64748b",
+                        fontSize: "11px",
+                        fontWeight: 500,
+                        marginBottom: "4px",
+                      }}
+                      formatter={(val: any) => [`${formatUSD(Number(val))}`, "Wallet Balance"]}
+                      labelFormatter={(label) => `Date: ${label}`}
+                      cursor={{ stroke: "#ea580c", strokeWidth: 1.5, strokeDasharray: "4 4" }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="balance"
+                      stroke="#ea580c"
+                      strokeWidth={2}
+                      fill="url(#chartBalanceGrad)"
+                      name="Balance"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-slate-100">
+              <span className="flex items-center gap-1.5 font-medium">
+                <span className="size-2 rounded-full bg-orange-500" />
+                Available Trajectory
+              </span>
+              <span className="font-mono font-bold text-slate-900">{formatUSD(balance)}</span>
+            </div>
+          </div>
+
+          {/* CHART 2: CASH INFLOW & OUTFLOW */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <BarChart3 size={15} className="text-emerald-600" />
+                  Cash Inflow & Outflow
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Order settlement credits vs bank payouts
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-emerald-50 text-emerald-700 border-emerald-200">
+                  <span className="size-1.5 rounded-full bg-emerald-500" />
+                  Credits
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-rose-50 text-rose-700 border-rose-200">
+                  <span className="size-1.5 rounded-full bg-rose-500" />
+                  Payouts
+                </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
-              {status.payoutsEnabled ? (
-                <div className="text-right hidden sm:block">
-                  <p className="text-[11px] font-semibold text-slate-700">
-                    Settlement Speed
-                  </p>
-                  <p className="text-[10px] text-slate-400">
-                    Instant transfer to connected account
-                  </p>
-                </div>
-              ) : (
-                <Button
-                  size="sm"
-                  onClick={handleConnectBank}
-                  disabled={onboardingMutation.isPending}
-                  className="rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs h-8.5 px-3.5 gap-1.5 cursor-pointer shadow-xs"
-                >
-                  {onboardingMutation.isPending ? (
-                    <>
-                      <Loader2 className="size-3.5 animate-spin" />
-                      <span>Connecting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <ExternalLink className="size-3.5" />
-                      <span>{status.stripeAccountId ? "Complete Onboarding" : "Connect Stripe Account"}</span>
-                    </>
-                  )}
-                </Button>
+            {chartData.length === 0 ? (
+              <div className="h-60 w-full flex flex-col items-center justify-center text-center p-6 text-slate-400 space-y-1">
+                <BarChart3 className="size-8 opacity-30 mb-2" />
+                <p className="font-semibold text-slate-700 text-sm">No cash flow recorded yet</p>
+                <p className="text-xs text-slate-400 max-w-xs">
+                  Order credit settlements and bank debit transfers will appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="h-60 w-full pt-1">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={chartData}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 11, fill: "#94a3b8" }}
+                      tickLine={false}
+                      axisLine={{ stroke: "#e2e8f0" }}
+                    />
+                    <YAxis
+                      tickFormatter={(v) => `$${v}`}
+                      tick={{ fontSize: 11, fill: "#94a3b8" }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#ffffff",
+                        borderColor: "#e2e8f0",
+                        borderRadius: "12px",
+                        boxShadow: "0 10px 25px -5px rgba(15, 23, 42, 0.08)",
+                        fontSize: "12px",
+                        color: "#0f172a",
+                        padding: "8px 12px",
+                        fontWeight: 600,
+                      }}
+                      itemStyle={{
+                        fontSize: "12px",
+                        fontWeight: 600,
+                      }}
+                      labelStyle={{
+                        color: "#64748b",
+                        fontSize: "11px",
+                        fontWeight: 500,
+                        marginBottom: "4px",
+                      }}
+                      formatter={(val: any, name: any) => [
+                        `${formatUSD(Number(val))}`,
+                        name === "credit" ? "Order Settlement" : "Bank Payout",
+                      ]}
+                      cursor={{ fill: "rgba(241, 245, 249, 0.5)", radius: 6 }}
+                    />
+                    <Bar dataKey="credit" fill="#10b981" radius={[4, 4, 0, 0]} name="credit" />
+                    <Bar dataKey="withdrawal" fill="#f43f5e" radius={[4, 4, 0, 0]} name="withdrawal" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-slate-100">
+              <span className="font-medium text-emerald-700">Credits: +{formatUSD(totalEarned)}</span>
+              <span className="font-medium text-rose-600">Withdrawn: -{formatUSD(totalWithdrawn)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ── 5. TOP SEARCH & INTERACTIVE FILTER DROPDOWNS (EXACT STYLE FROM IMAGE) ── */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 flex flex-col md:flex-row gap-3">
+          <form onSubmit={handleSearchSubmit} className="flex gap-2 flex-1">
+            <div className="relative flex-1">
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search by note, transaction ID, or order..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+              />
+            </div>
+            <button
+              type="submit"
+              className="px-5 py-2.5 text-sm font-bold bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-sm shadow-orange-100 transition-all shrink-0 cursor-pointer"
+            >
+              Search
+            </button>
+          </form>
+
+          {/* Filter Dropdown Buttons */}
+          <div className="flex flex-wrap items-center gap-2 relative">
+            {/* Type Filter Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenFilterDropdown(openFilterDropdown === "type" ? null : "type");
+                }}
+                className={`inline-flex items-center gap-2 px-3.5 py-2.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
+                  filterType !== "ALL"
+                    ? "bg-orange-50 text-orange-700 border-orange-200"
+                    : "bg-slate-50/50 hover:bg-white text-slate-700 border-slate-200"
+                }`}
+              >
+                <Filter size={13} className={filterType !== "ALL" ? "text-orange-500" : "text-slate-400"} />
+                <span>{currentTypeLabel}</span>
+                <ChevronDown size={13} className="text-slate-400" />
+              </button>
+
+              {openFilterDropdown === "type" && (
+                <>
+                  <div className="fixed inset-0 z-20" onClick={() => setOpenFilterDropdown(null)} />
+                  <div className="absolute right-0 top-full mt-1.5 z-30 w-44 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 animate-in fade-in zoom-in-95 duration-150">
+                    {TYPE_OPTIONS.map((t) => (
+                      <button
+                        key={t.value}
+                        onClick={() => {
+                          setFilterType(t.value as any);
+                          setCurrentPage(1);
+                          setOpenFilterDropdown(null);
+                        }}
+                        className={`w-full px-3.5 py-2 text-xs flex items-center justify-between font-medium transition-colors cursor-pointer ${
+                          filterType === t.value
+                            ? "bg-orange-50 text-orange-700 font-bold"
+                            : "text-slate-700 hover:bg-slate-50"
+                        }`}
+                      >
+                        <span>{t.label}</span>
+                        {filterType === t.value && <Check size={13} className="text-orange-500" />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Status Filter Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenFilterDropdown(openFilterDropdown === "status" ? null : "status");
+                }}
+                className="inline-flex items-center gap-2 px-3.5 py-2.5 text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white text-slate-700 transition-all cursor-pointer"
+              >
+                <span className="size-1.5 rounded-full bg-emerald-500" />
+                <span>All Statuses</span>
+                <ChevronDown size={13} className="text-slate-400" />
+              </button>
+
+              {openFilterDropdown === "status" && (
+                <>
+                  <div className="fixed inset-0 z-20" onClick={() => setOpenFilterDropdown(null)} />
+                  <div className="absolute right-0 top-full mt-1.5 z-30 w-40 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 animate-in fade-in zoom-in-95 duration-150">
+                    <button
+                      onClick={() => setOpenFilterDropdown(null)}
+                      className="w-full px-3.5 py-2 text-xs flex items-center justify-between font-medium text-orange-700 bg-orange-50 font-bold cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="size-1.5 rounded-full bg-emerald-500" />
+                        <span>All (Active)</span>
+                      </div>
+                      <Check size={13} className="text-orange-500" />
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Per Page Limit Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenFilterDropdown(openFilterDropdown === "limit" ? null : "limit");
+                }}
+                className="inline-flex items-center gap-2 px-3.5 py-2.5 text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white text-slate-700 transition-all cursor-pointer"
+              >
+                <span>{pageSize} per page</span>
+                <ChevronDown size={13} className="text-slate-400" />
+              </button>
+
+              {openFilterDropdown === "limit" && (
+                <>
+                  <div className="fixed inset-0 z-20" onClick={() => setOpenFilterDropdown(null)} />
+                  <div className="absolute right-0 top-full mt-1.5 z-30 w-36 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 animate-in fade-in zoom-in-95 duration-150">
+                    {LIMIT_OPTIONS.map((lim) => (
+                      <button
+                        key={lim}
+                        onClick={() => {
+                          setPageSize(lim);
+                          setCurrentPage(1);
+                          setOpenFilterDropdown(null);
+                        }}
+                        className={`w-full px-3.5 py-2 text-xs flex items-center justify-between font-medium transition-colors cursor-pointer ${
+                          pageSize === lim
+                            ? "bg-orange-50 text-orange-700 font-bold"
+                            : "text-slate-700 hover:bg-slate-50"
+                        }`}
+                      >
+                        <span>{lim} per page</span>
+                        {pageSize === lim && <Check size={13} className="text-orange-500" />}
+                      </button>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           </div>
         </div>
 
-        {/* ── 4. FINANCIAL ANALYTICS & VISUAL TRAJECTORY ── */}
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
-            <div>
-              <h2 className="text-sm font-bold text-slate-900">
-                Financial Trajectory & Cash Flow
-              </h2>
-              <p className="text-[11px] text-slate-500 mt-0.5">
-                Real-time ledger curve from settled orders and direct withdrawal debits.
-              </p>
-            </div>
-
-            {/* TAB SELECTOR */}
-            <div className="flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200/70 shrink-0">
-              <button
-                type="button"
-                onClick={() => setActiveChartTab("balance")}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                  activeChartTab === "balance"
-                    ? "bg-white text-slate-900 shadow-2xs font-bold"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <Activity className="size-3.5 text-orange-500" />
-                <span>Balance Curve</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveChartTab("cashflow")}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                  activeChartTab === "cashflow"
-                    ? "bg-white text-slate-900 shadow-2xs font-bold"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <BarChart3 className="size-3.5 text-emerald-600" />
-                <span>Inflow & Outflow</span>
-              </button>
-            </div>
-          </div>
-
-          {/* CHART CANVAS */}
-          {chartData.length === 0 ? (
-            <div className="h-64 w-full flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-slate-100 text-slate-400 mb-2.5">
-                <BarChart3 className="size-5" />
-              </div>
-              <p className="text-xs font-bold text-slate-800">
-                No ledger activity recorded yet
-              </p>
-              <p className="text-[11px] text-slate-500 max-w-sm mt-1">
-                When your store receives customer orders or issues payout transfers, your financial trajectory will graph here automatically.
-              </p>
-            </div>
-          ) : activeChartTab === "balance" ? (
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={chartData}
-                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="fintechBalanceGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f97316" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="#f97316" stopOpacity={0.0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 11, fill: "#94a3b8" }}
-                    tickLine={false}
-                    axisLine={{ stroke: "#e2e8f0" }}
-                  />
-                  <YAxis
-                    tickFormatter={(v) => `$${v}`}
-                    tick={{ fontSize: 11, fill: "#94a3b8" }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#0f172a",
-                      borderColor: "#1e293b",
-                      borderRadius: "12px",
-                      boxShadow: "0 10px 25px -5px rgb(0 0 0 / 0.25)",
-                      fontSize: "12px",
-                      color: "#f8fafc",
-                      padding: "8px 12px",
-                    }}
-                    formatter={(val: any) => [`${formatUSD(Number(val))}`, "Ledger Balance"]}
-                    labelFormatter={(label) => `Date: ${label}`}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="balance"
-                    stroke="#ea580c"
-                    strokeWidth={2}
-                    fill="url(#fintechBalanceGrad)"
-                    name="Balance"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={chartData}
-                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 11, fill: "#94a3b8" }}
-                    tickLine={false}
-                    axisLine={{ stroke: "#e2e8f0" }}
-                  />
-                  <YAxis
-                    tickFormatter={(v) => `$${v}`}
-                    tick={{ fontSize: 11, fill: "#94a3b8" }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#0f172a",
-                      borderColor: "#1e293b",
-                      borderRadius: "12px",
-                      boxShadow: "0 10px 25px -5px rgb(0 0 0 / 0.25)",
-                      fontSize: "12px",
-                      color: "#f8fafc",
-                      padding: "8px 12px",
-                    }}
-                    formatter={(val: any, name: any) => [
-                      `${formatUSD(Number(val))}`,
-                      name === "credit" ? "Order Settlement" : "Bank Payout",
-                    ]}
-                  />
-                  <Bar
-                    dataKey="credit"
-                    fill="#10b981"
-                    radius={[4, 4, 0, 0]}
-                    name="credit"
-                  />
-                  <Bar
-                    dataKey="withdrawal"
-                    fill="#f43f5e"
-                    radius={[4, 4, 0, 0]}
-                    name="withdrawal"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-100 gap-2">
-            <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1.5 font-medium">
-                <span className="size-2 rounded-full bg-emerald-500" />
-                Settlements: +{formatUSD(totalEarned)}
-              </span>
-              <span className="flex items-center gap-1.5 font-medium">
-                <span className="size-2 rounded-full bg-rose-500" />
-                Withdrawn: -{formatUSD(totalWithdrawn)}
-              </span>
-            </div>
-            <span className="font-medium text-slate-600">
-              Current Ledger Position:{" "}
-              <strong className="font-mono text-slate-900">{formatUSD(balance)}</strong>
-            </span>
-          </div>
-        </div>
-
-        {/* ── 5. TRANSACTION & LEDGER AUDIT TABLE ── */}
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4">
-            <div>
-              <h2 className="text-sm font-bold text-slate-900">
-                Ledger Activity & Audited Transactions
-              </h2>
-              <p className="text-[11px] text-slate-500 mt-0.5">
-                Complete journal entries of sales credits and direct deposit debits.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2.5">
-              {/* FILTER PILLS */}
-              <div className="flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200/60 text-xs font-semibold">
-                <button
-                  type="button"
-                  onClick={() => setFilterType("ALL")}
-                  className={`rounded-lg px-2.5 py-1 transition-all cursor-pointer ${
-                    filterType === "ALL"
-                      ? "bg-white text-slate-900 shadow-2xs font-bold"
-                      : "text-slate-500 hover:text-slate-900"
-                  }`}
-                >
-                  All ({transactions.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterType("CREDIT")}
-                  className={`rounded-lg px-2.5 py-1 transition-all cursor-pointer ${
-                    filterType === "CREDIT"
-                      ? "bg-white text-emerald-800 shadow-2xs font-bold"
-                      : "text-slate-500 hover:text-slate-900"
-                  }`}
-                >
-                  Credits ({transactions.filter((t) => t.type === "CREDIT").length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterType("DEBIT")}
-                  className={`rounded-lg px-2.5 py-1 transition-all cursor-pointer ${
-                    filterType === "DEBIT"
-                      ? "bg-white text-rose-800 shadow-2xs font-bold"
-                      : "text-slate-500 hover:text-slate-900"
-                  }`}
-                >
-                  Payouts ({transactions.filter((t) => t.type === "DEBIT").length})
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* SEARCH & CONTROLS */}
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-            <div className="relative flex-1 w-full">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search transactions by reference, note, order ID, or amount..."
-                className="w-full rounded-xl border border-slate-200/90 py-2 pl-9 pr-4 text-xs font-medium text-slate-800 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20"
-              />
-            </div>
-
-            <div className="flex items-center gap-2 self-end sm:self-auto text-xs text-slate-500 shrink-0">
-              <span className="text-[11px] text-slate-400 font-medium">Rows:</span>
-              <select
-                value={pageSize}
-                onChange={(e) => setPageSize(Number(e.target.value))}
-                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 outline-none focus:border-orange-500 cursor-pointer"
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-              </select>
-            </div>
-          </div>
-
-          {/* TABLE */}
+        {/* ── 6. TABLE CONTAINER (EXACT STYLE FROM IMAGE) ── */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
           {filteredTransactions.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-200 p-10 text-center space-y-2">
-              <div className="mx-auto flex size-10 items-center justify-center rounded-xl bg-slate-50 text-slate-400">
-                <CreditCard className="size-5" />
-              </div>
-              <p className="text-xs font-bold text-slate-800">
+            <div className="p-16 text-center text-slate-400 space-y-1">
+              <Wallet className="mx-auto size-12 opacity-30 mb-3" />
+              <p className="font-semibold text-slate-700 text-base">No transactions found</p>
+              <p className="text-xs text-slate-400">
                 {transactions.length === 0
-                  ? "No financial transactions recorded"
-                  : "No matching transactions found"}
-              </p>
-              <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
-                {transactions.length === 0
-                  ? "Completed customer orders and bank payouts will be logged here."
+                  ? "When you receive customer orders or make withdrawals, they will appear here."
                   : "Try clearing search filters or entering a different query."}
               </p>
             </div>
           ) : (
-            <>
-              <div className="overflow-x-auto ds-scroll rounded-xl border border-slate-200/70">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50/70 text-[11px] font-semibold text-slate-500">
-                      <th className="py-2.5 pl-3">Type & Reference</th>
-                      <th className="py-2.5 px-2">Description</th>
-                      <th className="py-2.5 px-2">Timestamp</th>
-                      <th className="py-2.5 px-2 text-right">Amount</th>
-                      <th className="py-2.5 px-2 text-right">Ledger Balance</th>
-                      <th className="py-2.5 pr-3 text-right">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 bg-white">
-                    {paginatedTransactions.map((tx) => {
-                      const isDebit = tx.type === "DEBIT";
-                      const dateObj = new Date(tx.createdAt);
-                      const formattedDate = dateObj.toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      });
-                      const formattedTime = dateObj.toLocaleTimeString("en-US", {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      });
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-slate-50/70 border-b border-slate-200/80 text-xs text-slate-500 uppercase tracking-wider font-semibold">
+                  <tr>
+                    <th className="px-5 py-3.5">Transaction Identity</th>
+                    <th className="px-5 py-3.5">Type</th>
+                    <th className="px-5 py-3.5">Status</th>
+                    <th className="px-5 py-3.5">Order / Source</th>
+                    <th className="px-5 py-3.5">Date</th>
+                    <th className="px-5 py-3.5 text-right">Amount (USD)</th>
+                    <th className="px-5 py-3.5 text-right">Balance After</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {paginatedTransactions.map((tx) => {
+                    const isDebit = tx.type === "DEBIT";
+                    const dateObj = new Date(tx.createdAt);
+                    const formattedDate = dateObj.toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    });
+                    const formattedTime = dateObj.toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    });
 
-                      return (
-                        <tr
-                          key={tx.id}
-                          className="hover:bg-slate-50/60 transition-colors"
-                        >
-                          <td className="py-3 pl-3">
-                            <div className="flex items-center gap-2.5">
-                              <div
-                                className={`flex size-7 items-center justify-center rounded-lg shrink-0 ${
-                                  isDebit
-                                    ? "bg-rose-50 text-rose-600 border border-rose-200/60"
-                                    : "bg-emerald-50 text-emerald-600 border border-emerald-200/60"
-                                }`}
-                              >
-                                {isDebit ? (
-                                  <ArrowUpRight className="size-3.5" />
-                                ) : (
-                                  <ArrowDownLeft className="size-3.5" />
-                                )}
-                              </div>
-                              <div className="min-w-0">
-                                <p className="font-semibold text-slate-900 leading-tight">
-                                  {isDebit ? "Bank Payout" : "Order Settlement"}
-                                </p>
-                                <p className="font-mono text-[10px] text-slate-400 truncate max-w-[120px]">
-                                  {tx.id}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-
-                          <td className="py-3 px-2 font-medium text-slate-600">
-                            <p className="truncate max-w-[260px] text-xs">
-                              {tx.note || (isDebit ? "Direct Bank Payout" : "Net sales settlement")}
-                            </p>
-                            {tx.orderId && (
-                              <span className="font-mono text-[10px] text-slate-400">
-                                Order #{tx.orderId.slice(-8)}
-                              </span>
-                            )}
-                          </td>
-
-                          <td className="py-3 px-2 text-slate-500 whitespace-nowrap">
-                            <p className="font-medium text-slate-700">{formattedDate}</p>
-                            <p className="text-[10px] text-slate-400">{formattedTime}</p>
-                          </td>
-
-                          <td className="py-3 px-2 text-right font-semibold whitespace-nowrap tabular-nums">
-                            <span
-                              className={isDebit ? "text-slate-900" : "text-emerald-700 font-bold"}
+                    return (
+                      <tr key={tx.id} className="hover:bg-slate-50/60 transition-colors">
+                        {/* Transaction Identity */}
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`size-10 rounded-full border flex items-center justify-center font-bold text-xs shrink-0 ${
+                                isDebit
+                                  ? "bg-rose-50 text-rose-600 border-rose-200/70"
+                                  : "bg-emerald-50 text-emerald-700 border-emerald-200/70"
+                              }`}
                             >
-                              {isDebit ? "-" : "+"}
-                              {formatUSD(Number(tx.amount))}
+                              {isDebit ? <ArrowUpRight size={16} /> : <ArrowDownLeft size={16} />}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-slate-900 leading-tight">
+                                {isDebit ? "Direct Bank Payout" : "Customer Order Credit"}
+                              </p>
+                              <p className="text-xs text-slate-400 font-mono mt-0.5">
+                                {tx.id}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Type Badge (Exact RoleBadge style from image) */}
+                        <td className="px-5 py-4 whitespace-nowrap">
+                          {isDebit ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-orange-50 text-orange-700 border-orange-200">
+                              SHOP PAYOUT
                             </span>
-                          </td>
-
-                          <td className="py-3 px-2 text-right font-mono font-medium text-slate-600 whitespace-nowrap tabular-nums">
-                            {formatUSD(Number(tx.balanceAfter))}
-                          </td>
-
-                          <td className="py-3 pr-3 text-right">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200/60">
-                              <span className="size-1 rounded-full bg-emerald-500" />
-                              Settled
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-emerald-50 text-emerald-800 border-emerald-200">
+                              SALES CREDIT
                             </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                          )}
+                        </td>
 
-              {/* PAGINATION CONTROLS */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
-                <p>
-                  Showing{" "}
-                  <strong className="font-semibold text-slate-800">
-                    {totalItems === 0 ? 0 : startIndex + 1}
-                  </strong>{" "}
-                  to{" "}
-                  <strong className="font-semibold text-slate-800">{endIndex}</strong>{" "}
-                  of{" "}
-                  <strong className="font-semibold text-slate-800">{totalItems}</strong>{" "}
-                  entries
-                </p>
-
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={safePage <= 1}
-                    className="h-8 px-2.5 rounded-lg border-slate-200 text-xs font-semibold cursor-pointer disabled:opacity-40"
-                  >
-                    <ChevronLeft className="size-3.5 mr-0.5" />
-                    <span>Prev</span>
-                  </Button>
-
-                  <div className="flex items-center gap-1 px-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
-                      if (
-                        pageNum === 1 ||
-                        pageNum === totalPages ||
-                        (pageNum >= safePage - 1 && pageNum <= safePage + 1)
-                      ) {
-                        return (
-                          <button
-                            key={pageNum}
-                            onClick={() => setCurrentPage(pageNum)}
-                            className={`size-7.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                              pageNum === safePage
-                                ? "bg-slate-900 text-white font-bold"
-                                : "text-slate-600 hover:bg-slate-100"
-                            }`}
-                          >
-                            {pageNum}
-                          </button>
-                        );
-                      }
-                      if (pageNum === safePage - 2 || pageNum === safePage + 2) {
-                        return (
-                          <span key={pageNum} className="px-1 text-slate-400">
-                            ...
+                        {/* Status (Exact StatusBadge style from image) */}
+                        <td className="px-5 py-4 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border bg-emerald-50 text-emerald-700 border-emerald-200">
+                            <span className="size-1.5 rounded-full bg-emerald-500" />
+                            Active
                           </span>
-                        );
-                      }
-                      return null;
-                    })}
-                  </div>
+                        </td>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={safePage >= totalPages}
-                    className="h-8 px-2.5 rounded-lg border-slate-200 text-xs font-semibold cursor-pointer disabled:opacity-40"
-                  >
-                    <span>Next</span>
-                    <ChevronRight className="size-3.5 ml-0.5" />
-                  </Button>
-                </div>
-              </div>
-            </>
+                        {/* Order / Source Pill (Exact store pill style from image) */}
+                        <td className="px-5 py-4 whitespace-nowrap text-xs text-slate-600 font-medium">
+                          {tx.orderId ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 text-slate-700 border border-slate-200/60 font-mono">
+                              <Package size={12} className="text-slate-400" />
+                              Order #{tx.orderId.slice(-8)}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 text-slate-500 border border-slate-200/60">
+                              <Landmark size={12} className="text-slate-400" />
+                              Bank Transfer
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Date (Exact Joined column style from image) */}
+                        <td className="px-5 py-4 whitespace-nowrap text-xs text-slate-500">
+                          <div>
+                            <p className="font-medium text-slate-700">{formattedDate}</p>
+                            <p className="text-[11px] text-slate-400">{formattedTime}</p>
+                          </div>
+                        </td>
+
+                        {/* Amount */}
+                        <td className="px-5 py-4 whitespace-nowrap text-right font-bold text-sm tabular-nums">
+                          <span className={isDebit ? "text-slate-900" : "text-emerald-700"}>
+                            {isDebit ? "-" : "+"}
+                            {formatUSD(Number(tx.amount))}
+                          </span>
+                        </td>
+
+                        {/* Balance After */}
+                        <td className="px-5 py-4 whitespace-nowrap text-right font-mono font-medium text-slate-600 tabular-nums">
+                          {formatUSD(Number(tx.balanceAfter))}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
-        {/* ── 6. DIRECT WITHDRAWAL MODAL DIALOG ── */}
+        {/* ── 7. PAGINATION CONTROLS (EXACT STYLE FROM IMAGE) ── */}
+        {totalItems > 0 && (
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+            <div>
+              Showing <span className="font-bold text-slate-800">{startIndex + 1}</span> to{" "}
+              <span className="font-bold text-slate-800">{endIndex}</span> of{" "}
+              <span className="font-bold text-slate-800">{totalItems.toLocaleString()}</span> transactions
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              {/* First Button */}
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={safePage === 1}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 text-slate-700 transition-all font-semibold cursor-pointer"
+                title="Go to first page"
+              >
+                <ChevronsLeft size={14} />
+                First
+              </button>
+
+              {/* Prev Button */}
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={safePage === 1}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 text-slate-700 transition-all font-semibold cursor-pointer"
+              >
+                <ChevronLeft size={14} />
+                Prev
+              </button>
+
+              {/* Page Numbers */}
+              <div className="flex items-center gap-1 mx-1">
+                {renderPaginationNumbers()}
+              </div>
+
+              {/* Next Button */}
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 text-slate-700 transition-all font-semibold cursor-pointer"
+              >
+                Next
+                <ChevronRight size={14} />
+              </button>
+
+              {/* Last Button */}
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={safePage >= totalPages}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 text-slate-700 transition-all font-semibold cursor-pointer"
+                title="Go to last page"
+              >
+                Last
+                <ChevronsRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── 8. DIRECT WITHDRAWAL MODAL DIALOG ── */}
         <Dialog open={isTransferOpen} onOpenChange={setIsTransferOpen}>
-          <DialogContent className="sm:max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+          <DialogContent className="sm:max-w-md rounded-2xl bg-white p-6 shadow-xl border border-slate-200">
             <DialogHeader className="space-y-1">
               <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Landmark className="size-4.5 text-orange-600" />
+                <Landmark className="size-5 text-orange-500" />
                 Transfer Funds to Bank
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-500">
-                Direct wire transfer from your shop ledger to your verified Stripe Express checking account.
+                Direct wire transfer from your shop wallet to your verified bank account.
               </DialogDescription>
             </DialogHeader>
 
@@ -1129,7 +1195,7 @@ export function PayoutDashboard() {
               <div className="rounded-xl bg-slate-50 border border-slate-200/80 p-3.5 space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500">Current Wallet Balance</span>
-                  <span className="font-semibold text-slate-900 tabular-nums">
+                  <span className="font-bold text-slate-900 tabular-nums">
                     {formatUSD(balance)}
                   </span>
                 </div>
@@ -1141,11 +1207,11 @@ export function PayoutDashboard() {
                         <HelpCircle className="size-3 text-slate-400 cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent className="text-xs bg-slate-900 text-slate-100 p-2 rounded-lg">
-                        Mandatory 10% reserve for customer return guarantees
+                        Mandatory 10% reserve retained for customer returns and dispute guarantees
                       </TooltipContent>
                     </UiTooltip>
                   </span>
-                  <span className="font-medium text-amber-700 tabular-nums">
+                  <span className="font-semibold text-amber-700 tabular-nums">
                     -{formatUSD(reserveAmount)}
                   </span>
                 </div>
@@ -1159,8 +1225,8 @@ export function PayoutDashboard() {
 
               {/* QUICK AMOUNT CHIPS */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                  Quick Select Amount
+                <label className="text-xs font-semibold text-slate-600">
+                  Quick Amount Presets
                 </label>
                 <div className="grid grid-cols-4 gap-1.5">
                   {[50, 100, 500].map((amt) => (
@@ -1169,7 +1235,7 @@ export function PayoutDashboard() {
                       type="button"
                       onClick={() => handleQuickAmount(amt)}
                       disabled={maxWithdrawable < amt}
-                      className="py-1.5 text-xs font-semibold rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                      className="py-2 text-xs font-semibold rounded-xl border border-slate-200 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 text-slate-700 transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
                     >
                       ${amt}
                     </button>
@@ -1178,7 +1244,7 @@ export function PayoutDashboard() {
                     type="button"
                     onClick={() => handleQuickAmount(maxWithdrawable)}
                     disabled={maxWithdrawable <= 0}
-                    className="py-1.5 text-xs font-bold rounded-lg border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100/80 transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                    className="py-2 text-xs font-bold rounded-xl border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100/80 transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
                   >
                     Max
                   </button>
@@ -1203,7 +1269,7 @@ export function PayoutDashboard() {
                     onChange={(e) => setWithdrawAmount(e.target.value)}
                     placeholder="0.00"
                     disabled={withdrawMutation.isPending || maxWithdrawable <= 0}
-                    className="w-full rounded-xl border border-slate-200/90 py-2.5 pl-8 pr-14 text-sm font-bold text-slate-900 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 tabular-nums"
+                    className="w-full pl-8 pr-14 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 font-bold text-slate-900 transition-all tabular-nums"
                   />
                   <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
                     USD
@@ -1212,19 +1278,19 @@ export function PayoutDashboard() {
               </div>
 
               {/* SETTLEMENT DETAILS */}
-              <div className="rounded-xl bg-slate-50/70 p-3 text-xs space-y-1.5 text-slate-500">
+              <div className="rounded-xl bg-slate-50/70 p-3 text-xs space-y-1.5 text-slate-500 border border-slate-200/50">
                 <div className="flex justify-between">
                   <span>Transfer Fee</span>
                   <span className="font-semibold text-emerald-700">Free ($0.00)</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Estimated Arrival</span>
-                  <span className="font-medium text-slate-700">Instant via Stripe</span>
+                  <span className="font-medium text-slate-700">Instant via Stripe Express</span>
                 </div>
                 {parsedWithdrawInput > 0 && (
                   <div className="flex justify-between pt-1 border-t border-slate-200/60 font-medium">
-                    <span>Remaining in Wallet</span>
-                    <span className="font-mono text-slate-800">
+                    <span>Projected Balance</span>
+                    <span className="font-mono text-slate-800 font-semibold">
                       {formatUSD(projectedRemaining)}
                     </span>
                   </div>
@@ -1239,16 +1305,15 @@ export function PayoutDashboard() {
               )}
 
               <div className="flex items-center justify-end gap-2.5 pt-2">
-                <Button
+                <button
                   type="button"
-                  variant="outline"
                   onClick={() => setIsTransferOpen(false)}
                   disabled={withdrawMutation.isPending}
-                  className="rounded-xl border-slate-200 text-xs font-semibold h-10 px-4 cursor-pointer"
+                  className="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl shadow-sm transition-all cursor-pointer"
                 >
                   Cancel
-                </Button>
-                <Button
+                </button>
+                <button
                   type="submit"
                   disabled={
                     withdrawMutation.isPending ||
@@ -1258,20 +1323,20 @@ export function PayoutDashboard() {
                     parsedWithdrawInput > maxWithdrawable ||
                     parsedWithdrawInput >= balance
                   }
-                  className="rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold text-xs h-10 px-5 gap-1.5 cursor-pointer disabled:opacity-50 shadow-sm shadow-orange-600/25"
+                  className="px-5 py-2 text-xs font-bold bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-sm shadow-orange-100 transition-all cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
                 >
                   {withdrawMutation.isPending ? (
                     <>
-                      <Loader2 className="size-3.5 animate-spin" />
+                      <Loader2 size={13} className="animate-spin" />
                       <span>Transferring...</span>
                     </>
                   ) : (
                     <>
-                      <ArrowUpRight className="size-3.5" />
+                      <ArrowUpRight size={13} />
                       <span>Confirm & Withdraw</span>
                     </>
                   )}
-                </Button>
+                </button>
               </div>
             </form>
           </DialogContent>
