@@ -6,8 +6,6 @@ import {
     Loader2,
     ChevronLeft,
     ChevronRight,
-    ChevronsLeft,
-    ChevronsRight,
     ChevronDown,
     Mail,
     Edit2,
@@ -20,12 +18,12 @@ import {
     X,
     Users,
     Download,
-    MoreVertical,
     Eye,
     ShieldCheck,
     Store,
     AlertCircle,
-    Filter,
+    RefreshCw,
+    RotateCcw,
 } from "lucide-react";
 import {
     useAdminUsers,
@@ -45,6 +43,7 @@ const ROLES = [
     { value: "CUSTOMER", label: "Customer" },
     { value: "SHOP_OWNER", label: "Shop Owner" },
     { value: "SUPER_ADMIN", label: "Super Admin" },
+    { value: "SHOP_EMPLOYEE", label: "Shop Employee" },
 ];
 
 const STATUSES = [
@@ -57,36 +56,58 @@ const STATUSES = [
 
 const LIMITS = [10, 20, 50, 100];
 
+const USER_TABS = [
+    { id: "ALL", label: "All Users", countKey: "total" as const },
+    { id: "CUSTOMER", label: "Customers", countKey: "customers" as const },
+    { id: "SHOP_OWNER", label: "Shop Owners", countKey: "shopOwners" as const },
+    { id: "SUPER_ADMIN", label: "Super Admins", countKey: "superAdmins" as const },
+    { id: "ACTIVE", label: "Active", countKey: "active" as const },
+    { id: "SUSPENDED", label: "Suspended", countKey: "suspended" as const },
+];
+
 const RoleBadge = ({ role }: { role: string }) => {
     const badges: Record<string, { bg: string; text: string; border: string }> = {
-        SUPER_ADMIN: { bg: "bg-amber-50", text: "text-amber-800", border: "border-amber-200" },
-        SHOP_OWNER: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
-        CUSTOMER: { bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-200" },
-        SHOP_EMPLOYEE: { bg: "bg-orange-50", text: "text-orange-800", border: "border-orange-200" },
+        SUPER_ADMIN: { bg: "bg-purple-50", text: "text-purple-800", border: "border-purple-200" },
+        SHOP_OWNER: { bg: "bg-orange-50", text: "text-orange-800", border: "border-orange-200" },
+        CUSTOMER: { bg: "bg-slate-50", text: "text-slate-700", border: "border-slate-200" },
+        SHOP_EMPLOYEE: { bg: "bg-blue-50", text: "text-blue-800", border: "border-blue-200" },
     };
-    const style = badges[role] ?? { bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-200" };
+    const style = badges[role] ?? { bg: "bg-slate-50", text: "text-slate-700", border: "border-slate-200" };
     return (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${style.bg} ${style.text} ${style.border}`}>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium border ${style.bg} ${style.text} ${style.border}`}>
             {role.replace("_", " ")}
         </span>
     );
 };
 
 const StatusBadge = ({ status }: { status: string }) => {
-    const badges: Record<string, { bg: string; text: string; dot: string }> = {
-        ACTIVE: { bg: "bg-emerald-50 text-emerald-700 border-emerald-200", text: "Active", dot: "bg-emerald-500" },
-        PENDING: { bg: "bg-amber-50 text-amber-700 border-amber-200", text: "Pending", dot: "bg-amber-500" },
-        SUSPENDED: { bg: "bg-rose-50 text-rose-700 border-rose-200", text: "Suspended", dot: "bg-rose-500" },
-        DEACTIVATED: { bg: "bg-slate-100 text-slate-600 border-slate-200", text: "Deactivated", dot: "bg-slate-400" },
-        DELETED: { bg: "bg-rose-100 text-rose-800 border-rose-300", text: "Deleted", dot: "bg-rose-600" },
+    const badges: Record<string, { badge: string; text: string; dot: string }> = {
+        ACTIVE: { badge: "bg-emerald-50 text-emerald-800 border-emerald-200", text: "Active", dot: "bg-emerald-500" },
+        PENDING: { badge: "bg-amber-50 text-amber-800 border-amber-200", text: "Pending", dot: "bg-amber-500" },
+        SUSPENDED: { badge: "bg-rose-50 text-rose-800 border-rose-200", text: "Suspended", dot: "bg-rose-500" },
+        DEACTIVATED: { badge: "bg-slate-50 text-slate-700 border-slate-200", text: "Deactivated", dot: "bg-slate-400" },
+        DELETED: { badge: "bg-rose-50 text-rose-800 border-rose-200", text: "Deleted", dot: "bg-rose-500" },
     };
-    const style = badges[status] ?? { bg: "bg-slate-100 text-slate-700 border-slate-200", text: status, dot: "bg-slate-400" };
+    const style = badges[status] ?? { badge: "bg-slate-50 text-slate-700 border-slate-200", text: status, dot: "bg-slate-400" };
     return (
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${style.bg}`}>
+        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium border ${style.badge}`}>
             <span className={`size-1.5 rounded-full ${style.dot}`} />
-            {style.text}
+            <span>{style.text}</span>
         </span>
     );
+};
+
+const formatDate = (dateStr?: string | null) => {
+    if (!dateStr) return "—";
+    try {
+        return new Date(dateStr).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+        });
+    } catch {
+        return dateStr;
+    }
 };
 
 export const AdminUsersPage = () => {
@@ -99,10 +120,7 @@ export const AdminUsersPage = () => {
     const [role, setRole] = useState("");
     const [status, setStatus] = useState("");
     const [page, setPage] = useState(1);
-    const [limit, setLimit] = useState(10);
-
-    // Filter dropdown toggle states
-    const [openFilterDropdown, setOpenFilterDropdown] = useState<"role" | "status" | "limit" | null>(null);
+    const [limit, setLimit] = useState(20);
 
     // Multi-select state
     const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
@@ -123,7 +141,7 @@ export const AdminUsersPage = () => {
     const [showBulkEmailModal, setShowBulkEmailModal] = useState(false);
     const [feedbackNotice, setFeedbackNotice] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
-    const { data, isLoading, isError } = useAdminUsers({ search, role, status, page, limit });
+    const { data, isLoading, isError, refetch } = useAdminUsers({ search, role, status, page, limit });
     const updateStatus = useUpdateUserStatus();
     const bulkUpdateStatus = useBulkUpdateUserStatus();
 
@@ -145,15 +163,64 @@ export const AdminUsersPage = () => {
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        setSearch(searchInput);
+        setSearch(searchInput.trim());
         setPage(1);
         setSelectedUserIds([]);
+    };
+
+    const handleClearSearch = () => {
+        setSearchInput("");
+        setSearch("");
+        setPage(1);
+        setSelectedUserIds([]);
+    };
+
+    const handleResetAllFilters = () => {
+        setSearch("");
+        setSearchInput("");
+        setRole("");
+        setStatus("");
+        setPage(1);
+        setSelectedUserIds([]);
+    };
+
+    const handleTabClick = (tabId: string) => {
+        if (tabId === "ALL") {
+            setRole("");
+            setStatus("");
+        } else if (tabId === "CUSTOMER") {
+            setRole("CUSTOMER");
+            setStatus("");
+        } else if (tabId === "SHOP_OWNER") {
+            setRole("SHOP_OWNER");
+            setStatus("");
+        } else if (tabId === "SUPER_ADMIN") {
+            setRole("SUPER_ADMIN");
+            setStatus("");
+        } else if (tabId === "ACTIVE") {
+            setRole("");
+            setStatus("ACTIVE");
+        } else if (tabId === "SUSPENDED") {
+            setRole("");
+            setStatus("SUSPENDED");
+        }
+        setPage(1);
+        setSelectedUserIds([]);
+    };
+
+    const isTabActive = (tabId: string) => {
+        if (tabId === "ALL") return !role && !status;
+        if (tabId === "CUSTOMER") return role === "CUSTOMER";
+        if (tabId === "SHOP_OWNER") return role === "SHOP_OWNER";
+        if (tabId === "SUPER_ADMIN") return role === "SUPER_ADMIN";
+        if (tabId === "ACTIVE") return status === "ACTIVE";
+        if (tabId === "SUSPENDED") return status === "SUSPENDED";
+        return false;
     };
 
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!data?.users) return;
         if (e.target.checked) {
-            // Self account is excluded from bulk selection for safety
             const selectableIds = data.users
                 .filter((u) => u.id !== currentAdmin?.id)
                 .map((u) => u.id);
@@ -164,7 +231,7 @@ export const AdminUsersPage = () => {
     };
 
     const handleToggleSelectUser = (id: string) => {
-        if (id === currentAdmin?.id) return; // Prevent self-selection
+        if (id === currentAdmin?.id) return;
         setSelectedUserIds((prev) =>
             prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
         );
@@ -230,7 +297,6 @@ export const AdminUsersPage = () => {
         showToast(`Exported ${usersToExport.length} user records to CSV`, "success");
     };
 
-    // Calculate fixed dropdown coordinates to guarantee ZERO table clipping
     const handleOpenDropdown = (e: React.MouseEvent<HTMLButtonElement>, user: AdminUser) => {
         e.stopPropagation();
         if (dropdownState?.userId === user.id) {
@@ -239,7 +305,6 @@ export const AdminUsersPage = () => {
         }
 
         const rect = e.currentTarget.getBoundingClientRect();
-        // If button is within 280px of the bottom of the viewport, open upwards
         const spaceBelow = window.innerHeight - rect.bottom;
         const openUpwards = spaceBelow < 280;
 
@@ -252,7 +317,6 @@ export const AdminUsersPage = () => {
         });
     };
 
-    // Pagination helper: Smart numbers with ellipsis
     const renderPaginationNumbers = () => {
         if (!data) return null;
         const totalPages = data.totalPages || 1;
@@ -275,7 +339,7 @@ export const AdminUsersPage = () => {
         return pages.map((p, idx) => {
             if (p === "...") {
                 return (
-                    <span key={`ellipsis-${idx}`} className="px-2 py-1 text-slate-400 text-xs select-none">
+                    <span key={`ellipsis-${idx}`} className="px-1 text-slate-400 text-xs select-none">
                         …
                     </span>
                 );
@@ -288,9 +352,9 @@ export const AdminUsersPage = () => {
                         setPage(Number(p));
                         setSelectedUserIds([]);
                     }}
-                    className={`min-w-8 h-8 px-2 text-xs font-bold rounded-lg transition-all ${
+                    className={`min-w-7 h-7 px-2 text-xs font-medium rounded-md transition-all cursor-pointer ${
                         isCurrent
-                            ? "bg-orange-500 text-white shadow-sm shadow-orange-200"
+                            ? "bg-slate-900 text-white shadow-2xs font-semibold"
                             : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                     }`}
                 >
@@ -300,42 +364,52 @@ export const AdminUsersPage = () => {
         });
     };
 
+    const stats = data?.stats;
+    const isFiltered = Boolean(search || role || status);
     const isAllSelected =
         !!data?.users?.length &&
         data.users.filter((u) => u.id !== currentAdmin?.id).length > 0 &&
         selectedUserIds.length === data.users.filter((u) => u.id !== currentAdmin?.id).length;
 
-    const currentRoleLabel = ROLES.find((r) => r.value === role)?.label || "All Roles";
-    const currentStatusItem = STATUSES.find((s) => s.value === status) || STATUSES[0];
-
     return (
-        <div className="space-y-6">
-            {/* Header section */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="space-y-5">
+            {/* Page Header (Matching SettingsPage / Protected Directory Style) */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2.5">
-                        <Users className="size-6 text-orange-500" />
-                        Users & Access Management
-                    </h1>
-                    <p className="text-sm text-slate-500 mt-1">
-                        {data ? `${data.total.toLocaleString()} total platform accounts` : "Manage accounts, security status, and communication"}
+                    <div className="flex items-center gap-2">
+                        <h1 className="text-lg font-bold tracking-tight text-slate-900">
+                            User Directory
+                        </h1>
+                        <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-800">
+                            <ShieldCheck className="size-3 text-emerald-600" />
+                            Protected Access
+                        </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                        Platform user identities, credentials, role-based authorization, and account security.
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2.5">
-                    {/* CSV Export Button */}
+                <div className="flex items-center gap-2 self-start sm:self-auto">
                     <button
                         onClick={handleExportCSV}
-                        className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600 rounded-xl shadow-sm transition-all"
-                        title="Export filtered or selected users to CSV report"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-md shadow-2xs transition-colors cursor-pointer"
+                        title="Export filtered users to CSV"
                     >
-                        <Download size={14} className="text-orange-500" />
-                        Export CSV
+                        <Download size={13} className="text-slate-500" />
+                        <span>Export CSV</span>
                     </button>
-
+                    <button
+                        onClick={() => refetch()}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-md shadow-2xs transition-colors cursor-pointer"
+                        title="Refresh user list"
+                    >
+                        <RefreshCw size={13} className={isLoading ? "animate-spin text-orange-500" : "text-slate-500"} />
+                        <span>Refresh</span>
+                    </button>
                     {feedbackNotice && (
                         <span
-                            className={`text-xs font-semibold px-3 py-1.5 rounded-xl border animate-in fade-in ${
+                            className={`text-xs font-medium px-2.5 py-1 rounded-md border animate-in fade-in ${
                                 feedbackNotice.type === "success"
                                     ? "text-emerald-700 bg-emerald-50 border-emerald-200"
                                     : "text-rose-700 bg-rose-50 border-rose-200"
@@ -347,258 +421,355 @@ export const AdminUsersPage = () => {
                 </div>
             </div>
 
-            {/* Top Search & Interactive Filter Dropdowns */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 flex flex-col md:flex-row gap-3">
-                <form onSubmit={handleSearch} className="flex gap-2 flex-1">
-                    <div className="relative flex-1">
-                        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <input
-                            type="text"
-                            placeholder="Search by name, email, or user ID..."
-                            value={searchInput}
-                            onChange={(e) => setSearchInput(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
-                        />
+            {/* KPI Metric Summary Cards (Shop Owner, Customer, Super Admin, Active, Suspended) */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                {/* 1. All Users */}
+                <button
+                    onClick={() => handleTabClick("ALL")}
+                    className={`text-left p-3.5 rounded-lg border transition-all cursor-pointer ${
+                        !role && !status
+                            ? "bg-orange-50/40 border-orange-500 ring-1 ring-orange-500 shadow-2xs"
+                            : "bg-white border-slate-200 hover:border-orange-300 hover:bg-slate-50/50"
+                    }`}
+                >
+                    <div className="flex items-center justify-between text-xs text-orange-800 font-medium mb-1">
+                        <span>All Accounts</span>
+                        <Users size={14} className="text-orange-600" />
                     </div>
-                    <button
-                        type="submit"
-                        className="px-5 py-2.5 text-sm font-bold bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-sm shadow-orange-100 transition-all shrink-0"
-                    >
-                        Search
-                    </button>
-                </form>
-
-                {/* Filter Dropdown Buttons */}
-                <div className="flex flex-wrap items-center gap-2 relative">
-                    {/* Role Filter Dropdown */}
-                    <div className="relative">
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenFilterDropdown(openFilterDropdown === "role" ? null : "role");
-                            }}
-                            className={`inline-flex items-center gap-2 px-3.5 py-2.5 text-xs font-semibold rounded-xl border transition-all ${
-                                role
-                                    ? "bg-orange-50 text-orange-700 border-orange-200"
-                                    : "bg-slate-50/50 hover:bg-white text-slate-700 border-slate-200"
-                            }`}
-                        >
-                            <Filter size={13} className={role ? "text-orange-500" : "text-slate-400"} />
-                            <span>{currentRoleLabel}</span>
-                            <ChevronDown size={13} className="text-slate-400" />
-                        </button>
-
-                        {openFilterDropdown === "role" && (
-                            <>
-                                <div className="fixed inset-0 z-20" onClick={() => setOpenFilterDropdown(null)} />
-                                <div className="absolute right-0 top-full mt-1.5 z-30 w-44 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 animate-in fade-in zoom-in-95 duration-150">
-                                    {ROLES.map((r) => (
-                                        <button
-                                            key={r.value}
-                                            onClick={() => {
-                                                setRole(r.value);
-                                                setPage(1);
-                                                setSelectedUserIds([]);
-                                                setOpenFilterDropdown(null);
-                                            }}
-                                            className={`w-full px-3.5 py-2 text-xs flex items-center justify-between font-medium transition-colors ${
-                                                role === r.value
-                                                    ? "bg-orange-50 text-orange-700 font-bold"
-                                                    : "text-slate-700 hover:bg-slate-50"
-                                            }`}
-                                        >
-                                            <span>{r.label}</span>
-                                            {role === r.value && <Check size={13} className="text-orange-500" />}
-                                        </button>
-                                    ))}
-                                </div>
-                            </>
-                        )}
+                    <div className="text-xl font-bold tracking-tight text-slate-900 tabular-nums">
+                        {stats ? stats.total.toLocaleString() : data?.total.toLocaleString() ?? "—"}
                     </div>
+                    <p className="text-[11px] text-slate-400 mt-1">Total user directory</p>
+                </button>
 
-                    {/* Status Filter Dropdown */}
-                    <div className="relative">
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenFilterDropdown(openFilterDropdown === "status" ? null : "status");
-                            }}
-                            className={`inline-flex items-center gap-2 px-3.5 py-2.5 text-xs font-semibold rounded-xl border transition-all ${
-                                status
-                                    ? "bg-orange-50 text-orange-700 border-orange-200"
-                                    : "bg-slate-50/50 hover:bg-white text-slate-700 border-slate-200"
-                            }`}
-                        >
-                            <span className={`size-1.5 rounded-full ${currentStatusItem.dot}`} />
-                            <span>{currentStatusItem.label}</span>
-                            <ChevronDown size={13} className="text-slate-400" />
-                        </button>
-
-                        {openFilterDropdown === "status" && (
-                            <>
-                                <div className="fixed inset-0 z-20" onClick={() => setOpenFilterDropdown(null)} />
-                                <div className="absolute right-0 top-full mt-1.5 z-30 w-44 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 animate-in fade-in zoom-in-95 duration-150">
-                                    {STATUSES.map((s) => (
-                                        <button
-                                            key={s.value}
-                                            onClick={() => {
-                                                setStatus(s.value);
-                                                setPage(1);
-                                                setSelectedUserIds([]);
-                                                setOpenFilterDropdown(null);
-                                            }}
-                                            className={`w-full px-3.5 py-2 text-xs flex items-center justify-between font-medium transition-colors ${
-                                                status === s.value
-                                                    ? "bg-orange-50 text-orange-700 font-bold"
-                                                    : "text-slate-700 hover:bg-slate-50"
-                                            }`}
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <span className={`size-1.5 rounded-full ${s.dot}`} />
-                                                <span>{s.label}</span>
-                                            </div>
-                                            {status === s.value && <Check size={13} className="text-orange-500" />}
-                                        </button>
-                                    ))}
-                                </div>
-                            </>
-                        )}
+                {/* 2. Customers */}
+                <button
+                    onClick={() => handleTabClick("CUSTOMER")}
+                    className={`text-left p-3.5 rounded-lg border transition-all cursor-pointer ${
+                        role === "CUSTOMER"
+                            ? "bg-slate-100 border-slate-900 ring-1 ring-slate-900 shadow-2xs"
+                            : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50"
+                    }`}
+                >
+                    <div className="flex items-center justify-between text-xs text-slate-700 font-medium mb-1">
+                        <span>Customers</span>
+                        <Users size={14} className="text-slate-600" />
                     </div>
-
-                    {/* Per Page Limit Dropdown */}
-                    <div className="relative">
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenFilterDropdown(openFilterDropdown === "limit" ? null : "limit");
-                            }}
-                            className="inline-flex items-center gap-2 px-3.5 py-2.5 text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white text-slate-700 transition-all"
-                        >
-                            <span>{limit} per page</span>
-                            <ChevronDown size={13} className="text-slate-400" />
-                        </button>
-
-                        {openFilterDropdown === "limit" && (
-                            <>
-                                <div className="fixed inset-0 z-20" onClick={() => setOpenFilterDropdown(null)} />
-                                <div className="absolute right-0 top-full mt-1.5 z-30 w-36 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 animate-in fade-in zoom-in-95 duration-150">
-                                    {LIMITS.map((lim) => (
-                                        <button
-                                            key={lim}
-                                            onClick={() => {
-                                                setLimit(lim);
-                                                setPage(1);
-                                                setSelectedUserIds([]);
-                                                setOpenFilterDropdown(null);
-                                            }}
-                                            className={`w-full px-3.5 py-2 text-xs flex items-center justify-between font-medium transition-colors ${
-                                                limit === lim
-                                                    ? "bg-orange-50 text-orange-700 font-bold"
-                                                    : "text-slate-700 hover:bg-slate-50"
-                                            }`}
-                                        >
-                                            <span>{lim} per page</span>
-                                            {limit === lim && <Check size={13} className="text-orange-500" />}
-                                        </button>
-                                    ))}
-                                </div>
-                            </>
-                        )}
+                    <div className="text-xl font-bold tracking-tight text-slate-900 tabular-nums">
+                        {stats ? stats.customers.toLocaleString() : "—"}
                     </div>
-                </div>
+                    <p className="text-[11px] text-slate-400 mt-1">Retail consumers</p>
+                </button>
+
+                {/* 3. Shop Owners */}
+                <button
+                    onClick={() => handleTabClick("SHOP_OWNER")}
+                    className={`text-left p-3.5 rounded-lg border transition-all cursor-pointer ${
+                        role === "SHOP_OWNER"
+                            ? "bg-orange-50/40 border-orange-500 ring-1 ring-orange-500 shadow-2xs"
+                            : "bg-white border-slate-200 hover:border-orange-300 hover:bg-slate-50/50"
+                    }`}
+                >
+                    <div className="flex items-center justify-between text-xs text-orange-800 font-medium mb-1">
+                        <span>Shop Owners</span>
+                        <Store size={14} className="text-orange-600" />
+                    </div>
+                    <div className="text-xl font-bold tracking-tight text-slate-900 tabular-nums">
+                        {stats ? stats.shopOwners.toLocaleString() : "—"}
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">Store merchants</p>
+                </button>
+
+                {/* 4. Super Admins */}
+                <button
+                    onClick={() => handleTabClick("SUPER_ADMIN")}
+                    className={`text-left p-3.5 rounded-lg border transition-all cursor-pointer ${
+                        role === "SUPER_ADMIN"
+                            ? "bg-purple-50/40 border-purple-500 ring-1 ring-purple-500 shadow-2xs"
+                            : "bg-white border-slate-200 hover:border-purple-300 hover:bg-slate-50/50"
+                    }`}
+                >
+                    <div className="flex items-center justify-between text-xs text-purple-800 font-medium mb-1">
+                        <span>Super Admins</span>
+                        <ShieldCheck size={14} className="text-purple-600" />
+                    </div>
+                    <div className="text-xl font-bold tracking-tight text-slate-900 tabular-nums">
+                        {stats ? stats.superAdmins.toLocaleString() : "—"}
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">Full platform authority</p>
+                </button>
+
+                {/* 5. Active Accounts (Good thing -> Green!) */}
+                <button
+                    onClick={() => handleTabClick("ACTIVE")}
+                    className={`text-left p-3.5 rounded-lg border transition-all cursor-pointer ${
+                        status === "ACTIVE"
+                            ? "bg-emerald-50/40 border-emerald-500 ring-1 ring-emerald-500 shadow-2xs"
+                            : "bg-white border-slate-200 hover:border-emerald-300 hover:bg-slate-50/50"
+                    }`}
+                >
+                    <div className="flex items-center justify-between text-xs text-emerald-800 font-medium mb-1">
+                        <span>Active</span>
+                        <CheckCircle2 size={14} className="text-emerald-600" />
+                    </div>
+                    <div className="text-xl font-bold tracking-tight text-slate-900 tabular-nums">
+                        {stats ? stats.active.toLocaleString() : "—"}
+                    </div>
+                    <p className="text-[11px] text-emerald-700 mt-1 flex items-center gap-1 font-medium">
+                        <span className="size-1.5 rounded-full bg-emerald-500" />
+                        In good standing
+                    </p>
+                </button>
+
+                {/* 6. Suspended Accounts (Bad thing -> Red!) */}
+                <button
+                    onClick={() => handleTabClick("SUSPENDED")}
+                    className={`text-left p-3.5 rounded-lg border transition-all cursor-pointer ${
+                        status === "SUSPENDED"
+                            ? "bg-rose-50/40 border-rose-500 ring-1 ring-rose-500 shadow-2xs"
+                            : "bg-white border-slate-200 hover:border-rose-300 hover:bg-slate-50/50"
+                    }`}
+                >
+                    <div className="flex items-center justify-between text-xs text-rose-800 font-medium mb-1">
+                        <span>Suspended</span>
+                        <Ban size={14} className="text-rose-600" />
+                    </div>
+                    <div className="text-xl font-bold tracking-tight text-slate-900 tabular-nums">
+                        {stats ? stats.suspended.toLocaleString() : "—"}
+                    </div>
+                    <p className="text-[11px] text-rose-700 mt-1 flex items-center gap-1 font-medium">
+                        <span className="size-1.5 rounded-full bg-rose-500" />
+                        Restricted / banned
+                    </p>
+                </button>
             </div>
 
-            {/* Floating Bulk Action Bar (Light SaaS Styling + Functional) */}
-            {selectedUserIds.length > 0 && (
-                <div className="bg-white border border-slate-200 shadow-xl rounded-2xl px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="flex items-center gap-3">
-                        <span className="bg-orange-50 text-orange-700 border border-orange-200 text-xs font-bold px-3 py-1 rounded-full">
-                            {selectedUserIds.length} selected
-                        </span>
-                        <p className="text-xs font-semibold text-slate-600">Bulk Actions:</p>
-                    </div>
+            {/* Navigation Tabs Bar with High-Visibility Orange 600 Tracker & Distinct Background */}
+            <div className="flex items-center gap-1 border-b border-slate-200 mt-5 overflow-x-auto no-scrollbar">
+                {USER_TABS.map((t) => {
+                    const isActive = isTabActive(t.id);
+                    const countVal = stats ? stats[t.countKey] : undefined;
+                    return (
+                        <button
+                            key={t.id}
+                            onClick={() => handleTabClick(t.id)}
+                            className={`flex items-center gap-2 px-3.5 py-2.5 text-xs border-b-2 whitespace-nowrap transition-all cursor-pointer rounded-t-md -mb-px ${
+                                isActive
+                                    ? "border-orange-600 bg-orange-50/80 font-semibold text-orange-950 shadow-2xs"
+                                    : "border-transparent bg-transparent font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50/70 hover:border-slate-300"
+                            }`}
+                        >
+                            <span>{t.label}</span>
+                            {countVal !== undefined && (
+                                <span
+                                    className={`text-[10px] px-1.5 py-0.2 rounded-full tabular-nums ${
+                                        isActive
+                                            ? "bg-orange-200/90 text-orange-950 font-bold border border-orange-300"
+                                            : "bg-slate-100 text-slate-600 border border-slate-200 font-medium"
+                                    }`}
+                                >
+                                    {countVal.toLocaleString()}
+                                </span>
+                            )}
+                        </button>
+                    );
+                })}
+            </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                        <button
-                            onClick={() => setShowBulkEmailModal(true)}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-orange-500 hover:bg-orange-600 text-white shadow-sm shadow-orange-100 transition-all"
+            {/* Main Content Box: Filters & Users Table */}
+            <div className="rounded-lg border border-slate-200 bg-white shadow-xs overflow-hidden">
+                {/* Search & Secondary Filter Controls Header Strip */}
+                <div className="p-3 border-b border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-slate-50/40">
+                    {/* Search Form */}
+                    <form onSubmit={handleSearch} className="relative flex-1 max-w-md">
+                        <Search
+                            size={14}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Filter by name, email, or user ID…"
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
+                            className="w-full pl-8.5 pr-8 py-1.5 text-xs bg-white border border-slate-200 rounded-md placeholder:text-slate-400 text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition-all"
+                        />
+                        {searchInput && (
+                            <button
+                                type="button"
+                                onClick={handleClearSearch}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                            >
+                                <X size={13} />
+                            </button>
+                        )}
+                    </form>
+
+                    {/* Secondary Dropdown Filters */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {/* Role Select */}
+                        <select
+                            value={role}
+                            onChange={(e) => {
+                                setRole(e.target.value);
+                                setPage(1);
+                                setSelectedUserIds([]);
+                            }}
+                            className="h-8 text-xs border border-slate-200 rounded-md px-2.5 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
                         >
-                            <Mail size={13} />
-                            Send Bulk Email
-                        </button>
-                        <button
-                            onClick={() => handleBulkStatusChange("ACTIVE")}
-                            disabled={bulkUpdateStatus.isPending}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-all disabled:opacity-50"
+                            {ROLES.map((r) => (
+                                <option key={r.value} value={r.value}>
+                                    {r.label}
+                                </option>
+                            ))}
+                        </select>
+
+                        {/* Status Select */}
+                        <select
+                            value={status}
+                            onChange={(e) => {
+                                setStatus(e.target.value);
+                                setPage(1);
+                                setSelectedUserIds([]);
+                            }}
+                            className="h-8 text-xs border border-slate-200 rounded-md px-2.5 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
                         >
-                            <CheckCircle2 size={13} />
-                            Activate Selected
-                        </button>
-                        <button
-                            onClick={() => handleBulkStatusChange("DEACTIVATED")}
-                            disabled={bulkUpdateStatus.isPending}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-all disabled:opacity-50"
+                            {STATUSES.map((s) => (
+                                <option key={s.value} value={s.value}>
+                                    {s.label}
+                                </option>
+                            ))}
+                        </select>
+
+                        {/* Rows Per Page */}
+                        <select
+                            value={limit}
+                            onChange={(e) => {
+                                setLimit(Number(e.target.value));
+                                setPage(1);
+                                setSelectedUserIds([]);
+                            }}
+                            className="h-8 text-xs border border-slate-200 rounded-md px-2 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
                         >
-                            <XCircle size={13} />
-                            Deactivate Selected
-                        </button>
-                        <button
-                            onClick={() => handleBulkStatusChange("SUSPENDED")}
-                            disabled={bulkUpdateStatus.isPending}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition-all disabled:opacity-50"
-                        >
-                            <Ban size={13} />
-                            Ban / Suspend Selected
-                        </button>
-                        <button
-                            onClick={() => setSelectedUserIds([])}
-                            className="px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
-                        >
-                            Clear
-                        </button>
+                            {LIMITS.map((lim) => (
+                                <option key={lim} value={lim}>
+                                    {lim} / page
+                                </option>
+                            ))}
+                        </select>
+
+                        {/* Reset Filters Pill */}
+                        {isFiltered && (
+                            <button
+                                onClick={handleResetAllFilters}
+                                className="h-8 inline-flex items-center gap-1 px-2.5 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors cursor-pointer border border-transparent"
+                            >
+                                <RotateCcw size={12} />
+                                <span>Reset</span>
+                            </button>
+                        )}
                     </div>
                 </div>
-            )}
 
-            {/* Table Container */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                {/* Bulk Action Header Banner */}
+                {selectedUserIds.length > 0 && (
+                    <div className="px-4 py-2 bg-orange-50/60 border-b border-orange-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-2">
+                            <span className="bg-orange-100 text-orange-900 border border-orange-300 text-[11px] font-semibold px-2 py-0.5 rounded-md">
+                                {selectedUserIds.length} selected
+                            </span>
+                            <span className="text-slate-600 font-medium text-xs">Bulk Operations:</span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            <button
+                                onClick={() => setShowBulkEmailModal(true)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+                            >
+                                <Mail size={12} className="text-orange-600" />
+                                <span>Send Bulk Email</span>
+                            </button>
+                            <button
+                                onClick={() => handleBulkStatusChange("ACTIVE")}
+                                disabled={bulkUpdateStatus.isPending}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer disabled:opacity-50"
+                            >
+                                <CheckCircle2 size={12} className="text-emerald-600" />
+                                <span>Activate</span>
+                            </button>
+                            <button
+                                onClick={() => handleBulkStatusChange("DEACTIVATED")}
+                                disabled={bulkUpdateStatus.isPending}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition-colors cursor-pointer disabled:opacity-50"
+                            >
+                                <XCircle size={12} className="text-amber-600" />
+                                <span>Deactivate</span>
+                            </button>
+                            <button
+                                onClick={() => handleBulkStatusChange("SUSPENDED")}
+                                disabled={bulkUpdateStatus.isPending}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer disabled:opacity-50"
+                            >
+                                <Ban size={12} className="text-rose-600" />
+                                <span>Suspend</span>
+                            </button>
+                            <button
+                                onClick={() => setSelectedUserIds([])}
+                                className="px-2 py-1 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                            >
+                                Clear
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Users Table */}
                 {isLoading ? (
-                    <div className="flex items-center justify-center h-64">
-                        <Loader2 className="animate-spin text-orange-500" size={32} />
+                    <div className="flex flex-col items-center justify-center h-64 gap-2 text-slate-400">
+                        <Loader2 className="animate-spin text-slate-500" size={24} />
+                        <span className="text-xs font-medium">Loading user directory…</span>
                     </div>
                 ) : isError ? (
-                    <div className="p-12 text-center text-rose-500 text-sm">
-                        <AlertCircle className="mx-auto size-8 mb-2 opacity-50" />
-                        Failed to load user catalog.
+                    <div className="p-12 text-center text-xs text-rose-600">
+                        <AlertCircle className="mx-auto size-7 mb-2 text-rose-400" />
+                        Failed to load user directory. Please retry.
                     </div>
                 ) : !data || data.users.length === 0 ? (
-                    <div className="p-16 text-center text-slate-400">
-                        <Users className="mx-auto size-12 opacity-30 mb-3" />
-                        <p className="font-semibold text-slate-700 text-base">No users found</p>
-                        <p className="text-xs text-slate-400 mt-1">Try adjusting your search criteria or filters.</p>
+                    <div className="p-12 text-center text-slate-500">
+                        <Users className="mx-auto size-9 text-slate-300 mb-2 stroke-[1.5]" />
+                        <p className="text-sm font-medium text-slate-800">No users found</p>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                            {isFiltered
+                                ? "No users match your active filter criteria."
+                                : "No users are currently registered."}
+                        </p>
+                        {isFiltered && (
+                            <button
+                                onClick={handleResetAllFilters}
+                                className="mt-3 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors cursor-pointer"
+                            >
+                                Clear all filters
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-slate-50/70 border-b border-slate-200/80 text-xs text-slate-500 uppercase tracking-wider font-semibold">
+                        <table className="w-full text-left text-xs">
+                            <thead className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                                 <tr>
-                                    <th className="px-5 py-3.5 w-10">
+                                    <th className="py-2.5 px-4 w-9">
                                         <input
                                             type="checkbox"
                                             checked={isAllSelected}
                                             onChange={handleSelectAll}
-                                            className="size-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+                                            className="size-3.5 rounded border-slate-300 text-orange-600 focus:ring-0 cursor-pointer"
                                         />
                                     </th>
-                                    <th className="px-5 py-3.5">User Identity</th>
-                                    <th className="px-5 py-3.5">Role</th>
-                                    <th className="px-5 py-3.5">Status</th>
-                                    <th className="px-5 py-3.5">Stores</th>
-                                    <th className="px-5 py-3.5">Joined</th>
-                                    <th className="px-5 py-3.5 text-right">Actions</th>
+                                    <th className="py-2.5 px-4 font-semibold">User Identity</th>
+                                    <th className="py-2.5 px-4 font-semibold">Role</th>
+                                    <th className="py-2.5 px-4 font-semibold">Status</th>
+                                    <th className="py-2.5 px-4 font-semibold">Stores</th>
+                                    <th className="py-2.5 px-4 font-semibold">Joined</th>
+                                    <th className="py-2.5 px-4 font-semibold text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -609,49 +780,55 @@ export const AdminUsersPage = () => {
                                     return (
                                         <tr
                                             key={user.id}
-                                            className={`hover:bg-slate-50/60 transition-colors ${
+                                            className={`border-b border-slate-100 last:border-b-0 hover:bg-slate-50/60 transition-colors ${
                                                 isSelected ? "bg-orange-50/30" : ""
-                                            } ${isSelf ? "bg-amber-50/20" : ""}`}
+                                            } ${isSelf ? "bg-amber-50/15" : ""}`}
                                         >
                                             {/* Checkbox */}
-                                            <td className="px-5 py-4">
+                                            <td className="py-3 px-4">
                                                 <input
                                                     type="checkbox"
                                                     checked={isSelected}
                                                     disabled={isSelf}
                                                     title={isSelf ? "Protected: You cannot select your own account for bulk operations" : ""}
                                                     onChange={() => handleToggleSelectUser(user.id)}
-                                                    className="size-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    className="size-3.5 rounded border-slate-300 text-orange-600 focus:ring-0 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                                                 />
                                             </td>
 
                                             {/* User Identity */}
-                                            <td className="px-5 py-4">
-                                                <div className="flex items-center gap-3">
+                                            <td className="py-3 px-4">
+                                                <div className="flex items-center gap-2.5">
                                                     {user.profile?.avatar ? (
                                                         <img
                                                             src={user.profile.avatar}
                                                             alt={user.name}
-                                                            className="size-10 rounded-full object-cover border border-slate-200"
+                                                            className="size-8 rounded-full object-cover border border-slate-200 shrink-0"
                                                         />
                                                     ) : (
-                                                        <div className="size-10 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center font-bold text-slate-700 text-xs">
+                                                        <div className="size-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-[11px] shrink-0">
                                                             {user.name.slice(0, 2).toUpperCase()}
                                                         </div>
                                                     )}
-                                                    <div>
-                                                        <div className="flex items-center gap-2">
-                                                            <p className="font-semibold text-slate-900">{user.name}</p>
+                                                    <div className="min-w-0">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <button
+                                                                onClick={() => navigate(`/superadmin/users/${user.id}`)}
+                                                                className="font-medium text-slate-900 hover:text-slate-600 transition-colors truncate cursor-pointer text-xs"
+                                                            >
+                                                                {user.name}
+                                                            </button>
                                                             {isSelf && (
-                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-200">
-                                                                    <ShieldCheck size={11} className="text-orange-500" />
-                                                                    You (Current Admin)
+                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-semibold bg-orange-50 text-orange-800 border border-orange-200">
+                                                                    You
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <p className="text-xs text-slate-500">{user.email}</p>
+                                                        <p className="text-[11px] text-slate-400 font-mono truncate mt-0.5">
+                                                            {user.email}
+                                                        </p>
                                                         {user.profile?.phone && (
-                                                            <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                                                            <p className="text-[10px] text-slate-400 font-mono">
                                                                 {user.profile.phone}
                                                             </p>
                                                         )}
@@ -660,44 +837,40 @@ export const AdminUsersPage = () => {
                                             </td>
 
                                             {/* Role */}
-                                            <td className="px-5 py-4 whitespace-nowrap">
+                                            <td className="py-3 px-4 whitespace-nowrap">
                                                 <RoleBadge role={user.role} />
                                             </td>
 
                                             {/* Status */}
-                                            <td className="px-5 py-4 whitespace-nowrap">
+                                            <td className="py-3 px-4 whitespace-nowrap">
                                                 <StatusBadge status={user.status} />
                                             </td>
 
                                             {/* Stores */}
-                                            <td className="px-5 py-4 whitespace-nowrap text-xs text-slate-600 font-medium">
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 text-slate-700 border border-slate-200/60">
-                                                    <Store size={12} className="text-slate-400" />
-                                                    {user.ownedShops?.length ?? 0} {user.ownedShops?.length === 1 ? "store" : "stores"}
+                                            <td className="py-3 px-4 whitespace-nowrap text-xs text-slate-600">
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-slate-50 text-slate-700 border border-slate-200/80">
+                                                    <Store size={11} className="text-slate-400" />
+                                                    <span>{user.ownedShops?.length ?? 0}</span>
                                                 </span>
                                             </td>
 
                                             {/* Joined */}
-                                            <td className="px-5 py-4 whitespace-nowrap text-xs text-slate-500">
-                                                {new Date(user.createdAt).toLocaleDateString("en-US", {
-                                                    month: "short",
-                                                    day: "numeric",
-                                                    year: "numeric",
-                                                })}
+                                            <td className="py-3 px-4 whitespace-nowrap text-slate-500">
+                                                {formatDate(user.createdAt)}
                                             </td>
 
-                                            {/* Actions 3-Dot Trigger */}
-                                            <td className="px-5 py-4 whitespace-nowrap text-right">
+                                            {/* Actions Button - All in One Unified Dropdown */}
+                                            <td className="py-3 px-4 whitespace-nowrap text-right">
                                                 <button
                                                     onClick={(e) => handleOpenDropdown(e, user)}
-                                                    className={`p-2 rounded-xl transition-all border ${
+                                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer border shadow-2xs ${
                                                         dropdownState?.userId === user.id
-                                                            ? "bg-orange-50 text-orange-600 border-orange-200"
-                                                            : "text-slate-400 hover:text-slate-700 hover:bg-slate-100 border-transparent hover:border-slate-200"
+                                                            ? "bg-slate-100 text-slate-900 border-slate-300"
+                                                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-slate-900"
                                                     }`}
-                                                    title="Open user actions menu"
                                                 >
-                                                    <MoreVertical size={16} />
+                                                    <span>Actions</span>
+                                                    <ChevronDown size={12} className="text-slate-400" />
                                                 </button>
                                             </td>
                                         </tr>
@@ -707,81 +880,60 @@ export const AdminUsersPage = () => {
                         </table>
                     </div>
                 )}
-            </div>
 
-            {/* Pagination Controls at the bottom of the table */}
-            {data && data.total > 0 && (
-                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-                    <div>
-                        Showing <span className="font-bold text-slate-800">{((page - 1) * limit) + 1}</span> to{" "}
-                        <span className="font-bold text-slate-800">{Math.min(page * limit, data.total)}</span> of{" "}
-                        <span className="font-bold text-slate-800">{data.total.toLocaleString()}</span> users
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                        {/* First Button */}
-                        <button
-                            onClick={() => {
-                                setPage(1);
-                                setSelectedUserIds([]);
-                            }}
-                            disabled={page === 1}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 text-slate-700 transition-all font-semibold"
-                            title="Go to first page"
-                        >
-                            <ChevronsLeft size={14} />
-                            First
-                        </button>
-
-                        {/* Prev Button */}
-                        <button
-                            onClick={() => {
-                                setPage((p) => Math.max(1, p - 1));
-                                setSelectedUserIds([]);
-                            }}
-                            disabled={page === 1}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 text-slate-700 transition-all font-semibold"
-                        >
-                            <ChevronLeft size={14} />
-                            Prev
-                        </button>
-
-                        {/* Page Numbers */}
-                        <div className="flex items-center gap-1 mx-1">
-                            {renderPaginationNumbers()}
+                {/* Pagination Controls */}
+                {data && data.total > 0 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-slate-200 bg-white text-xs text-slate-500">
+                        <div>
+                            Showing{" "}
+                            <span className="font-semibold text-slate-900 tabular-nums">
+                                {Math.min((page - 1) * limit + 1, data.total)}
+                            </span>{" "}
+                            to{" "}
+                            <span className="font-semibold text-slate-900 tabular-nums">
+                                {Math.min(page * limit, data.total)}
+                            </span>{" "}
+                            of{" "}
+                            <span className="font-semibold text-slate-900 tabular-nums">
+                                {data.total.toLocaleString()}
+                            </span>{" "}
+                            users
                         </div>
 
-                        {/* Next Button */}
-                        <button
-                            onClick={() => {
-                                setPage((p) => Math.min(data.totalPages, p + 1));
-                                setSelectedUserIds([]);
-                            }}
-                            disabled={page >= data.totalPages}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 text-slate-700 transition-all font-semibold"
-                        >
-                            Next
-                            <ChevronRight size={14} />
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                            <button
+                                onClick={() => {
+                                    setPage((p) => Math.max(1, p - 1));
+                                    setSelectedUserIds([]);
+                                }}
+                                disabled={page === 1}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer shadow-2xs"
+                            >
+                                <ChevronLeft size={13} />
+                                <span>Previous</span>
+                            </button>
 
-                        {/* Final Button */}
-                        <button
-                            onClick={() => {
-                                setPage(data.totalPages);
-                                setSelectedUserIds([]);
-                            }}
-                            disabled={page >= data.totalPages}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 text-slate-700 transition-all font-semibold"
-                            title="Go to final page"
-                        >
-                            Final
-                            <ChevronsRight size={14} />
-                        </button>
+                            <div className="hidden sm:flex items-center gap-1">
+                                {renderPaginationNumbers()}
+                            </div>
+
+                            <button
+                                onClick={() => {
+                                    setPage((p) => Math.min(data.totalPages, p + 1));
+                                    setSelectedUserIds([]);
+                                }}
+                                disabled={page >= data.totalPages}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer shadow-2xs"
+                            >
+                                <span>Next</span>
+                                <ChevronRight size={13} />
+                            </button>
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
 
-            {/* Fixed Floating 3-Dot Dropdown Menu (Guaranteed ZERO clipping by table) */}
+            {/* Floating Dropdown Menu */}
             {dropdownState && (
                 <>
                     <div
@@ -795,7 +947,7 @@ export const AdminUsersPage = () => {
                             bottom: dropdownState.openUpwards ? window.innerHeight - dropdownState.top : undefined,
                             right: dropdownState.right,
                         }}
-                        className="z-50 w-56 bg-white rounded-2xl shadow-2xl border border-slate-200/90 py-1.5 text-left text-xs divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-150"
+                        className="z-50 w-52 bg-white rounded-lg shadow-lg border border-slate-200 py-1 text-left text-xs divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-100"
                     >
                         <div className="py-1">
                             <button
@@ -804,10 +956,10 @@ export const AdminUsersPage = () => {
                                     setDropdownState(null);
                                     navigate(`/superadmin/users/${id}`);
                                 }}
-                                className="w-full px-3.5 py-2 text-slate-700 hover:bg-orange-50 hover:text-orange-700 flex items-center gap-2.5 font-medium transition-colors"
+                                className="w-full px-3 py-1.5 text-slate-800 hover:bg-slate-50 flex items-center gap-2 font-medium transition-colors cursor-pointer"
                             >
-                                <Eye size={14} className="text-slate-400" />
-                                View Full Profile
+                                <Eye size={13} className="text-slate-400" />
+                                <span>Inspect full profile</span>
                             </button>
                             <button
                                 onClick={() => {
@@ -815,10 +967,10 @@ export const AdminUsersPage = () => {
                                     setDropdownState(null);
                                     setEditingUser(u);
                                 }}
-                                className="w-full px-3.5 py-2 text-slate-700 hover:bg-orange-50 hover:text-orange-700 flex items-center gap-2.5 font-medium transition-colors"
+                                className="w-full px-3 py-1.5 text-slate-800 hover:bg-slate-50 flex items-center gap-2 font-medium transition-colors cursor-pointer"
                             >
-                                <Edit2 size={14} className="text-slate-400" />
-                                Edit Profile Details
+                                <Edit2 size={13} className="text-slate-400" />
+                                <span>Edit profile details</span>
                             </button>
                             <button
                                 onClick={() => {
@@ -826,10 +978,10 @@ export const AdminUsersPage = () => {
                                     setDropdownState(null);
                                     setEmailingUser(u);
                                 }}
-                                className="w-full px-3.5 py-2 text-slate-700 hover:bg-orange-50 hover:text-orange-700 flex items-center gap-2.5 font-medium transition-colors"
+                                className="w-full px-3 py-1.5 text-slate-800 hover:bg-slate-50 flex items-center gap-2 font-medium transition-colors cursor-pointer"
                             >
-                                <Mail size={14} className="text-slate-400" />
-                                Send Direct Email
+                                <Mail size={13} className="text-slate-400" />
+                                <span>Send direct email</span>
                             </button>
                             <button
                                 onClick={() => {
@@ -837,10 +989,10 @@ export const AdminUsersPage = () => {
                                     setDropdownState(null);
                                     setResettingUser(u);
                                 }}
-                                className="w-full px-3.5 py-2 text-slate-700 hover:bg-orange-50 hover:text-orange-700 flex items-center gap-2.5 font-medium transition-colors"
+                                className="w-full px-3 py-1.5 text-slate-800 hover:bg-slate-50 flex items-center gap-2 font-medium transition-colors cursor-pointer"
                             >
-                                <KeyRound size={14} className="text-slate-400" />
-                                Reset Password
+                                <KeyRound size={13} className="text-slate-400" />
+                                <span>Reset password</span>
                             </button>
                         </div>
 
@@ -856,10 +1008,10 @@ export const AdminUsersPage = () => {
                                             { onSuccess: () => showToast("User activated successfully") }
                                         );
                                     }}
-                                    className="w-full px-3.5 py-2 text-emerald-700 hover:bg-emerald-50 flex items-center gap-2.5 font-medium transition-colors"
+                                    className="w-full px-3 py-1.5 text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 font-medium transition-colors cursor-pointer"
                                 >
-                                    <CheckCircle2 size={14} className="text-emerald-600" />
-                                    Activate Account
+                                    <CheckCircle2 size={13} className="text-emerald-600" />
+                                    <span>Activate account</span>
                                 </button>
                             )}
 
@@ -877,15 +1029,14 @@ export const AdminUsersPage = () => {
                                         }
                                     }}
                                     disabled={currentAdmin?.id === dropdownState.user.id}
-                                    className={`w-full px-3.5 py-2 flex items-center gap-2.5 font-medium transition-colors ${
+                                    className={`w-full px-3 py-1.5 flex items-center gap-2 font-medium transition-colors cursor-pointer ${
                                         currentAdmin?.id === dropdownState.user.id
                                             ? "text-slate-300 cursor-not-allowed"
                                             : "text-amber-700 hover:bg-amber-50"
                                     }`}
-                                    title={currentAdmin?.id === dropdownState.user.id ? "Self-protection: Cannot deactivate your own account" : ""}
                                 >
-                                    <XCircle size={14} className={currentAdmin?.id === dropdownState.user.id ? "text-slate-300" : "text-amber-600"} />
-                                    <span>Deactivate Account</span>
+                                    <XCircle size={13} className={currentAdmin?.id === dropdownState.user.id ? "text-slate-300" : "text-amber-600"} />
+                                    <span>Deactivate account</span>
                                     {currentAdmin?.id === dropdownState.user.id && <span className="ml-auto text-[10px] text-slate-400 font-normal">Self</span>}
                                 </button>
                             )}
@@ -904,18 +1055,44 @@ export const AdminUsersPage = () => {
                                         }
                                     }}
                                     disabled={currentAdmin?.id === dropdownState.user.id}
-                                    className={`w-full px-3.5 py-2 flex items-center gap-2.5 font-medium transition-colors ${
+                                    className={`w-full px-3 py-1.5 flex items-center gap-2 font-medium transition-colors cursor-pointer ${
                                         currentAdmin?.id === dropdownState.user.id
                                             ? "text-slate-300 cursor-not-allowed"
                                             : "text-rose-700 hover:bg-rose-50"
                                     }`}
-                                    title={currentAdmin?.id === dropdownState.user.id ? "Self-protection: Cannot ban your own account" : ""}
                                 >
-                                    <Ban size={14} className={currentAdmin?.id === dropdownState.user.id ? "text-slate-300" : "text-rose-600"} />
-                                    <span>Ban / Suspend User</span>
+                                    <Ban size={13} className={currentAdmin?.id === dropdownState.user.id ? "text-slate-300" : "text-rose-600"} />
+                                    <span>Ban / Suspend user</span>
                                     {currentAdmin?.id === dropdownState.user.id && <span className="ml-auto text-[10px] text-slate-400 font-normal">Self</span>}
                                 </button>
                             )}
+                        </div>
+
+                        <div className="py-1">
+                            <button
+                                onClick={() => {
+                                    const id = dropdownState.user.id;
+                                    setDropdownState(null);
+                                    navigator.clipboard.writeText(id);
+                                    showToast("User ID copied to clipboard");
+                                }}
+                                className="w-full px-3 py-1.5 text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
+                            >
+                                <Copy size={13} className="text-slate-400" />
+                                <span>Copy User ID</span>
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const email = dropdownState.user.email;
+                                    setDropdownState(null);
+                                    navigator.clipboard.writeText(email);
+                                    showToast("Email address copied to clipboard");
+                                }}
+                                className="w-full px-3 py-1.5 text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
+                            >
+                                <Copy size={13} className="text-slate-400" />
+                                <span>Copy Email</span>
+                            </button>
                         </div>
                     </div>
                 </>
@@ -1004,57 +1181,62 @@ const EditUserModal = ({
 
     return (
         <ModalPortal onClose={onClose}>
-            <div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-                <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-5 border border-slate-100 animate-in fade-in zoom-in-95 duration-150 my-auto">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                        <h2 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                            <Edit2 size={16} className="text-orange-500" />
-                            Edit User Profile
+            <div
+                className="fixed inset-0 z-[100] bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+                onClick={(e) => {
+                    if (e.target === e.currentTarget) onClose();
+                }}
+            >
+                <div className="bg-white rounded-lg shadow-xl max-w-md w-full border border-slate-200 animate-in fade-in zoom-in-95 duration-100 my-auto overflow-hidden">
+                    <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-white">
+                        <h2 className="font-semibold text-slate-900 text-sm flex items-center gap-2">
+                            <Edit2 size={14} className="text-orange-500" />
+                            <span>Edit User Profile</span>
                         </h2>
-                        <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 cursor-pointer">
-                            <X size={16} />
+                        <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-md text-slate-400 cursor-pointer">
+                            <X size={15} />
                         </button>
                     </div>
 
                     {isSelf && (
-                        <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 flex items-start gap-2">
-                            <ShieldCheck size={16} className="text-orange-500 shrink-0 mt-0.5" />
+                        <div className="p-3 mx-4 mt-4 bg-amber-50 rounded-md border border-amber-200 text-xs text-amber-800 flex items-start gap-2">
+                            <ShieldCheck size={14} className="text-orange-500 shrink-0 mt-0.5" />
                             <div>
-                                <strong>Editing Your Admin Account:</strong> For system safety, your account role is locked to Super Administrator.
+                                <strong>Admin Account Notice:</strong> Your account role is locked to Super Administrator.
                             </div>
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+                    <form onSubmit={handleSubmit} className="p-4 space-y-3.5 text-xs">
                         <div>
-                            <label className="block text-xs font-semibold text-slate-600 mb-1">Full Name</label>
+                            <label className="block text-xs font-medium text-slate-700 mb-1">Full Name</label>
                             <input
                                 type="text"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 required
-                                className="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none"
+                                className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-slate-900 focus:border-slate-900"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-xs font-semibold text-slate-600 mb-1">Email Address</label>
+                            <label className="block text-xs font-medium text-slate-700 mb-1">Email Address</label>
                             <input
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
-                                className="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none"
+                                className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-slate-900 focus:border-slate-900"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-xs font-semibold text-slate-600 mb-1">Role & Permissions</label>
+                            <label className="block text-xs font-medium text-slate-700 mb-1">Role & Permissions</label>
                             <select
                                 value={role}
                                 disabled={isSelf}
                                 onChange={(e) => setRole(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
+                                className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-slate-900 focus:border-slate-900 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                             >
                                 <option value="CUSTOMER">Customer (Standard User)</option>
                                 <option value="SHOP_OWNER">Shop Owner (Merchant)</option>
@@ -1063,13 +1245,13 @@ const EditUserModal = ({
                         </div>
 
                         <div>
-                            <label className="block text-xs font-semibold text-slate-600 mb-1">Phone Number</label>
+                            <label className="block text-xs font-medium text-slate-700 mb-1">Phone Number</label>
                             <input
                                 type="text"
                                 value={phone}
                                 onChange={(e) => setPhone(e.target.value)}
                                 placeholder="+1 (555) 000-0000"
-                                className="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none"
+                                className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-slate-900 focus:border-slate-900"
                             />
                         </div>
 
@@ -1077,16 +1259,16 @@ const EditUserModal = ({
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+                                className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors cursor-pointer"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="submit"
                                 disabled={updateProfile.isPending}
-                                className="px-4 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all shadow-sm shadow-orange-100 flex items-center gap-1.5 cursor-pointer"
+                                className="px-3 py-1.5 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-md transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                             >
-                                {updateProfile.isPending && <Loader2 size={13} className="animate-spin" />}
+                                {updateProfile.isPending && <Loader2 size={12} className="animate-spin" />}
                                 Save Changes
                             </button>
                         </div>
@@ -1135,83 +1317,88 @@ const ResetPasswordModal = ({
 
     return (
         <ModalPortal onClose={onClose}>
-            <div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-                <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-slate-100 animate-in fade-in zoom-in-95 duration-150 my-auto">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                        <h2 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                            <KeyRound size={16} className="text-amber-500" />
-                            Reset User Password
+            <div
+                className="fixed inset-0 z-[100] bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+                onClick={(e) => {
+                    if (e.target === e.currentTarget) onClose();
+                }}
+            >
+                <div className="bg-white rounded-lg shadow-xl max-w-md w-full border border-slate-200 animate-in fade-in zoom-in-95 duration-100 my-auto overflow-hidden">
+                    <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-white">
+                        <h2 className="font-semibold text-slate-900 text-sm flex items-center gap-2">
+                            <KeyRound size={14} className="text-amber-500" />
+                            <span>Reset User Password</span>
                         </h2>
-                        <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 cursor-pointer">
-                            <X size={16} />
+                        <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-md text-slate-400 cursor-pointer">
+                            <X size={15} />
                         </button>
                     </div>
 
                     {!resultPassword ? (
-                        <form onSubmit={handleReset} className="space-y-4 text-sm">
-                            <div className="p-3.5 bg-amber-50 rounded-xl border border-amber-100 text-xs text-amber-800 space-y-1">
-                                <p className="font-bold">Security Notice</p>
+                        <form onSubmit={handleReset} className="p-4 space-y-3.5 text-xs">
+                            <div className="p-3 bg-amber-50 rounded-md border border-amber-200 text-xs text-amber-800 space-y-1">
+                                <p className="font-semibold">Security Notice</p>
                                 <p>
                                     Resetting password will invalidate all active sessions for <strong>{user.name}</strong> ({user.email}).
-                                    A notification email will be dispatched with the newly generated temporary password.
+                                    A notification email will be dispatched with the temporary password.
                                 </p>
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                                <label className="block text-xs font-medium text-slate-700 mb-1">
                                     Custom Password (Optional)
                                 </label>
                                 <input
                                     type="text"
-                                    placeholder="Leave empty to auto-generate a secure random password"
+                                    placeholder="Leave empty to auto-generate a secure password"
                                     value={customPassword}
                                     onChange={(e) => setCustomPassword(e.target.value)}
-                                    className="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-xs font-mono"
+                                    className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-slate-900 font-mono"
                                 />
                             </div>
 
-                            <div className="flex justify-end gap-2 pt-2">
+                            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+                                    className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors cursor-pointer"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={resetPassword.isPending}
-                                    className="px-4 py-2 text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-xl transition-all shadow-sm shadow-amber-100 flex items-center gap-1.5 cursor-pointer"
+                                    className="px-3 py-1.5 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-md transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                                 >
-                                    {resetPassword.isPending && <Loader2 size={13} className="animate-spin" />}
-                                    Generate & Reset Password
+                                    {resetPassword.isPending && <Loader2 size={12} className="animate-spin" />}
+                                    Reset Password
                                 </button>
                             </div>
                         </form>
                     ) : (
-                        <div className="space-y-4 text-sm">
-                            <div className="p-3.5 bg-emerald-50 rounded-xl border border-emerald-100 text-xs text-emerald-800">
-                                Password has been reset successfully and emailed to <strong>{user.email}</strong>.
+                        <div className="p-4 space-y-3.5 text-xs">
+                            <div className="p-3 bg-emerald-50 rounded-md border border-emerald-200 text-xs text-emerald-800">
+                                Password has been reset and emailed to <strong>{user.email}</strong>.
                             </div>
 
                             <div>
-                                <p className="text-xs font-semibold text-slate-500 mb-1.5">Temporary Generated Password:</p>
-                                <div className="flex items-center gap-2 p-3 bg-slate-100 rounded-xl font-mono text-base font-bold text-slate-900 justify-between">
+                                <p className="text-xs font-medium text-slate-600 mb-1">Temporary Password:</p>
+                                <div className="flex items-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-md font-mono text-xs font-semibold text-slate-900 justify-between">
                                     <span>{resultPassword}</span>
                                     <button
                                         onClick={handleCopy}
-                                        className="p-1.5 text-slate-500 hover:text-orange-600 hover:bg-white rounded-lg transition-colors cursor-pointer"
-                                        title="Copy temporary password"
+                                        className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors cursor-pointer"
+                                        title="Copy password"
                                     >
-                                        {copied ? <Check size={16} className="text-emerald-600" /> : <Copy size={16} />}
+                                        {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="flex justify-end pt-2">
+                            <div className="flex justify-end pt-2 border-t border-slate-100">
                                 <button
                                     onClick={onClose}
-                                    className="px-4 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-xl shadow-sm transition-all cursor-pointer"
+                                    className="px-3 py-1.5 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-md shadow-2xs transition-colors cursor-pointer"
                                 >
                                     Done
                                 </button>
@@ -1256,49 +1443,54 @@ const SendEmailModal = ({
 
     return (
         <ModalPortal onClose={onClose}>
-            <div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-                <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-4 border border-slate-100 animate-in fade-in zoom-in-95 duration-150 my-auto">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div
+                className="fixed inset-0 z-[100] bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+                onClick={(e) => {
+                    if (e.target === e.currentTarget) onClose();
+                }}
+            >
+                <div className="bg-white rounded-lg shadow-xl max-w-lg w-full border border-slate-200 animate-in fade-in zoom-in-95 duration-100 my-auto overflow-hidden">
+                    <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-white">
                         <div>
-                            <h2 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                                <Mail size={16} className="text-orange-500" />
-                                Send Message to {user.name}
+                            <h2 className="font-semibold text-slate-900 text-sm flex items-center gap-2">
+                                <Mail size={14} className="text-orange-500" />
+                                <span>Send Message to {user.name}</span>
                             </h2>
-                            <p className="text-xs text-slate-400 mt-0.5">Delivered directly to {user.email}</p>
+                            <p className="text-[11px] text-slate-400 mt-0.5 font-mono">{user.email}</p>
                         </div>
-                        <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 cursor-pointer">
-                            <X size={16} />
+                        <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-md text-slate-400 cursor-pointer">
+                            <X size={15} />
                         </button>
                     </div>
 
                     {sent ? (
-                        <div className="p-8 text-center text-emerald-600 font-semibold text-sm">
-                            <CheckCircle2 size={32} className="mx-auto text-emerald-500 mb-2" />
+                        <div className="p-8 text-center text-emerald-600 font-medium text-xs">
+                            <CheckCircle2 size={28} className="mx-auto text-emerald-500 mb-2" />
                             Email dispatched successfully!
                         </div>
                     ) : (
-                        <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+                        <form onSubmit={handleSubmit} className="p-4 space-y-3.5 text-xs">
                             <div>
-                                <label className="block text-xs font-semibold text-slate-600 mb-1">Subject</label>
+                                <label className="block text-xs font-medium text-slate-700 mb-1">Subject</label>
                                 <input
                                     type="text"
-                                    placeholder="Important update regarding your account..."
+                                    placeholder="Account notification subject..."
                                     value={subject}
                                     onChange={(e) => setSubject(e.target.value)}
                                     required
-                                    className="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none"
+                                    className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-slate-900"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-slate-600 mb-1">Message Body</label>
+                                <label className="block text-xs font-medium text-slate-700 mb-1">Message Body</label>
                                 <textarea
-                                    rows={6}
+                                    rows={5}
                                     placeholder="Type your message here..."
                                     value={message}
                                     onChange={(e) => setMessage(e.target.value)}
                                     required
-                                    className="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none resize-none leading-relaxed"
+                                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-slate-900 resize-none leading-relaxed"
                                 />
                             </div>
 
@@ -1306,16 +1498,16 @@ const SendEmailModal = ({
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+                                    className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors cursor-pointer"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={sendEmail.isPending}
-                                    className="px-4 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all shadow-sm shadow-orange-100 flex items-center gap-1.5 cursor-pointer"
+                                    className="px-3 py-1.5 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-md transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                                 >
-                                    {sendEmail.isPending && <Loader2 size={13} className="animate-spin" />}
+                                    {sendEmail.isPending && <Loader2 size={12} className="animate-spin" />}
                                     Send Email
                                 </button>
                             </div>
@@ -1358,51 +1550,56 @@ const BulkEmailModal = ({
 
     return (
         <ModalPortal onClose={onClose}>
-            <div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-                <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-4 border border-slate-100 animate-in fade-in zoom-in-95 duration-150 my-auto">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div
+                className="fixed inset-0 z-[100] bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+                onClick={(e) => {
+                    if (e.target === e.currentTarget) onClose();
+                }}
+            >
+                <div className="bg-white rounded-lg shadow-xl max-w-lg w-full border border-slate-200 animate-in fade-in zoom-in-95 duration-100 my-auto overflow-hidden">
+                    <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-white">
                         <div>
-                            <h2 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                                <Mail size={16} className="text-orange-500" />
-                                Send Bulk Email Broadcast
+                            <h2 className="font-semibold text-slate-900 text-sm flex items-center gap-2">
+                                <Mail size={14} className="text-orange-500" />
+                                <span>Bulk Email Broadcast</span>
                             </h2>
-                            <p className="text-xs text-slate-400 mt-0.5">
+                            <p className="text-[11px] text-slate-400 mt-0.5">
                                 Delivering to {userIds.length} selected recipients
                             </p>
                         </div>
-                        <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 cursor-pointer">
-                            <X size={16} />
+                        <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-md text-slate-400 cursor-pointer">
+                            <X size={15} />
                         </button>
                     </div>
 
                     {sent ? (
-                        <div className="p-8 text-center text-emerald-600 font-semibold text-sm">
-                            <CheckCircle2 size={32} className="mx-auto text-emerald-500 mb-2" />
+                        <div className="p-8 text-center text-emerald-600 font-medium text-xs">
+                            <CheckCircle2 size={28} className="mx-auto text-emerald-500 mb-2" />
                             Bulk email dispatched successfully to {userIds.length} recipients!
                         </div>
                     ) : (
-                        <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+                        <form onSubmit={handleSubmit} className="p-4 space-y-3.5 text-xs">
                             <div>
-                                <label className="block text-xs font-semibold text-slate-600 mb-1">Subject</label>
+                                <label className="block text-xs font-medium text-slate-700 mb-1">Subject</label>
                                 <input
                                     type="text"
-                                    placeholder="Platform announcement or policy update..."
+                                    placeholder="Platform update subject..."
                                     value={subject}
                                     onChange={(e) => setSubject(e.target.value)}
                                     required
-                                    className="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none"
+                                    className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-slate-900"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-slate-600 mb-1">Message Body</label>
+                                <label className="block text-xs font-medium text-slate-700 mb-1">Message Body</label>
                                 <textarea
-                                    rows={6}
-                                    placeholder="Write the announcement message..."
+                                    rows={5}
+                                    placeholder="Write the broadcast message..."
                                     value={message}
                                     onChange={(e) => setMessage(e.target.value)}
                                     required
-                                    className="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none resize-none leading-relaxed"
+                                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-slate-900 resize-none leading-relaxed"
                                 />
                             </div>
 
@@ -1410,16 +1607,16 @@ const BulkEmailModal = ({
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+                                    className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors cursor-pointer"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={bulkSendEmail.isPending}
-                                    className="px-4 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all shadow-sm shadow-orange-100 flex items-center gap-1.5 cursor-pointer"
+                                    className="px-3 py-1.5 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-md transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                                 >
-                                    {bulkSendEmail.isPending && <Loader2 size={13} className="animate-spin" />}
+                                    {bulkSendEmail.isPending && <Loader2 size={12} className="animate-spin" />}
                                     Broadcast to {userIds.length} Users
                                 </button>
                             </div>

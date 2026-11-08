@@ -33,6 +33,7 @@ import {
     listShipmentsController,
     listReturnsController,
     getReturnController,
+    updateReturnStatusAdminController,
     refundReturnController,
     listOrdersController,
     getOrderByIdController,
@@ -95,6 +96,7 @@ router.delete("/reviews/:id", deleteReviewAdminController);
 router.get("/shipments", listShipmentsController);
 router.get("/returns", listReturnsController);
 router.get("/returns/:id", getReturnController);
+router.patch("/returns/:id/status", updateReturnStatusAdminController);
 router.post("/returns/:id/refund", refundReturnController);
 
 // Orders

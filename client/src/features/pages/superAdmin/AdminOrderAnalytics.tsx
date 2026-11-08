@@ -11,11 +11,8 @@ import {
     TrendingUp,
     Globe,
     Store,
-    BarChart3,
     RefreshCw,
     MapPin,
-    ChevronDown,
-    ChevronUp,
 } from "lucide-react";
 import {
     LineChart,
@@ -47,8 +44,16 @@ const STATUS_COLORS: Record<string, string> = {
     RETURNED: "#78716c",
 };
 
-const formatCurrency = (val: number) =>
-    `$${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const formatCurrency = (val: number | string | undefined | null) => {
+    const num = typeof val === "string" ? parseFloat(val) : (val ?? 0);
+    if (isNaN(num)) return "$0.00";
+    return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(num);
+};
 
 const formatCompactNumber = (val: number) => {
     if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(1)}M`;
@@ -64,7 +69,7 @@ interface AdminOrderAnalyticsProps {
 
 const PERFORMANCE_COLORS = {
     aov: "#f97316",
-    revenue: "#06b6d4",
+    revenue: "#0ea5e9",
     fulfillment: "#10b981",
     shipped: "#8b5cf6",
     cancellation: "#ef4444",
@@ -132,49 +137,43 @@ function OrderPerformanceChart({ analytics, range }: { analytics: AdminOrderAnal
     const rangeLabel = range === "all" ? "All time" : range === "12m" ? "Last 12 months" : `Last ${range.replace("d", " days")}`;
     const metrics = latest ? [
         { label: "Avg Order Value", value: formatCurrency(latest.aov), color: PERFORMANCE_COLORS.aov, key: "aovIndex" },
-        { label: "Net Revenue", value: formatCurrency(latest.netRevenue), color: PERFORMANCE_COLORS.revenue, key: "revenueIndex" },
-        { label: "Fulfillment", value: `${latest.fulfillment.toFixed(1)}%`, color: PERFORMANCE_COLORS.fulfillment, key: "fulfillmentIndex" },
-        { label: "Shipped + Delivered", value: `${latest.shipped.toLocaleString()} units`, color: PERFORMANCE_COLORS.shipped, key: "shippedIndex" },
-        { label: "Cancellation", value: `${latest.cancellation.toFixed(1)}%`, color: PERFORMANCE_COLORS.cancellation, key: "cancellationIndex" },
+        { label: "Net Settlement", value: formatCurrency(latest.netRevenue), color: PERFORMANCE_COLORS.revenue, key: "revenueIndex" },
+        { label: "Fulfillment Rate", value: `${latest.fulfillment.toFixed(1)}%`, color: PERFORMANCE_COLORS.fulfillment, key: "fulfillmentIndex" },
+        { label: "Units Dispatched", value: `${latest.shipped.toLocaleString()} units`, color: PERFORMANCE_COLORS.shipped, key: "shippedIndex" },
+        { label: "Cancellation Rate", value: `${latest.cancellation.toFixed(1)}%`, color: PERFORMANCE_COLORS.cancellation, key: "cancellationIndex" },
     ] as const : [];
 
     return (
-        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-            <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-orange-50/40 p-5">
-                <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
-                    <div><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange-600">Performance trends</p><h3 className="mt-1 text-lg font-black tracking-tight text-slate-900">Order Analytics</h3><p className="mt-1 text-xs text-slate-500">A single visual view of value, revenue, fulfillment, delivery, and cancellations.</p></div>
-                    <span className="rounded-full border border-orange-200 bg-white px-3 py-1.5 text-xs font-bold text-orange-700">{rangeLabel}</span>
+        <div className="rounded-lg border border-slate-200 bg-white overflow-hidden shadow-2xs">
+            <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50/50">
+                <div>
+                    <h3 className="text-xs font-semibold text-slate-900">Performance Trends</h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                        Core settlement, order values, delivery completion, and cancellation indicators.
+                    </p>
                 </div>
-                <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                    {metrics.map((metric) => <div key={metric.label} className="rounded-xl border border-white bg-white/80 p-3 shadow-sm"><div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500"><span className="size-2 rounded-full" style={{ backgroundColor: metric.color }} />{metric.label}</div><p className="mt-1.5 text-base font-black text-slate-900">{metric.value}</p></div>)}
-                </div>
+                <span className="text-[11px] font-medium text-slate-600 bg-white border border-slate-200 px-2.5 py-0.5 rounded-md self-start sm:self-auto">
+                    {rangeLabel}
+                </span>
             </div>
-            <div className="p-5">
-                {points.length ? <ResponsiveContainer width="100%" height={310}><LineChart data={points} margin={{ top: 10, right: 12, left: -12, bottom: 0 }}>
-                    <CartesianGrid stroke="#eef2f7" vertical={false} />
-                    <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#94a3b8" }} />
-                    <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tickFormatter={(value) => `${value}%`} tick={{ fontSize: 10, fill: "#94a3b8" }} />
-                    <Tooltip content={<PerformanceTooltip />} />
-                    <Legend verticalAlign="bottom" height={28} iconType="circle" wrapperStyle={{ fontSize: 11, color: "#64748b", paddingTop: 12 }} />
-                    <Line type="monotone" dataKey="aovIndex" name="Avg order value" stroke={PERFORMANCE_COLORS.aov} strokeWidth={2.5} dot={{ r: 3, fill: "#fff", stroke: PERFORMANCE_COLORS.aov, strokeWidth: 2 }} activeDot={{ r: 5 }} />
-                    <Line type="monotone" dataKey="revenueIndex" name="Net revenue" stroke={PERFORMANCE_COLORS.revenue} strokeWidth={2.5} dot={{ r: 3, fill: "#fff", stroke: PERFORMANCE_COLORS.revenue, strokeWidth: 2 }} activeDot={{ r: 5 }} />
-                    <Line type="monotone" dataKey="fulfillmentIndex" name="Fulfillment rate" stroke={PERFORMANCE_COLORS.fulfillment} strokeWidth={2.5} dot={{ r: 3, fill: "#fff", stroke: PERFORMANCE_COLORS.fulfillment, strokeWidth: 2 }} activeDot={{ r: 5 }} />
-                    <Line type="monotone" dataKey="shippedIndex" name="Shipped + delivered" stroke={PERFORMANCE_COLORS.shipped} strokeWidth={2.5} dot={{ r: 3, fill: "#fff", stroke: PERFORMANCE_COLORS.shipped, strokeWidth: 2 }} activeDot={{ r: 5 }} />
-                    <Line type="monotone" dataKey="cancellationIndex" name="Cancellation rate" stroke={PERFORMANCE_COLORS.cancellation} strokeWidth={2.5} dot={{ r: 3, fill: "#fff", stroke: PERFORMANCE_COLORS.cancellation, strokeWidth: 2 }} activeDot={{ r: 5 }} />
-                </LineChart></ResponsiveContainer> : <div className="flex h-[310px] items-center justify-center text-sm text-slate-400">No order trend data for this period</div>}
-                <p className="mt-2 text-center text-[11px] text-slate-400">Lines are indexed to their own maximum so different units remain readable. Hover to see exact values.</p>
+
+            <div className="p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                {metrics.map((metric) => (
+                    <div key={metric.label} className="p-3 rounded-md border border-slate-200/80 bg-white">
+                        <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+                            <span className="size-1.5 rounded-full" style={{ backgroundColor: metric.color }} />
+                            <span>{metric.label}</span>
+                        </div>
+                        <p className="mt-1 text-sm font-bold text-slate-900 tabular-nums">{metric.value}</p>
+                    </div>
+                ))}
             </div>
         </div>
     );
 }
 
-function PerformanceTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { aov: number; netRevenue: number; fulfillment: number; shipped: number; cancellation: number; label: string } }> }) {
-    if (!active || !payload?.length) return null;
-    const point = payload[0].payload;
-    return <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs shadow-lg"><p className="mb-2 font-bold text-slate-900">{point.label}</p><p className="text-orange-600">Avg Order Value: <b>{formatCurrency(point.aov)}</b></p><p className="text-cyan-600">Net Revenue: <b>{formatCurrency(point.netRevenue)}</b></p><p className="text-emerald-600">Fulfillment: <b>{point.fulfillment.toFixed(1)}%</b></p><p className="text-violet-600">Shipped + Delivered: <b>{point.shipped}</b></p><p className="text-rose-600">Cancellation: <b>{point.cancellation.toFixed(1)}%</b></p></div>;
-}
-
-export interface OrderLifecyclePipelineProps {
+// ─── Order Lifecycle Pipeline Component ───────────────────────────
+interface OrderLifecyclePipelineProps {
     dateFrom?: string;
     dateTo?: string;
     activeStatus?: string;
@@ -190,7 +189,6 @@ export const OrderLifecyclePipeline: React.FC<OrderLifecyclePipelineProps> = ({
     const { data: analytics, isLoading } = useAdminOrderAnalytics({
         dateFrom: dateFrom || undefined,
         dateTo: dateTo || undefined,
-        range: dateFrom || dateTo ? undefined : "all",
     });
 
     const pending = analytics?.pendingOrders ?? 0;
@@ -205,29 +203,23 @@ export const OrderLifecyclePipeline: React.FC<OrderLifecyclePipelineProps> = ({
             key: "PENDING",
             label: "Pending",
             count: pending,
-            desc: "Awaiting payment",
+            desc: "Awaiting settlement",
             icon: Clock,
-            border: "border-amber-200/70",
-            bg: "bg-amber-50/50",
-            textTitle: "text-amber-800",
-            textCount: "text-amber-950",
-            textDesc: "text-amber-700/80",
+            dot: "bg-amber-500",
+            activeClass: "bg-amber-50/40 border-amber-500 ring-1 ring-amber-500 shadow-2xs",
+            hoverBorder: "hover:border-amber-300",
             iconColor: "text-amber-600",
-            activeRing: "ring-2 ring-amber-500 shadow-md",
         },
         {
             key: "PROCESSING",
             label: "Processing",
             count: processing,
-            desc: "Packing & fulfillment",
+            desc: "Fulfillment in progress",
             icon: Package,
-            border: "border-orange-200/70",
-            bg: "bg-orange-50/50",
-            textTitle: "text-orange-800",
-            textCount: "text-orange-950",
-            textDesc: "text-orange-700/80",
+            dot: "bg-orange-500",
+            activeClass: "bg-orange-50/40 border-orange-500 ring-1 ring-orange-500 shadow-2xs",
+            hoverBorder: "hover:border-orange-300",
             iconColor: "text-orange-600",
-            activeRing: "ring-2 ring-orange-500 shadow-md",
         },
         {
             key: "SHIPPED",
@@ -235,88 +227,92 @@ export const OrderLifecyclePipeline: React.FC<OrderLifecyclePipelineProps> = ({
             count: shipped,
             desc: "In transit to buyer",
             icon: Truck,
-            border: "border-violet-200/70",
-            bg: "bg-violet-50/50",
-            textTitle: "text-violet-800",
-            textCount: "text-violet-950",
-            textDesc: "text-violet-700/80",
+            dot: "bg-violet-500",
+            activeClass: "bg-violet-50/40 border-violet-500 ring-1 ring-violet-500 shadow-2xs",
+            hoverBorder: "hover:border-violet-300",
             iconColor: "text-violet-600",
-            activeRing: "ring-2 ring-violet-500 shadow-md",
         },
         {
             key: "DELIVERED",
             label: "Delivered",
             count: delivered,
-            desc: "Completed successfully",
+            desc: "Completed delivery",
             icon: CheckCircle2,
-            border: "border-emerald-200/70",
-            bg: "bg-emerald-50/50",
-            textTitle: "text-emerald-800",
-            textCount: "text-emerald-950",
-            textDesc: "text-emerald-700/80",
+            dot: "bg-emerald-500",
+            activeClass: "bg-emerald-50/40 border-emerald-500 ring-1 ring-emerald-500 shadow-2xs",
+            hoverBorder: "hover:border-emerald-300",
             iconColor: "text-emerald-600",
-            activeRing: "ring-2 ring-emerald-500 shadow-md",
         },
         {
             key: "CANCELLED",
             label: "Cancelled",
             count: cancelled,
-            desc: "Aborted before ship",
+            desc: "Aborted orders",
             icon: XCircle,
-            border: "border-rose-200/70",
-            bg: "bg-rose-50/50",
-            textTitle: "text-rose-800",
-            textCount: "text-rose-950",
-            textDesc: "text-rose-700/80",
+            dot: "bg-rose-500",
+            activeClass: "bg-rose-50/40 border-rose-500 ring-1 ring-rose-500 shadow-2xs",
+            hoverBorder: "hover:border-rose-300",
             iconColor: "text-rose-600",
-            activeRing: "ring-2 ring-rose-500 shadow-md",
         },
         {
             key: "REFUNDED",
-            label: "Returned",
+            label: "Returned / Disputes",
             count: returned,
-            desc: "Claims & disputes",
+            desc: "Settled returns",
             icon: RotateCcw,
-            border: "border-slate-200",
-            bg: "bg-slate-50",
-            textTitle: "text-slate-800",
-            textCount: "text-slate-950",
-            textDesc: "text-slate-500",
+            dot: "bg-slate-400",
+            activeClass: "bg-slate-100 border-slate-700 ring-1 ring-slate-700 shadow-2xs",
+            hoverBorder: "hover:border-slate-300",
             iconColor: "text-slate-600",
-            activeRing: "ring-2 ring-slate-500 shadow-md",
         },
     ];
 
     return (
-        <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">
-                Order Lifecycle Pipeline
+        <div className="space-y-2">
+            <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    Order Lifecycle Pipeline
+                </span>
+                {activeStatus && (
+                    <button
+                        onClick={() => onSelectStatus?.("")}
+                        className="text-[11px] text-slate-500 hover:text-slate-800 underline cursor-pointer"
+                    >
+                        Clear status filter
+                    </button>
+                )}
             </div>
+
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {cards.map((c) => {
-                    const Icon = c.icon;
                     const isSelected = activeStatus === c.key;
+                    const Icon = c.icon;
                     return (
-                        <div
+                        <button
                             key={c.key}
                             onClick={() => onSelectStatus?.(c.key)}
-                            className={`rounded-xl border ${c.border} ${c.bg} p-3.5 transition hover:shadow-xs cursor-pointer ${
-                                isSelected ? c.activeRing : ""
+                            className={`text-left p-3 rounded-lg border transition-all cursor-pointer ${
+                                isSelected
+                                    ? c.activeClass
+                                    : `bg-white border-slate-200 ${c.hoverBorder} hover:bg-slate-50/50`
                             }`}
                         >
-                            <div className="flex items-center justify-between">
-                                <span className={`text-xs font-bold ${c.textTitle}`}>{c.label}</span>
-                                <Icon className={`size-4 ${c.iconColor}`} />
+                            <div className="flex items-center justify-between text-xs font-medium text-slate-700">
+                                <span className="flex items-center gap-1.5">
+                                    <span className={`size-1.5 rounded-full ${c.dot}`} />
+                                    {c.label}
+                                </span>
+                                <Icon size={13} className={isSelected ? c.iconColor : "text-slate-400"} />
                             </div>
-                            <div className={`mt-2 text-xl font-black ${c.textCount}`}>
+                            <div className="mt-1.5 text-lg font-bold tracking-tight text-slate-900 tabular-nums">
                                 {isLoading ? (
-                                    <span className="inline-block size-5 animate-pulse rounded bg-slate-200/60" />
+                                    <span className="inline-block size-4 animate-pulse rounded bg-slate-200" />
                                 ) : (
                                     c.count.toLocaleString()
                                 )}
                             </div>
-                            <p className={`text-[11px] ${c.textDesc} mt-0.5`}>{c.desc}</p>
-                        </div>
+                            <p className="text-[10px] text-slate-400 mt-0.5 truncate">{c.desc}</p>
+                        </button>
                     );
                 })}
             </div>
@@ -324,6 +320,8 @@ export const OrderLifecyclePipeline: React.FC<OrderLifecyclePipelineProps> = ({
     );
 };
 
+// ─── Main Admin Order Analytics Section ───────────────────────────
+// Permanently displayed (not collapsible) with clean fintech visual hierarchy
 export const AdminOrderAnalyticsSection: React.FC<AdminOrderAnalyticsProps> = ({
     shopId,
     parentDateFrom,
@@ -331,7 +329,6 @@ export const AdminOrderAnalyticsSection: React.FC<AdminOrderAnalyticsProps> = ({
 }) => {
     const [range, setRange] = useState<"7d" | "30d" | "90d" | "12m" | "all">("30d");
     const [chartMode, setChartMode] = useState<"both" | "orders" | "revenue">("both");
-    const [isExpanded, setIsExpanded] = useState<boolean>(true);
 
     const filters: AdminOrderAnalyticsFilters = {
         shopId: shopId || undefined,
@@ -344,61 +341,56 @@ export const AdminOrderAnalyticsSection: React.FC<AdminOrderAnalyticsProps> = ({
 
     if (isLoading) {
         return (
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-8 flex flex-col items-center justify-center min-h-[220px]">
-                <Loader2 className="size-8 animate-spin text-orange-500 mb-3" />
-                <p className="text-sm font-semibold text-slate-700">Loading Order Analytics...</p>
-                <p className="text-xs text-slate-400 mt-1">Aggregating order lifecycle, geographic, and fulfillment metrics</p>
+            <div className="bg-white rounded-lg border border-slate-200 shadow-2xs p-8 flex flex-col items-center justify-center min-h-[200px] gap-2 text-slate-400">
+                <Loader2 className="size-6 animate-spin text-slate-500" />
+                <p className="text-xs font-medium">Aggregating order analytics…</p>
             </div>
         );
     }
 
     if (isError || !analytics) {
         return (
-            <div className="bg-white rounded-2xl border border-rose-100 shadow-xs p-6 flex items-center justify-between">
+            <div className="bg-white rounded-lg border border-slate-200 shadow-2xs p-5 flex items-center justify-between">
                 <div>
-                    <h3 className="font-bold text-slate-900 text-sm">Unable to load Order Analytics</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">Please check network connectivity or try refreshing.</p>
+                    <h3 className="font-semibold text-slate-900 text-xs">Unable to load order analytics</h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Please check network connectivity or refresh.</p>
                 </div>
                 <button
                     onClick={() => refetch()}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-md transition-colors cursor-pointer"
                 >
-                    <RefreshCw size={13} />
-                    Retry
+                    <RefreshCw size={12} />
+                    <span>Retry</span>
                 </button>
             </div>
         );
     }
 
     return (
-        <section className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden transition-all duration-200">
-            {/* Header & Controls */}
-            <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-50/70 via-white to-orange-50/20">
+        <section className="space-y-4">
+            {/* Header & Controls Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
                 <div>
                     <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-orange-100 text-orange-700">
-                            <BarChart3 size={12} />
-                            Order Intelligence
-                        </span>
+                        <h2 className="text-sm font-semibold text-slate-900">
+                            Order Analytics
+                        </h2>
                         {isFetching && (
-                            <span className="flex items-center gap-1 text-[11px] text-orange-600 font-medium">
-                                <RefreshCw size={11} className="animate-spin" />
-                                Updating...
+                            <span className="flex items-center gap-1 text-[11px] text-slate-400 font-medium">
+                                <RefreshCw size={11} className="animate-spin text-orange-500" />
+                                Updating…
                             </span>
                         )}
                     </div>
-                    <h2 className="text-xl font-black text-slate-900 tracking-tight mt-1 flex items-center gap-2">
-                        Order Analytics Cockpit
-                    </h2>
                     <p className="text-xs text-slate-500 mt-0.5">
-                        Lifecycle status breakdown, timeline trend, vendor volume, and geographic demand.
+                        Volume trends, gross merchandise value, fulfillment efficiency, and regional distribution.
                     </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                    {/* Range Preset Tabs (only when not overridden by custom date filter) */}
+                <div className="flex items-center gap-2 flex-wrap">
+                    {/* Timeframe Presets */}
                     {!parentDateFrom && !parentDateTo && (
-                        <div className="inline-flex items-center bg-slate-100 p-1 rounded-xl text-xs font-semibold text-slate-600 border border-slate-200/60">
+                        <div className="inline-flex items-center bg-slate-100 p-0.5 rounded-md text-xs font-medium text-slate-600 border border-slate-200/60">
                             {(
                                 [
                                     { id: "7d", label: "7D" },
@@ -411,10 +403,10 @@ export const AdminOrderAnalyticsSection: React.FC<AdminOrderAnalyticsProps> = ({
                                 <button
                                     key={tab.id}
                                     onClick={() => setRange(tab.id)}
-                                    className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                                    className={`px-2.5 py-1 rounded text-xs transition-colors cursor-pointer ${
                                         range === tab.id
-                                            ? "bg-white text-slate-900 shadow-xs font-bold"
-                                            : "hover:text-slate-900 hover:bg-white/50"
+                                            ? "bg-white text-slate-900 shadow-2xs font-semibold"
+                                            : "hover:text-slate-900 text-slate-600"
                                     }`}
                                 >
                                     {tab.label}
@@ -422,368 +414,338 @@ export const AdminOrderAnalyticsSection: React.FC<AdminOrderAnalyticsProps> = ({
                             ))}
                         </div>
                     )}
-
-                    {/* Expand/Collapse Toggle */}
-                    <button
-                        onClick={() => setIsExpanded(!isExpanded)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-                        title={isExpanded ? "Collapse Analytics" : "Expand Analytics"}
-                    >
-                        {isExpanded ? (
-                            <>
-                                <ChevronUp size={14} />
-                                <span>Collapse</span>
-                            </>
-                        ) : (
-                            <>
-                                <ChevronDown size={14} />
-                                <span>Expand Detailed Analytics</span>
-                            </>
-                        )}
-                    </button>
                 </div>
             </div>
 
-            {isExpanded && (
-                <div className="flex flex-col gap-6 p-5">
-                    {/* ─── Performance Trends ──────────────────────────────────── */}
-                    <div>
-                        <OrderPerformanceChart analytics={analytics} range={range} />
-                    </div>
+            {/* Performance Trends Strip */}
+            <OrderPerformanceChart analytics={analytics} range={range} />
 
-                    {/* ─── Orders Over Time & Status Breakdown ───────────────────── */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Timeline AreaChart (2 cols) */}
-                        <div className="lg:col-span-2 rounded-2xl border border-slate-200/80 p-5 bg-white shadow-sm">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                                <div>
-                                    <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                                        <TrendingUp className="size-4 text-orange-500" />
-                                        Orders Over Time
-                                    </h3>
-                                    <p className="text-xs text-slate-400 mt-0.5">
-                                        Historical trajectory of marketplace volume and gross merchandise value
-                                    </p>
-                                </div>
-                                <div className="inline-flex items-center bg-slate-100 p-0.5 rounded-lg text-xs font-medium text-slate-600">
-                                    <button
-                                        onClick={() => setChartMode("both")}
-                                        className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                                            chartMode === "both" ? "bg-white text-slate-900 shadow-2xs font-bold" : ""
-                                        }`}
-                                    >
-                                        Both
-                                    </button>
-                                    <button
-                                        onClick={() => setChartMode("orders")}
-                                        className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                                            chartMode === "orders" ? "bg-white text-slate-900 shadow-2xs font-bold" : ""
-                                        }`}
-                                    >
-                                        Orders
-                                    </button>
-                                    <button
-                                        onClick={() => setChartMode("revenue")}
-                                        className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                                            chartMode === "revenue" ? "bg-white text-slate-900 shadow-2xs font-bold" : ""
-                                        }`}
-                                    >
-                                        Revenue
-                                    </button>
-                                </div>
-                            </div>
-
-                            {analytics.ordersOverTime.length > 0 ? (
-                                <div className="h-72 w-full">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart
-                                            data={analytics.ordersOverTime}
-                                            margin={{ top: 16, right: 12, left: -8, bottom: 8 }}
-                                        >
-                                            <defs>
-                                                <linearGradient id="orderVolumeGrad" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="0%" stopColor="#f97316" stopOpacity={0.95} />
-                                                    <stop offset="100%" stopColor="#fb923c" stopOpacity={0.55} />
-                                                </linearGradient>
-                                                <linearGradient id="orderRevGrad" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.95} />
-                                                    <stop offset="100%" stopColor="#a78bfa" stopOpacity={0.55} />
-                                                </linearGradient>
-                                            </defs>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#e8eef5" vertical={false} />
-                                            <XAxis
-                                                dataKey="label"
-                                                tickLine={false}
-                                                axisLine={false}
-                                                tick={{ fontSize: 11, fill: "#94a3b8" }}
-                                            />
-                                            <YAxis
-                                                yAxisId="orders"
-                                                tickLine={false}
-                                                axisLine={false}
-                                                tick={{ fontSize: 11, fill: "#94a3b8" }}
-                                                tickFormatter={formatCompactNumber}
-                                                hide={chartMode === "revenue"}
-                                            />
-                                            <YAxis
-                                                yAxisId="revenue"
-                                                orientation="right"
-                                                tickLine={false}
-                                                axisLine={false}
-                                                tick={{ fontSize: 11, fill: "#94a3b8" }}
-                                                tickFormatter={(v) => `$${formatCompactNumber(v)}`}
-                                                hide={chartMode === "orders"}
-                                            />
-                                            <Tooltip
-                                                contentStyle={{
-                                                    borderRadius: 12,
-                                                    border: "1px solid #e2e8f0",
-                                                    boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
-                                                    fontSize: 12,
-                                                }}
-                                                formatter={(value: any, name: any) => {
-                                                    if (name === "Revenue" || name === "revenue") {
-                                                        return [formatCurrency(Number(value)), "Revenue"];
-                                                    }
-                                                    return [Number(value).toLocaleString(), "Orders"];
-                                                }}
-                                                labelStyle={{ fontWeight: "bold", color: "#0f172a", marginBottom: 4 }}
-                                            />
-                                            <Legend verticalAlign="bottom" height={28} iconType="circle" wrapperStyle={{ fontSize: 12, paddingTop: 12, color: "#64748b" }} />
-                                            {(chartMode === "both" || chartMode === "orders") && (
-                                                <Line
-                                                    yAxisId="orders"
-                                                    type="monotone"
-                                                    dataKey="orders"
-                                                    name="Orders"
-                                                    stroke="#f97316"
-                                                    strokeWidth={3}
-                                                    dot={{ r: 4, fill: "#fff", stroke: "#f97316", strokeWidth: 2 }}
-                                                    activeDot={{ r: 6, fill: "#f97316", stroke: "#fff", strokeWidth: 2 }}
-                                                />
-                                            )}
-                                            {(chartMode === "both" || chartMode === "revenue") && (
-                                                <Line
-                                                    yAxisId="revenue"
-                                                    type="monotone"
-                                                    dataKey="revenue"
-                                                    name="Revenue"
-                                                    stroke="#8b5cf6"
-                                                    strokeWidth={3}
-                                                    dot={{ r: 4, fill: "#fff", stroke: "#8b5cf6", strokeWidth: 2 }}
-                                                    activeDot={{ r: 6, fill: "#8b5cf6", stroke: "#fff", strokeWidth: 2 }}
-                                                />
-                                            )}
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            ) : (
-                                <div className="h-64 flex flex-col items-center justify-center text-slate-400 border border-dashed border-slate-200 rounded-xl">
-                                    <ShoppingCart size={24} className="mb-2 opacity-40" />
-                                    <p className="text-xs font-semibold">No order trajectory data in this timeframe</p>
-                                </div>
-                            )}
+            {/* ─── Orders Over Time & Status Distribution ──────────────────── */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {/* Timeline Area/Line Chart (2 cols) */}
+                <div className="lg:col-span-2 rounded-lg border border-slate-200 p-4 bg-white shadow-2xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                        <div>
+                            <h3 className="font-semibold text-slate-900 text-xs flex items-center gap-1.5">
+                                <TrendingUp className="size-3.5 text-slate-600" />
+                                Orders & Revenue Trajectory
+                            </h3>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                                Transaction count and gross merchandise settlement
+                            </p>
                         </div>
 
-                        {/* Status Breakdown Donut (1 col) */}
-                        <div className="rounded-2xl border border-slate-200/80 p-5 bg-white flex flex-col justify-between">
-                            <div>
-                                <h3 className="font-bold text-slate-900 text-sm">Status Breakdown</h3>
-                                <p className="text-xs text-slate-400 mt-0.5">
-                                    Relative proportion of order lifecycle states
-                                </p>
+                        {/* Chart Mode Selector */}
+                        <div className="inline-flex items-center bg-slate-100 p-0.5 rounded-md text-xs font-medium text-slate-600">
+                            <button
+                                onClick={() => setChartMode("both")}
+                                className={`px-2 py-0.5 rounded text-xs transition-colors cursor-pointer ${
+                                    chartMode === "both" ? "bg-white text-slate-900 shadow-2xs font-semibold" : "text-slate-600"
+                                }`}
+                            >
+                                Both
+                            </button>
+                            <button
+                                onClick={() => setChartMode("orders")}
+                                className={`px-2 py-0.5 rounded text-xs transition-colors cursor-pointer ${
+                                    chartMode === "orders" ? "bg-white text-slate-900 shadow-2xs font-semibold" : "text-slate-600"
+                                }`}
+                            >
+                                Orders
+                            </button>
+                            <button
+                                onClick={() => setChartMode("revenue")}
+                                className={`px-2 py-0.5 rounded text-xs transition-colors cursor-pointer ${
+                                    chartMode === "revenue" ? "bg-white text-slate-900 shadow-2xs font-semibold" : "text-slate-600"
+                                }`}
+                            >
+                                Revenue
+                            </button>
+                        </div>
+                    </div>
+
+                    {analytics.ordersOverTime.length > 0 ? (
+                        <div className="h-64 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart
+                                    data={analytics.ordersOverTime}
+                                    margin={{ top: 12, right: 12, left: -12, bottom: 4 }}
+                                >
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                                    <XAxis
+                                        dataKey="label"
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tick={{ fontSize: 11, fill: "#94a3b8" }}
+                                    />
+                                    <YAxis
+                                        yAxisId="orders"
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tick={{ fontSize: 11, fill: "#94a3b8" }}
+                                        tickFormatter={formatCompactNumber}
+                                        hide={chartMode === "revenue"}
+                                    />
+                                    <YAxis
+                                        yAxisId="revenue"
+                                        orientation="right"
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tick={{ fontSize: 11, fill: "#94a3b8" }}
+                                        tickFormatter={(v) => `$${formatCompactNumber(v)}`}
+                                        hide={chartMode === "orders"}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            borderRadius: 8,
+                                            border: "1px solid #e2e8f0",
+                                            boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                                            fontSize: 12,
+                                        }}
+                                        formatter={(value: any, name: any) => {
+                                            if (name === "Revenue" || name === "revenue") {
+                                                return [formatCurrency(Number(value)), "Revenue"];
+                                            }
+                                            return [Number(value).toLocaleString(), "Orders"];
+                                        }}
+                                        labelStyle={{ fontWeight: 600, color: "#0f172a", marginBottom: 2 }}
+                                    />
+                                    <Legend
+                                        verticalAlign="bottom"
+                                        height={24}
+                                        iconType="circle"
+                                        wrapperStyle={{ fontSize: 11, paddingTop: 8, color: "#64748b" }}
+                                    />
+                                    {(chartMode === "both" || chartMode === "orders") && (
+                                        <Line
+                                            yAxisId="orders"
+                                            type="monotone"
+                                            dataKey="orders"
+                                            name="Orders"
+                                            stroke="#f97316"
+                                            strokeWidth={2}
+                                            dot={{ r: 3, fill: "#fff", stroke: "#f97316", strokeWidth: 1.5 }}
+                                            activeDot={{ r: 5, fill: "#f97316", stroke: "#fff", strokeWidth: 2 }}
+                                        />
+                                    )}
+                                    {(chartMode === "both" || chartMode === "revenue") && (
+                                        <Line
+                                            yAxisId="revenue"
+                                            type="monotone"
+                                            dataKey="revenue"
+                                            name="Revenue"
+                                            stroke="#0ea5e9"
+                                            strokeWidth={2}
+                                            dot={{ r: 3, fill: "#fff", stroke: "#0ea5e9", strokeWidth: 1.5 }}
+                                            activeDot={{ r: 5, fill: "#0ea5e9", stroke: "#fff", strokeWidth: 2 }}
+                                        />
+                                    )}
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                    ) : (
+                        <div className="h-56 flex flex-col items-center justify-center text-slate-400 border border-dashed border-slate-200 rounded-md">
+                            <ShoppingCart size={20} className="mb-1.5 opacity-40" />
+                            <p className="text-xs font-medium">No order data recorded in this period</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Status Breakdown Donut (1 col) */}
+                <div className="rounded-lg border border-slate-200 p-4 bg-white shadow-2xs flex flex-col justify-between">
+                    <div>
+                        <h3 className="font-semibold text-slate-900 text-xs">Status Distribution</h3>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                            Proportion of orders across fulfillment states
+                        </p>
+                    </div>
+
+                    {analytics.ordersByStatus.length > 0 ? (
+                        <div className="my-auto py-1">
+                            <div className="relative h-40 w-full flex items-center justify-center">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={analytics.ordersByStatus}
+                                            dataKey="count"
+                                            nameKey="status"
+                                            innerRadius={46}
+                                            outerRadius={68}
+                                            paddingAngle={2}
+                                        >
+                                            {analytics.ordersByStatus.map((entry) => (
+                                                <Cell
+                                                    key={entry.status}
+                                                    fill={STATUS_COLORS[entry.status] || "#94a3b8"}
+                                                />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip
+                                            formatter={(value: any, name: any) => [
+                                                `${Number(value).toLocaleString()} orders`,
+                                                String(name).replace(/_/g, " "),
+                                            ]}
+                                        />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                    <span className="text-[10px] font-medium text-slate-400 uppercase">Total</span>
+                                    <span className="text-base font-bold text-slate-900 tabular-nums">
+                                        {formatCompactNumber(analytics.totalOrders)}
+                                    </span>
+                                </div>
                             </div>
 
-                            {analytics.ordersByStatus.length > 0 ? (
-                                <div className="my-auto py-2">
-                                    <div className="relative h-44 w-full flex items-center justify-center">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <PieChart>
-                                                <Pie
-                                                    data={analytics.ordersByStatus}
-                                                    dataKey="count"
-                                                    nameKey="status"
-                                                    innerRadius={52}
-                                                    outerRadius={75}
-                                                    paddingAngle={3}
-                                                >
-                                                    {analytics.ordersByStatus.map((entry) => (
-                                                        <Cell
-                                                            key={entry.status}
-                                                            fill={STATUS_COLORS[entry.status] || "#94a3b8"}
-                                                        />
-                                                    ))}
-                                                </Pie>
-                                                <Tooltip
-                                                    formatter={(value: any, name: any) => [
-                                                        `${Number(value).toLocaleString()} orders`,
-                                                        String(name).replace(/_/g, " "),
-                                                    ]}
-                                                />
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                            <span className="text-xs font-bold text-slate-400">Total</span>
-                                            <span className="text-lg font-black text-slate-900">
-                                                {formatCompactNumber(analytics.totalOrders)}
+                            {/* Mini status legend list */}
+                            <div className="grid grid-cols-2 gap-1.5 mt-2 pt-2.5 border-t border-slate-100">
+                                {analytics.ordersByStatus.slice(0, 6).map((item) => (
+                                    <div key={item.status} className="flex items-center gap-1.5 text-xs">
+                                        <span
+                                            className="size-1.5 rounded-full shrink-0"
+                                            style={{ backgroundColor: STATUS_COLORS[item.status] || "#94a3b8" }}
+                                        />
+                                        <span className="truncate text-slate-600 capitalize text-[11px]">
+                                            {item.status.replace(/_/g, " ").toLowerCase()}
+                                        </span>
+                                        <span className="ml-auto font-medium text-slate-900 text-[11px] tabular-nums">
+                                            {item.count}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="h-40 flex items-center justify-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-md">
+                            No status distribution
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* ─── Orders by Shop & Orders by Geographical Location ──────── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Orders by Merchant Shop */}
+                <div className="rounded-lg border border-slate-200 p-4 bg-white shadow-2xs">
+                    <div className="flex items-center justify-between mb-3">
+                        <div>
+                            <h3 className="font-semibold text-slate-900 text-xs flex items-center gap-1.5">
+                                <Store className="size-3.5 text-slate-600" />
+                                Top Merchants by Volume
+                            </h3>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                                Merchant storefronts ranked by orders and settlement value
+                            </p>
+                        </div>
+                        <span className="text-[11px] font-medium text-slate-500">
+                            {analytics.ordersByShop.length} active
+                        </span>
+                    </div>
+
+                    {analytics.ordersByShop.length > 0 ? (
+                        <div className="space-y-2.5">
+                            {analytics.ordersByShop.slice(0, 5).map((shop, idx) => (
+                                <div key={shop.shopId} className="space-y-1">
+                                    <div className="flex items-center justify-between text-xs">
+                                        <div className="flex items-center gap-2 truncate">
+                                            <span className="font-mono text-[11px] text-slate-400 w-3">
+                                                {idx + 1}
+                                            </span>
+                                            <span className="font-medium text-slate-900 truncate">
+                                                {shop.shopName}
+                                            </span>
+                                            <span className="text-[10px] text-slate-400 font-mono">
+                                                @{shop.shopSlug}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2.5 shrink-0 text-xs">
+                                            <span className="font-semibold text-slate-900 tabular-nums">
+                                                {shop.count.toLocaleString()} orders
+                                            </span>
+                                            <span className="text-slate-500 text-[11px] tabular-nums">
+                                                {formatCurrency(shop.revenue)}
+                                            </span>
+                                            <span className="text-[10px] font-medium px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded">
+                                                {shop.percentage.toFixed(1)}%
                                             </span>
                                         </div>
                                     </div>
-
-                                    {/* Mini status legend list */}
-                                    <div className="grid grid-cols-2 gap-2 mt-2 pt-3 border-t border-slate-100">
-                                        {analytics.ordersByStatus.slice(0, 6).map((item) => (
-                                            <div key={item.status} className="flex items-center gap-1.5 text-xs">
-                                                <span
-                                                    className="size-2 rounded-full shrink-0"
-                                                    style={{ backgroundColor: STATUS_COLORS[item.status] || "#94a3b8" }}
-                                                />
-                                                <span className="truncate text-slate-600 capitalize text-[11px]">
-                                                    {item.status.replace(/_/g, " ").toLowerCase()}
-                                                </span>
-                                                <span className="ml-auto font-bold text-slate-900 text-[11px]">
-                                                    {item.count}
-                                                </span>
-                                            </div>
-                                        ))}
+                                    <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-slate-800 rounded-full transition-all duration-300"
+                                            style={{ width: `${Math.min(Math.max(shop.percentage, 3), 100)}%` }}
+                                        />
                                     </div>
                                 </div>
-                            ) : (
-                                <div className="h-44 flex items-center justify-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
-                                    No status distribution
-                                </div>
-                            )}
+                            ))}
                         </div>
-                    </div>
-
-                    {/* ─── Orders by Shop & Orders by Geographical Location ──────── */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Orders by Shop */}
-                        <div className="rounded-2xl border border-slate-200/80 p-5 bg-white">
-                            <div className="flex items-center justify-between mb-4">
-                                <div>
-                                    <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                                        <Store className="size-4 text-emerald-600" />
-                                        Orders by Shop
-                                    </h3>
-                                    <p className="text-xs text-slate-400 mt-0.5">
-                                        Top marketplace stores ranked by volume and revenue contribution
-                                    </p>
-                                </div>
-                                <span className="text-xs font-semibold text-slate-400">
-                                    {analytics.ordersByShop.length} Stores Active
-                                </span>
-                            </div>
-
-                            {analytics.ordersByShop.length > 0 ? (
-                                <div className="space-y-3.5">
-                                    {analytics.ordersByShop.slice(0, 6).map((shop, idx) => (
-                                        <div key={shop.shopId} className="space-y-1.5">
-                                            <div className="flex items-center justify-between text-xs">
-                                                <div className="flex items-center gap-2 truncate">
-                                                    <span className="font-mono text-[11px] text-slate-400 w-4">
-                                                        #{idx + 1}
-                                                    </span>
-                                                    <span className="font-bold text-slate-800 truncate">
-                                                        {shop.shopName}
-                                                    </span>
-                                                    <span className="text-[10px] text-slate-400 font-mono">
-                                                        @{shop.shopSlug}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-3 shrink-0">
-                                                    <span className="font-black text-slate-900">
-                                                        {shop.count.toLocaleString()} orders
-                                                    </span>
-                                                    <span className="text-slate-500 font-semibold text-[11px]">
-                                                        {formatCurrency(shop.revenue)}
-                                                    </span>
-                                                    <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded">
-                                                        {shop.percentage.toFixed(1)}%
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            {/* Progress bar */}
-                                            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                                <div
-                                                    className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                                                    style={{ width: `${Math.min(Math.max(shop.percentage, 4), 100)}%` }}
-                                                />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="h-44 flex flex-col items-center justify-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
-                                    <Store size={22} className="mb-2 opacity-30" />
-                                    No shop order volume recorded
-                                </div>
-                            )}
+                    ) : (
+                        <div className="h-36 flex flex-col items-center justify-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-md">
+                            <Store size={18} className="mb-1 opacity-30" />
+                            No merchant volume recorded
                         </div>
-
-                        {/* Orders by Geographical Location */}
-                        <div className="rounded-2xl border border-slate-200/80 p-5 bg-white">
-                            <div className="flex items-center justify-between mb-4">
-                                <div>
-                                    <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                                        <Globe className="size-4 text-blue-600" />
-                                        Orders by Geographical Location
-                                    </h3>
-                                    <p className="text-xs text-slate-400 mt-0.5">
-                                        Geographic distribution by customer delivery destination
-                                    </p>
-                                </div>
-                                <span className="text-xs font-semibold text-slate-400">
-                                    {analytics.ordersByLocation.length} Locations
-                                </span>
-                            </div>
-
-                            {analytics.ordersByLocation.length > 0 ? (
-                                <div className="space-y-3.5">
-                                    {analytics.ordersByLocation.slice(0, 6).map((loc, idx) => (
-                                        <div key={`${loc.city}-${loc.country}-${idx}`} className="space-y-1.5">
-                                            <div className="flex items-center justify-between text-xs">
-                                                <div className="flex items-center gap-2 truncate">
-                                                    <MapPin size={12} className="text-blue-500 shrink-0" />
-                                                    <span className="font-bold text-slate-800 truncate">
-                                                        {loc.city}
-                                                    </span>
-                                                    <span className="text-[11px] text-slate-400 font-semibold">
-                                                        {loc.country}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-3 shrink-0">
-                                                    <span className="font-black text-slate-900">
-                                                        {loc.count.toLocaleString()} orders
-                                                    </span>
-                                                    <span className="text-slate-500 font-semibold text-[11px]">
-                                                        {formatCurrency(loc.revenue)}
-                                                    </span>
-                                                    <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded">
-                                                        {loc.percentage.toFixed(1)}%
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            {/* Progress bar */}
-                                            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                                <div
-                                                    className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                                                    style={{ width: `${Math.min(Math.max(loc.percentage, 4), 100)}%` }}
-                                                />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="h-44 flex flex-col items-center justify-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
-                                    <MapPin size={22} className="mb-2 opacity-30" />
-                                    No shipping locations registered yet
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                    )}
                 </div>
-            )}
+
+                {/* Orders by Geographical Delivery Location */}
+                <div className="rounded-lg border border-slate-200 p-4 bg-white shadow-2xs">
+                    <div className="flex items-center justify-between mb-3">
+                        <div>
+                            <h3 className="font-semibold text-slate-900 text-xs flex items-center gap-1.5">
+                                <Globe className="size-3.5 text-slate-600" />
+                                Delivery Locations
+                            </h3>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                                Customer distribution by destination region
+                            </p>
+                        </div>
+                        <span className="text-[11px] font-medium text-slate-500">
+                            {analytics.ordersByLocation.length} regions
+                        </span>
+                    </div>
+
+                    {analytics.ordersByLocation.length > 0 ? (
+                        <div className="space-y-2.5">
+                            {analytics.ordersByLocation.slice(0, 5).map((loc, idx) => (
+                                <div key={`${loc.city}-${loc.country}-${idx}`} className="space-y-1">
+                                    <div className="flex items-center justify-between text-xs">
+                                        <div className="flex items-center gap-1.5 truncate">
+                                            <MapPin size={11} className="text-slate-400 shrink-0" />
+                                            <span className="font-medium text-slate-900 truncate">
+                                                {loc.city}
+                                            </span>
+                                            <span className="text-[11px] text-slate-400">
+                                                {loc.country}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2.5 shrink-0 text-xs">
+                                            <span className="font-semibold text-slate-900 tabular-nums">
+                                                {loc.count.toLocaleString()} orders
+                                            </span>
+                                            <span className="text-slate-500 text-[11px] tabular-nums">
+                                                {formatCurrency(loc.revenue)}
+                                            </span>
+                                            <span className="text-[10px] font-medium px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded">
+                                                {loc.percentage.toFixed(1)}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-sky-600 rounded-full transition-all duration-300"
+                                            style={{ width: `${Math.min(Math.max(loc.percentage, 3), 100)}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="h-36 flex flex-col items-center justify-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-md">
+                            <MapPin size={18} className="mb-1 opacity-30" />
+                            No delivery locations registered
+                        </div>
+                    )}
+                </div>
+            </div>
         </section>
     );
 };
