@@ -191,15 +191,15 @@ export const MarketplaceNavbar = () => {
 
 
           {/* Mobile Actions: Cart + Sign In (or User Menu) */}
-          <div className="ml-auto flex items-center gap-2 sm:gap-2.5 lg:hidden">
+          <div className="ml-auto flex items-center gap-1.5 lg:hidden">
             <button
               onClick={() => navigate("/cart")}
-              className="relative flex cursor-pointer items-center justify-center rounded-xl p-2 text-slate-700 transition-all hover:bg-orange-50 hover:text-orange-500"
+              className="relative flex size-8.5 cursor-pointer items-center justify-center rounded-full text-slate-700 transition-all hover:bg-orange-50 hover:text-orange-500 active:scale-95"
               aria-label="Shopping cart"
             >
-              <ShoppingCart className="size-5.5" />
+              <ShoppingCart className="size-5" />
               {cartItemCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 flex items-center justify-center rounded-full bg-orange-500 text-[10px] font-extrabold text-white shadow-xs">
+                <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 flex items-center justify-center rounded-full bg-orange-500 text-[9px] font-extrabold text-white shadow-xs">
                   {cartItemCount}
                 </span>
               )}
@@ -208,7 +208,7 @@ export const MarketplaceNavbar = () => {
             {!isAuthenticated ? (
               <Link
                 to="/login"
-                className="inline-flex items-center px-4 py-1.5 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
+                className="inline-flex items-center justify-center h-8.5 px-3.5 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
               >
                 Sign in
               </Link>
@@ -265,10 +265,10 @@ export const MarketplaceNavbar = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-3">
             {/* Auth Actions */}
             {!isAuthenticated ? (
-              <div className="hidden lg:flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5">
                 <Link
                   to="/login"
                   className="inline-flex items-center px-4.5 py-2 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
@@ -277,7 +277,7 @@ export const MarketplaceNavbar = () => {
                 </Link>
               </div>
             ) : (
-              <div className="hidden lg:flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <NotificationDropdown triggerClassName="p-2 text-slate-700 hover:text-slate-950 hover:bg-slate-100 rounded-full transition-all cursor-pointer" />
                 <DropdownMenu>
                 <DropdownMenuTrigger
