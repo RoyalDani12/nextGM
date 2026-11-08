@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ShoppingCart, Search, Command, User, LogOut, Receipt, Package, Heart, RotateCcw, ArrowRight } from "lucide-react";
+import { ShoppingCart, Search, Command, User, LogOut, Receipt, Package, Heart, RotateCcw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuthStore } from "@/store/auth.store";
@@ -190,25 +190,28 @@ export const MarketplaceNavbar = () => {
           </div>
 
 
-          {/* Mobile Actions: Sign In / Sign Up (or User Menu) + Cart */}
-          <div className="ml-auto flex items-center gap-1.5 sm:gap-2 lg:hidden">
+          {/* Mobile Actions: Cart + Sign In (or User Menu) */}
+          <div className="ml-auto flex items-center gap-2 sm:gap-2.5 lg:hidden">
+            <button
+              onClick={() => navigate("/cart")}
+              className="relative flex cursor-pointer items-center justify-center rounded-xl p-2 text-slate-700 transition-all hover:bg-orange-50 hover:text-orange-500"
+              aria-label="Shopping cart"
+            >
+              <ShoppingCart className="size-5.5" />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 flex items-center justify-center rounded-full bg-orange-500 text-[10px] font-extrabold text-white shadow-xs">
+                  {cartItemCount}
+                </span>
+              )}
+            </button>
+
             {!isAuthenticated ? (
-              <div className="flex items-center gap-1.5">
-                <Link
-                  to="/login"
-                  className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
-                >
-                  <span>Sign in</span>
-                  <ArrowRight className="size-3.5 text-slate-600 dark:text-slate-300" />
-                </Link>
-                <Link
-                  to="/register"
-                  className="hidden min-[380px]:inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
-                >
-                  <span>Sign up</span>
-                  <ArrowRight className="size-3.5 text-slate-600 dark:text-slate-300" />
-                </Link>
-              </div>
+              <Link
+                to="/login"
+                className="inline-flex items-center px-4 py-1.5 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
+              >
+                Sign in
+              </Link>
             ) : (
               <DropdownMenu>
                 <DropdownMenuTrigger
@@ -260,19 +263,6 @@ export const MarketplaceNavbar = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-
-            <button
-              onClick={() => navigate("/cart")}
-              className="relative flex cursor-pointer items-center justify-center rounded-xl p-2 text-slate-700 transition-all hover:bg-orange-50 hover:text-orange-500"
-              aria-label="Shopping cart"
-            >
-              <ShoppingCart className="size-5.5" />
-              {cartItemCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 flex items-center justify-center rounded-full bg-orange-500 text-[10px] font-extrabold text-white shadow-xs">
-                  {cartItemCount}
-                </span>
-              )}
-            </button>
           </div>
 
           <div className="flex items-center gap-3">
@@ -281,17 +271,9 @@ export const MarketplaceNavbar = () => {
               <div className="hidden lg:flex items-center gap-2.5">
                 <Link
                   to="/login"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95"
+                  className="inline-flex items-center px-4.5 py-2 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
                 >
-                  <span>Sign in</span>
-                  <ArrowRight className="size-3.5 text-slate-600 dark:text-slate-300" />
-                </Link>
-                <Link
-                  to="/register"
-                  className="inline-flex items-center gap-2 px-4.5 py-2 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95"
-                >
-                  <span>Sign up</span>
-                  <ArrowRight className="size-3.5 text-slate-600 dark:text-slate-300" />
+                  Sign in
                 </Link>
               </div>
             ) : (

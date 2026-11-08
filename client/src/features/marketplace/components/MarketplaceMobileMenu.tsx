@@ -11,7 +11,6 @@ import {
   ChevronRight,
   Receipt,
   RotateCcw,
-  ArrowRight,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -209,22 +208,13 @@ export const MarketplaceMobileMenu = ({
                   Sign in to track orders, save favorite items, and receive notifications.
                 </p>
               </div>
-              <div className="flex gap-2 pt-1">
+              <div className="pt-1">
                 <button
                   type="button"
                   onClick={() => goTo("/login")}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95"
+                  className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95"
                 >
-                  <span>Sign in</span>
-                  <ArrowRight className="size-3.5 text-slate-600 dark:text-slate-300" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => goTo("/register")}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95"
-                >
-                  <span>Sign up</span>
-                  <ArrowRight className="size-3.5 text-slate-600 dark:text-slate-300" />
+                  Sign in
                 </button>
               </div>
             </div>
