@@ -67,7 +67,7 @@ const formatUSD = (val: number) => {
 
 const TYPE_OPTIONS = [
   { value: "ALL", label: "All Types" },
-  { value: "CREDIT", label: "Credits (Orders)" },
+  { value: "CREDIT", label: "Earnings (Sales)" },
   { value: "DEBIT", label: "Payouts (Withdrawals)" },
 ];
 
@@ -111,7 +111,7 @@ export function PayoutDashboard() {
         <div className="text-center space-y-3">
           <Loader2 className="mx-auto size-7 animate-spin text-orange-500" />
           <p className="text-sm font-semibold text-slate-500">
-            Loading payout wallet & ledger balances...
+            Loading payouts and balance...
           </p>
         </div>
       </div>
@@ -126,10 +126,10 @@ export function PayoutDashboard() {
         </div>
         <div>
           <h2 className="text-base font-bold text-slate-900">
-            Failed to connect to ledger
+            Couldn't load payouts
           </h2>
           <p className="mt-1 text-xs text-slate-500">
-            Unable to reach the payout service. Please verify your connection and try again.
+            We couldn't reach the payout service. Please check your connection and try again.
           </p>
         </div>
         <button
@@ -394,17 +394,17 @@ export function PayoutDashboard() {
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        {/* ── 1. HEADER SECTION (EXACT STYLE FROM IMAGE) ── */}
+        {/* ── 1. HEADER SECTION ── */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2.5">
               <Wallet className="size-6 text-orange-500" />
-              Payouts & Financial Center
+              Payouts & Balance
             </h1>
             <p className="text-sm text-slate-500 mt-1">
               {transactions.length > 0
-                ? `${transactions.length} total ledger records • Current balance: ${formatUSD(balance)}`
-                : "Real-time shop wallet liquidity, order settlement credits, and bank transfers"}
+                ? `${transactions.length} transactions recorded • Balance: ${formatUSD(balance)}`
+                : "Track your earnings, view history, and withdraw funds."}
             </p>
           </div>
 
@@ -414,7 +414,7 @@ export function PayoutDashboard() {
               onClick={handleExportCSV}
               disabled={filteredTransactions.length === 0}
               className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-40"
-              title="Export filtered transactions to CSV report"
+              title="Export transactions to CSV"
             >
               <Download size={14} className="text-orange-500" />
               Export CSV
@@ -425,13 +425,13 @@ export function PayoutDashboard() {
               onClick={() => refetch()}
               disabled={isFetching}
               className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-40"
-              title="Sync live ledger balances"
+              title="Refresh payout data"
             >
               <RefreshCw
                 size={14}
                 className={`text-slate-500 ${isFetching ? "animate-spin" : ""}`}
               />
-              Sync
+              Refresh
             </button>
 
             {/* Withdraw Button */}
@@ -445,7 +445,7 @@ export function PayoutDashboard() {
               className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-xl shadow-sm shadow-orange-100 transition-all cursor-pointer disabled:opacity-40"
             >
               <ArrowUpRight size={14} />
-              Withdraw Funds
+              Withdraw
             </button>
           </div>
         </div>
@@ -462,35 +462,35 @@ export function PayoutDashboard() {
         {successMsg && (
           <Alert className="rounded-2xl border-emerald-200 bg-emerald-50/80 text-emerald-950 py-3 shadow-sm">
             <CheckCircle2 className="size-4 text-emerald-600" />
-            <AlertTitle className="text-xs font-bold">Payout Completed</AlertTitle>
+            <AlertTitle className="text-xs font-bold">Payout Initiated</AlertTitle>
             <AlertDescription className="text-xs">{successMsg}</AlertDescription>
           </Alert>
         )}
 
-        {/* ── 2. FINANCIAL BALANCES OVERVIEW CARDS (PIPELINE STYLE FROM REFERENCE) ── */}
+        {/* ── 2. FINANCIAL OVERVIEW CARDS (PIPELINE STYLE) ── */}
         <div>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">
-            Financial Metrics Overview
+            Overview
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {/* CARD 1: WALLET BALANCE (ORANGE THEME) */}
             <div className="rounded-2xl border border-orange-200/70 bg-orange-50/50 p-3.5 sm:p-4 transition-all hover:shadow-xs flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-orange-800">Wallet Balance</span>
+                  <span className="text-xs font-bold text-orange-800">Available Balance</span>
                   <Wallet className="size-4 text-orange-600" />
                 </div>
                 <div className="mt-2 text-lg sm:text-xl lg:text-2xl font-black text-orange-950 tabular-nums">
                   {formatUSD(balance)}
                 </div>
                 <p className="text-[11px] text-orange-700/80 mt-0.5 truncate">
-                  Net funds available in ledger
+                  Ready to withdraw
                 </p>
               </div>
 
               <div className="mt-2.5 pt-2 border-t border-orange-200/60 flex items-center justify-between text-[11px] text-orange-900/80">
                 <span className="font-medium truncate">
-                  Withdrawable: <strong className="font-bold text-orange-950">{formatUSD(maxWithdrawable)}</strong>
+                  Available: <strong className="font-bold text-orange-950">{formatUSD(maxWithdrawable)}</strong>
                 </span>
                 {maxWithdrawable > 0 ? (
                   <button
@@ -510,20 +510,20 @@ export function PayoutDashboard() {
             <div className="rounded-2xl border border-amber-200/70 bg-amber-50/50 p-3.5 sm:p-4 transition-all hover:shadow-xs flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-800">Safety Reserve</span>
+                  <span className="text-xs font-bold text-amber-800">Reserve</span>
                   <ShieldCheck className="size-4 text-amber-600" />
                 </div>
                 <div className="mt-2 text-lg sm:text-xl lg:text-2xl font-black text-amber-950 tabular-nums">
                   {formatUSD(reserveAmount)}
                 </div>
                 <p className="text-[11px] text-amber-700/80 mt-0.5 truncate">
-                  10% return & dispute buffer
+                  Held for refunds & disputes
                 </p>
               </div>
 
               <div className="mt-2.5 pt-2 border-t border-amber-200/60 flex items-center justify-between text-[11px] text-amber-900/80">
-                <span className="font-medium">Reserve Floor</span>
-                <span className="font-semibold text-amber-950">$10.00 min buffer</span>
+                <span className="font-medium">Safety Buffer</span>
+                <span className="font-semibold text-amber-950">10% ($10 min)</span>
               </div>
             </div>
 
@@ -531,21 +531,21 @@ export function PayoutDashboard() {
             <div className="rounded-2xl border border-violet-200/70 bg-violet-50/50 p-3.5 sm:p-4 transition-all hover:shadow-xs flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-violet-800">Total Withdrawn</span>
+                  <span className="text-xs font-bold text-violet-800">Total Payouts</span>
                   <ArrowUpRight className="size-4 text-violet-600" />
                 </div>
                 <div className="mt-2 text-lg sm:text-xl lg:text-2xl font-black text-violet-950 tabular-nums">
                   {formatUSD(totalWithdrawn)}
                 </div>
                 <p className="text-[11px] text-violet-700/80 mt-0.5 truncate">
-                  Lifetime bank payouts
+                  Sent to your bank account
                 </p>
               </div>
 
               <div className="mt-2.5 pt-2 border-t border-violet-200/60 flex items-center justify-between text-[11px] text-violet-900/80">
-                <span className="font-medium">Settled Transfers</span>
+                <span className="font-medium">Completed Payouts</span>
                 <span className="font-semibold text-violet-950">
-                  {transactions.filter((t) => t.type === "DEBIT").length} completed
+                  {transactions.filter((t) => t.type === "DEBIT").length} transfers
                 </span>
               </div>
             </div>
@@ -554,19 +554,19 @@ export function PayoutDashboard() {
             <div className="rounded-2xl border border-emerald-200/70 bg-emerald-50/50 p-3.5 sm:p-4 transition-all hover:shadow-xs flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-800">Net Sales Credited</span>
+                  <span className="text-xs font-bold text-emerald-800">Net Earnings</span>
                   <CheckCircle2 className="size-4 text-emerald-600" />
                 </div>
                 <div className="mt-2 text-lg sm:text-xl lg:text-2xl font-black text-emerald-950 tabular-nums">
                   {formatUSD(totalEarned)}
                 </div>
                 <p className="text-[11px] text-emerald-700/80 mt-0.5 truncate">
-                  Net sales after 10% fee
+                  Earnings after platform fees
                 </p>
               </div>
 
               <div className="mt-2.5 pt-2 border-t border-emerald-200/60 flex items-center justify-between text-[11px] text-emerald-900/80">
-                <span className="font-medium">Gross Sales</span>
+                <span className="font-medium">Total Sales</span>
                 <span className="font-semibold text-emerald-950">{formatUSD(totalVolume)}</span>
               </div>
             </div>
@@ -582,36 +582,36 @@ export function PayoutDashboard() {
             <div>
               <div className="flex items-center gap-2">
                 <p className="font-semibold text-slate-900 text-sm">
-                  Stripe Express Direct Deposit
+                  Bank Account
                 </p>
                 {status.payoutsEnabled ? (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border bg-emerald-50 text-emerald-700 border-emerald-200">
                     <span className="size-1.5 rounded-full bg-emerald-500" />
-                    Active
+                    Connected
                   </span>
                 ) : status.stripeAccountId ? (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border bg-amber-50 text-amber-700 border-amber-200">
                     <span className="size-1.5 rounded-full bg-amber-500" />
-                    Pending
+                    In Review
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border bg-slate-100 text-slate-600 border-slate-200">
                     <span className="size-1.5 rounded-full bg-slate-400" />
-                    Unlinked
+                    Not Connected
                   </span>
                 )}
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
                 {status.stripeAccountId ? (
                   <span>
-                    Connected Account:{" "}
+                    Account:{" "}
                     <strong className="font-mono text-slate-700">
                       {status.stripeAccountId}
                     </strong>{" "}
-                    • Zero platform wire fees
+                    • Direct deposits enabled
                   </span>
                 ) : (
-                  "Connect your bank via Stripe Express to enable instant withdrawals."
+                  "Connect your bank account to receive automatic or instant payouts."
                 )}
               </p>
             </div>
@@ -621,7 +621,7 @@ export function PayoutDashboard() {
             {status.payoutsEnabled ? (
               <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl inline-flex items-center gap-1.5">
                 <Check size={13} className="text-emerald-600" />
-                Settlement Ready
+                Ready for Payouts
               </span>
             ) : (
               <button
@@ -637,7 +637,7 @@ export function PayoutDashboard() {
                 ) : (
                   <>
                     <ExternalLink size={13} />
-                    {status.stripeAccountId ? "Complete Verification" : "Connect Stripe Account"}
+                    {status.stripeAccountId ? "Complete Setup" : "Connect Bank"}
                   </>
                 )}
               </button>
@@ -645,18 +645,18 @@ export function PayoutDashboard() {
           </div>
         </div>
 
-        {/* ── 4. ANALYTICS & TRAJECTORY (SIDE BY SIDE) ── */}
+        {/* ── 4. ANALYTICS & CHARTS (SIDE BY SIDE) ── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* CHART 1: WALLET BALANCE TRAJECTORY */}
+          {/* CHART 1: BALANCE HISTORY */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4 flex flex-col justify-between">
             <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
               <div>
                 <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <Activity size={15} className="text-orange-500" />
-                  Wallet Balance Trajectory
+                  Balance History
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Historical balance curve of available ledger funds
+                  Track how your balance changes over time
                 </p>
               </div>
 
@@ -670,7 +670,7 @@ export function PayoutDashboard() {
                 <Activity className="size-8 opacity-30 mb-2" />
                 <p className="font-semibold text-slate-700 text-sm">No balance history yet</p>
                 <p className="text-xs text-slate-400 max-w-xs">
-                  As orders settle and payouts transfer, your balance curve will track here.
+                  As you make sales and withdrawals, your balance trend will show here.
                 </p>
               </div>
             ) : (
@@ -721,7 +721,7 @@ export function PayoutDashboard() {
                         fontWeight: 500,
                         marginBottom: "4px",
                       }}
-                      formatter={(val: any) => [`${formatUSD(Number(val))}`, "Wallet Balance"]}
+                      formatter={(val: any) => [`${formatUSD(Number(val))}`, "Balance"]}
                       labelFormatter={(label) => `Date: ${label}`}
                       cursor={{ stroke: "#ea580c", strokeWidth: 1.5, strokeDasharray: "4 4" }}
                     />
@@ -741,29 +741,29 @@ export function PayoutDashboard() {
             <div className="flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-slate-100">
               <span className="flex items-center gap-1.5 font-medium">
                 <span className="size-2 rounded-full bg-orange-500" />
-                Available Trajectory
+                Current Balance
               </span>
               <span className="font-mono font-bold text-slate-900">{formatUSD(balance)}</span>
             </div>
           </div>
 
-          {/* CHART 2: CASH INFLOW & OUTFLOW */}
+          {/* CHART 2: EARNINGS & PAYOUTS */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4 flex flex-col justify-between">
             <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
               <div>
                 <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <BarChart3 size={15} className="text-emerald-600" />
-                  Cash Inflow & Outflow
+                  Earnings & Payouts
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Order settlement credits vs bank payouts
+                  Order earnings vs bank withdrawals
                 </p>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-emerald-50 text-emerald-700 border-emerald-200">
                   <span className="size-1.5 rounded-full bg-emerald-500" />
-                  Credits
+                  Earnings
                 </span>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-rose-50 text-rose-700 border-rose-200">
                   <span className="size-1.5 rounded-full bg-rose-500" />
@@ -775,9 +775,9 @@ export function PayoutDashboard() {
             {chartData.length === 0 ? (
               <div className="h-60 w-full flex flex-col items-center justify-center text-center p-6 text-slate-400 space-y-1">
                 <BarChart3 className="size-8 opacity-30 mb-2" />
-                <p className="font-semibold text-slate-700 text-sm">No cash flow recorded yet</p>
+                <p className="font-semibold text-slate-700 text-sm">No activity recorded yet</p>
                 <p className="text-xs text-slate-400 max-w-xs">
-                  Order credit settlements and bank debit transfers will appear here.
+                  Sales earnings and bank withdrawals will appear here.
                 </p>
               </div>
             ) : (
@@ -823,7 +823,7 @@ export function PayoutDashboard() {
                       }}
                       formatter={(val: any, name: any) => [
                         `${formatUSD(Number(val))}`,
-                        name === "credit" ? "Order Settlement" : "Bank Payout",
+                        name === "credit" ? "Order Earnings" : "Bank Payout",
                       ]}
                       cursor={{ fill: "rgba(241, 245, 249, 0.5)", radius: 6 }}
                     />
@@ -835,20 +835,20 @@ export function PayoutDashboard() {
             )}
 
             <div className="flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-slate-100">
-              <span className="font-medium text-emerald-700">Credits: +{formatUSD(totalEarned)}</span>
-              <span className="font-medium text-rose-600">Withdrawn: -{formatUSD(totalWithdrawn)}</span>
+              <span className="font-medium text-emerald-700">Earnings: +{formatUSD(totalEarned)}</span>
+              <span className="font-medium text-rose-600">Payouts: -{formatUSD(totalWithdrawn)}</span>
             </div>
           </div>
         </div>
 
-        {/* ── 5. TOP SEARCH & INTERACTIVE FILTER DROPDOWNS (EXACT STYLE FROM IMAGE) ── */}
+        {/* ── 5. TOP SEARCH & FILTERS ── */}
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 flex flex-col md:flex-row gap-3">
           <form onSubmit={handleSearchSubmit} className="flex gap-2 flex-1">
             <div className="relative flex-1">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search by note, transaction ID, or order..."
+                placeholder="Search by note, order #, or transaction ID..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
@@ -992,10 +992,10 @@ export function PayoutDashboard() {
           {filteredTransactions.length === 0 ? (
             <div className="p-16 text-center text-slate-400 space-y-1">
               <Wallet className="mx-auto size-12 opacity-30 mb-3" />
-              <p className="font-semibold text-slate-700 text-base">No transactions found</p>
+              <p className="font-semibold text-slate-700 text-base">No transactions yet</p>
               <p className="text-xs text-slate-400">
                 {transactions.length === 0
-                  ? "When you receive customer orders or make withdrawals, they will appear here."
+                  ? "When you receive customer orders or withdraw funds, they will appear here."
                   : "Try clearing search filters or entering a different query."}
               </p>
             </div>
@@ -1004,13 +1004,13 @@ export function PayoutDashboard() {
               <table className="w-full text-sm text-left">
                 <thead className="bg-slate-50/70 border-b border-slate-200/80 text-xs text-slate-500 uppercase tracking-wider font-semibold">
                   <tr>
-                    <th className="px-5 py-3.5">Transaction Identity</th>
+                    <th className="px-5 py-3.5">Description</th>
                     <th className="px-5 py-3.5">Type</th>
                     <th className="px-5 py-3.5">Status</th>
-                    <th className="px-5 py-3.5">Order / Source</th>
+                    <th className="px-5 py-3.5">Order</th>
                     <th className="px-5 py-3.5">Date</th>
-                    <th className="px-5 py-3.5 text-right">Amount (USD)</th>
-                    <th className="px-5 py-3.5 text-right">Balance After</th>
+                    <th className="px-5 py-3.5 text-right">Amount</th>
+                    <th className="px-5 py-3.5 text-right">Balance</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -1043,7 +1043,7 @@ export function PayoutDashboard() {
                             </div>
                             <div>
                               <p className="font-semibold text-slate-900 leading-tight">
-                                {isDebit ? "Direct Bank Payout" : "Customer Order Credit"}
+                                {isDebit ? "Bank Payout" : "Order Payment"}
                               </p>
                               <p className="text-xs text-slate-400 font-mono mt-0.5">
                                 {tx.id}
@@ -1056,11 +1056,11 @@ export function PayoutDashboard() {
                         <td className="px-5 py-4 whitespace-nowrap">
                           {isDebit ? (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-orange-50 text-orange-700 border-orange-200">
-                              SHOP PAYOUT
+                              PAYOUT
                             </span>
                           ) : (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-emerald-50 text-emerald-800 border-emerald-200">
-                              SALES CREDIT
+                              EARNING
                             </span>
                           )}
                         </td>
@@ -1183,10 +1183,10 @@ export function PayoutDashboard() {
             <DialogHeader className="space-y-1">
               <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Landmark className="size-5 text-orange-500" />
-                Transfer Funds to Bank
+                Withdraw to Bank
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-500">
-                Direct wire transfer from your shop wallet to your verified bank account.
+                Transfer your available balance directly to your bank account.
               </DialogDescription>
             </DialogHeader>
 
@@ -1194,20 +1194,20 @@ export function PayoutDashboard() {
               {/* BALANCE SUMMARY BOX */}
               <div className="rounded-xl bg-slate-50 border border-slate-200/80 p-3.5 space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Current Wallet Balance</span>
+                  <span className="text-slate-500">Total Balance</span>
                   <span className="font-bold text-slate-900 tabular-nums">
                     {formatUSD(balance)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500 flex items-center gap-1">
-                    Safety Reserve (10% held)
+                    Safety reserve (10%)
                     <UiTooltip>
                       <TooltipTrigger asChild>
                         <HelpCircle className="size-3 text-slate-400 cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent className="text-xs bg-slate-900 text-slate-100 p-2 rounded-lg">
-                        Mandatory 10% reserve retained for customer returns and dispute guarantees
+                        A 10% buffer is kept in your wallet for returns and dispute protection
                       </TooltipContent>
                     </UiTooltip>
                   </span>
@@ -1216,7 +1216,7 @@ export function PayoutDashboard() {
                   </span>
                 </div>
                 <div className="pt-2 border-t border-slate-200/70 flex items-center justify-between text-xs">
-                  <span className="font-bold text-slate-800">Max Withdrawable Now</span>
+                  <span className="font-bold text-slate-800">Available to withdraw</span>
                   <span className="font-bold text-emerald-700 text-sm tabular-nums">
                     {formatUSD(maxWithdrawable)}
                   </span>
@@ -1226,7 +1226,7 @@ export function PayoutDashboard() {
               {/* QUICK AMOUNT CHIPS */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-600">
-                  Quick Amount Presets
+                  Quick select
                 </label>
                 <div className="grid grid-cols-4 gap-1.5">
                   {[50, 100, 500].map((amt) => (
@@ -1254,7 +1254,7 @@ export function PayoutDashboard() {
               {/* AMOUNT INPUT */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-700">
-                  Withdrawal Amount (USD)
+                  Amount
                 </label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
@@ -1280,16 +1280,16 @@ export function PayoutDashboard() {
               {/* SETTLEMENT DETAILS */}
               <div className="rounded-xl bg-slate-50/70 p-3 text-xs space-y-1.5 text-slate-500 border border-slate-200/50">
                 <div className="flex justify-between">
-                  <span>Transfer Fee</span>
+                  <span>Transfer fee</span>
                   <span className="font-semibold text-emerald-700">Free ($0.00)</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Estimated Arrival</span>
-                  <span className="font-medium text-slate-700">Instant via Stripe Express</span>
+                  <span>Estimated arrival</span>
+                  <span className="font-medium text-slate-700">1-2 business days (or instant)</span>
                 </div>
                 {parsedWithdrawInput > 0 && (
                   <div className="flex justify-between pt-1 border-t border-slate-200/60 font-medium">
-                    <span>Projected Balance</span>
+                    <span>Balance after payout</span>
                     <span className="font-mono text-slate-800 font-semibold">
                       {formatUSD(projectedRemaining)}
                     </span>
@@ -1333,7 +1333,7 @@ export function PayoutDashboard() {
                   ) : (
                     <>
                       <ArrowUpRight size={13} />
-                      <span>Confirm & Withdraw</span>
+                      <span>Withdraw Funds</span>
                     </>
                   )}
                 </button>
