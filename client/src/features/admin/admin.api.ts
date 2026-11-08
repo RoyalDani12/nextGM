@@ -5,6 +5,7 @@ export type AdminStatsResponse = {
     totalShops: number;
     totalOrders: number;
     platformBalance: number;
+    grossVolume?: number;
     monthlyUsers: { month: string; count: number }[];
     monthlyShops: { month: string; count: number }[];
     monthlyOrders: { month: string; count: number; revenue: number }[];
@@ -175,6 +176,16 @@ export type AdminUsersResponse = {
     page: number;
     limit: number;
     totalPages: number;
+    stats?: {
+        total: number;
+        customers: number;
+        shopOwners: number;
+        superAdmins: number;
+        shopEmployees: number;
+        active: number;
+        suspended: number;
+        pending: number;
+    };
 };
 
 export type AdminShopsResponse = {
@@ -210,10 +221,15 @@ export type AdminReturn = {
     resolution: string;
     customerNote: string | null;
     sellerNote: string | null;
+    adminNote?: string | null;
     evidenceUrls: string[];
+    requestedAt?: string;
+    resolvedAt?: string | null;
     createdAt: string;
+    updatedAt?: string;
     order: { id: string; totalAmount: number | string; customer: { name: string; email: string }; shop: { id: string; slug: string; profile: { name: string } | null } };
     items: { quantity: number; orderItem: { product: { name: string; images: { url: string }[] }; variant: { name: string } | null } }[];
+    statusHistory?: { id: string; status: string; note: string | null; createdAt: string }[];
 };
 export type AdminReturnsResponse = {
     returns: AdminReturn[];
@@ -370,12 +386,16 @@ export const adminApi = {
         const res = await api.get(`${base}/shipments`, { params: filters });
         return res.data.data as { shipments: any[]; total: number; stats: { pending: number; shipped: number; delivered: number } };
     },
-    listReturns: async (filters: { status?: string; search?: string; page?: number; limit?: number } = {}): Promise<AdminReturnsResponse> => {
+    listReturns: async (filters: { status?: string; search?: string; resolution?: string; page?: number; limit?: number } = {}): Promise<AdminReturnsResponse> => {
         const res = await api.get(`${base}/returns`, { params: filters });
         return res.data.data;
     },
     getReturn: async (id: string): Promise<AdminReturn> => {
         const res = await api.get(`${base}/returns/${id}`);
+        return res.data.data;
+    },
+    updateReturnStatus: async (id: string, status: string, note?: string): Promise<AdminReturn> => {
+        const res = await api.patch(`${base}/returns/${id}/status`, { status, note });
         return res.data.data;
     },
     refundReturn: async (id: string) => {
@@ -507,14 +527,31 @@ export type PlatformAnalytics = {
 // ─────────────────────────────────────────────────────────────────────────────
 // PAYOUTS
 // ─────────────────────────────────────────────────────────────────────────────
+export type AdminPayoutTransaction = {
+    id: string;
+    type: "CREDIT" | "DEBIT";
+    amount: string | number;
+    balanceAfter: string | number;
+    note: string | null;
+    createdAt: string;
+    orderId: string | null;
+};
+
 export type AdminPayoutShop = {
     id: string;
     slug: string;
     status: string;
+    createdAt?: string;
     owner: { id: string; name: string; email: string };
     profile: { name: string; logo: string | null } | null;
-    wallet: { id: string; balance: string | number; updatedAt: string } | null;
-    walletTransactions: { createdAt: string; amount: string | number }[];
+    wallet: {
+        id: string;
+        balance: string | number;
+        stripeAccountId: string | null;
+        payoutsEnabled: boolean;
+        updatedAt: string;
+    } | null;
+    walletTransactions: AdminPayoutTransaction[];
 };
 
 export type AdminPayoutsResponse = {
@@ -527,8 +564,11 @@ export type AdminPayoutsResponse = {
 
 export type PayoutsSummary = {
     totalPlatformBalance: number;
+    totalShopBalance?: number;
     shopsWithBalance: number;
     totalWithdrawn: number;
+    stripeConnectedCount?: number;
+    totalShopWallets?: number;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -615,12 +655,20 @@ export type AdminCouponsResponse = {
     page: number;
     limit: number;
     totalPages: number;
-    stats: { total: number; active: number; expired: number };
+    stats: {
+        total: number;
+        active: number;
+        expired: number;
+        percentage?: number;
+        fixed?: number;
+        totalRedemptions?: number;
+    };
 };
 
 export type AdminCouponFilters = {
     shopId?: string;
     isActive?: boolean;
+    type?: string;
     search?: string;
     page?: number;
     limit?: number;
@@ -781,7 +829,7 @@ export const adminApiExtended = {
     },
 
     // Payouts
-    listPayouts: async (filters: { page?: number; limit?: number } = {}): Promise<AdminPayoutsResponse> => {
+    listPayouts: async (filters: { search?: string; filter?: string; sortBy?: string; page?: number; limit?: number } = {}): Promise<AdminPayoutsResponse> => {
         const res = await api.get(`${base}/payouts`, { params: filters });
         return res.data.data;
     },

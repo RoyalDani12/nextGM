@@ -126,7 +126,7 @@ export const listUsersAdmin = async (filters: {
         }),
     };
 
-    const [users, total] = await Promise.all([
+    const [users, total, totalAll, roleStats, statusStats] = await Promise.all([
         prisma.user.findMany({
             where,
             skip,
@@ -144,9 +144,31 @@ export const listUsersAdmin = async (filters: {
             },
         }),
         prisma.user.count({ where }),
+        prisma.user.count({ where: { status: { not: "DELETED" } } }),
+        prisma.user.groupBy({
+            by: ["role"],
+            where: { status: { not: "DELETED" } },
+            _count: { id: true },
+        }),
+        prisma.user.groupBy({
+            by: ["status"],
+            where: { status: { not: "DELETED" } },
+            _count: { id: true },
+        }),
     ]);
 
-    return { users, total, page, limit, totalPages: Math.ceil(total / limit) };
+    const stats = {
+        total: totalAll,
+        customers: roleStats.find((r) => r.role === "CUSTOMER")?._count?.id ?? 0,
+        shopOwners: roleStats.find((r) => r.role === "SHOP_OWNER")?._count?.id ?? 0,
+        superAdmins: roleStats.find((r) => r.role === "SUPER_ADMIN")?._count?.id ?? 0,
+        shopEmployees: roleStats.find((r) => r.role === "SHOP_EMPLOYEE")?._count?.id ?? 0,
+        active: statusStats.find((s) => s.status === "ACTIVE")?._count?.id ?? 0,
+        suspended: statusStats.find((s) => s.status === "SUSPENDED")?._count?.id ?? 0,
+        pending: statusStats.find((s) => s.status === "PENDING")?._count?.id ?? 0,
+    };
+
+    return { users, total, page, limit, totalPages: Math.ceil(total / limit), stats };
 };
 
 export const getUserByIdAdmin = async (id: string) => {
@@ -989,23 +1011,29 @@ export const listShipmentsAdmin = async (filters: { status?: string; search?: st
     return { shipments, total, page, limit, totalPages: Math.ceil(total / limit), stats: { pending, shipped, delivered } };
 };
 
-export const listReturnsAdmin = async (filters: { status?: string; search?: string; page?: number; limit?: number }) => {
-    const { status, search, page = 1, limit = 20 } = filters;
-    const where: any = {
-        ...(status && status !== "ALL" ? { status } : {}),
+export const listReturnsAdmin = async (filters: { status?: string; search?: string; resolution?: string; page?: number; limit?: number }) => {
+    const { status, search, resolution, page = 1, limit = 20 } = filters;
+    const baseWhere: any = {
+        ...(resolution && resolution !== "ALL" ? { resolution } : {}),
         ...(search ? {
             OR: [
                 { id: { contains: search, mode: "insensitive" } },
                 { orderId: { contains: search, mode: "insensitive" } },
                 { order: { customer: { name: { contains: search, mode: "insensitive" } } } },
                 { order: { customer: { email: { contains: search, mode: "insensitive" } } } },
+                { order: { shop: { profile: { name: { contains: search, mode: "insensitive" } } } } },
+                { order: { shop: { slug: { contains: search, mode: "insensitive" } } } },
             ],
         } : {}),
+    };
+    const where: any = {
+        ...baseWhere,
+        ...(status && status !== "ALL" ? { status } : {}),
     };
     const [returns, total, statusCounts] = await prisma.$transaction([
         prisma.returnRequest.findMany({ where, include: adminReturnInclude, orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit }),
         prisma.returnRequest.count({ where }),
-        prisma.returnRequest.groupBy({ by: ["status"], where, _count: { _all: true } }),
+        prisma.returnRequest.groupBy({ by: ["status"], where: baseWhere, _count: { _all: true } }),
     ]);
     return {
         returns,
@@ -1016,6 +1044,38 @@ export const listReturnsAdmin = async (filters: { status?: string; search?: stri
 
 export const getReturnAdmin = async (id: string) =>
     prisma.returnRequest.findUnique({ where: { id }, include: adminReturnInclude });
+
+export const updateReturnStatusAdmin = async (
+    id: string,
+    status: string,
+    note?: string
+) => {
+    return prisma.$transaction(async (tx) => {
+        const current = await tx.returnRequest.findUnique({
+            where: { id },
+            select: { id: true, status: true, orderId: true },
+        });
+        if (!current) return null;
+
+        await tx.returnStatusHistory.create({
+            data: {
+                returnRequestId: id,
+                status: status as any,
+                note: note || `Return status updated to ${status} by administrator.`,
+            },
+        });
+
+        return tx.returnRequest.update({
+            where: { id },
+            data: {
+                status: status as any,
+                adminNote: note,
+                resolvedAt: ["REJECTED", "CLOSED", "REFUNDED"].includes(status) ? new Date() : undefined,
+            },
+            include: adminReturnInclude,
+        });
+    });
+};
 
 export const setReturnRefundPendingAdmin = async (id: string) =>
     prisma.$transaction(async (tx) => {
@@ -1456,8 +1516,8 @@ export const getOrderAnalyticsAdmin = async (filters: OrderAnalyticsFilters = {}
 // ANALYTICS (ADMIN)
 // ─────────────────────────────────────────────
 export const getPlatformAnalytics = async () => {
-    const twelveMonthsAgo = new Date();
-    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+    const historicalStartDate = new Date();
+    historicalStartDate.setMonth(historicalStartDate.getMonth() - 24);
 
     const [gmvResult, ordersByStatus, topShops, userGrowth, ordersByMonth] = await Promise.all([
         prisma.order.aggregate({ _sum: { totalAmount: true } }),
@@ -1472,7 +1532,7 @@ export const getPlatformAnalytics = async () => {
         prisma.$queryRaw<{ month: string; count: bigint }[]>`
             WITH months AS (
                 SELECT generate_series(
-                    date_trunc('month', ${twelveMonthsAgo}),
+                    date_trunc('month', ${historicalStartDate}),
                     date_trunc('month', CURRENT_DATE),
                     interval '1 month'
                 ) AS month_start
@@ -1489,7 +1549,7 @@ export const getPlatformAnalytics = async () => {
         prisma.$queryRaw<{ month: string; count: bigint; revenue: number }[]>`
             WITH months AS (
                 SELECT generate_series(
-                    date_trunc('month', ${twelveMonthsAgo}),
+                    date_trunc('month', ${historicalStartDate}),
                     date_trunc('month', CURRENT_DATE),
                     interval '1 month'
                 ) AS month_start
@@ -1530,39 +1590,96 @@ export const getPlatformAnalytics = async () => {
 // ─────────────────────────────────────────────
 // PAYOUTS (ADMIN)
 // ─────────────────────────────────────────────
-export const listPayoutsAdmin = async (filters: { page?: number; limit?: number }) => {
-    const { page = 1, limit = 20 } = filters;
+export const listPayoutsAdmin = async (filters: {
+    search?: string;
+    filter?: string;
+    sortBy?: string;
+    page?: number;
+    limit?: number;
+}) => {
+    const { search, filter, sortBy = "balance_desc", page = 1, limit = 20 } = filters;
     const skip = (page - 1) * limit;
+
+    const where: any = {
+        status: { not: "CLOSED" },
+        ...(search
+            ? {
+                  OR: [
+                      { slug: { contains: search, mode: "insensitive" } },
+                      { profile: { name: { contains: search, mode: "insensitive" } } },
+                      { owner: { name: { contains: search, mode: "insensitive" } } },
+                      { owner: { email: { contains: search, mode: "insensitive" } } },
+                  ],
+              }
+            : {}),
+    };
+
+    if (filter === "WITH_BALANCE") {
+        where.wallet = { balance: { gt: 0 } };
+    } else if (filter === "ZERO_BALANCE") {
+        where.wallet = { balance: { lte: 0 } };
+    } else if (filter === "STRIPE_CONNECTED") {
+        where.wallet = { stripeAccountId: { not: null }, payoutsEnabled: true };
+    } else if (filter === "STRIPE_PENDING") {
+        where.wallet = { OR: [{ stripeAccountId: null }, { payoutsEnabled: false }] };
+    }
+
+    let orderBy: any = { createdAt: "desc" };
+    if (sortBy === "balance_desc") {
+        orderBy = { wallet: { balance: "desc" } };
+    } else if (sortBy === "balance_asc") {
+        orderBy = { wallet: { balance: "asc" } };
+    } else if (sortBy === "name") {
+        orderBy = { slug: "asc" };
+    } else if (sortBy === "newest") {
+        orderBy = { createdAt: "desc" };
+    }
 
     const [shops, total] = await Promise.all([
         prisma.shop.findMany({
             skip,
             take: limit,
-            orderBy: { createdAt: "desc" },
-            where: { status: { not: "CLOSED" } },
+            orderBy,
+            where,
             select: {
                 id: true,
                 slug: true,
                 status: true,
+                createdAt: true,
                 owner: { select: { id: true, name: true, email: true } },
                 profile: { select: { name: true, logo: true } },
-                wallet: { select: { id: true, balance: true, updatedAt: true } },
+                wallet: {
+                    select: {
+                        id: true,
+                        balance: true,
+                        stripeAccountId: true,
+                        payoutsEnabled: true,
+                        updatedAt: true,
+                    },
+                },
                 walletTransactions: {
-                    where: { type: "DEBIT" },
                     orderBy: { createdAt: "desc" },
-                    take: 1,
-                    select: { createdAt: true, amount: true },
+                    take: 10,
+                    select: {
+                        id: true,
+                        type: true,
+                        amount: true,
+                        balanceAfter: true,
+                        note: true,
+                        createdAt: true,
+                        orderId: true,
+                    },
                 },
             },
         }),
-        prisma.shop.count({ where: { status: { not: "CLOSED" } } }),
+        prisma.shop.count({ where }),
     ]);
 
     return { shops, total, page, limit, totalPages: Math.ceil(total / limit) };
 };
 
 export const getPayoutsSummary = async () => {
-    const [walletAgg, shopsWithBalance, totalDebits, platformWallet, settledOrdersAgg] = await Promise.all([
+    const [walletAgg, shopsWithBalance, totalDebits, platformWallet, settledOrdersAgg, stripeConnectedCount, totalShopWallets] = await Promise.all([
         prisma.shopWallet.aggregate({ _sum: { balance: true } }),
         prisma.shopWallet.count({ where: { balance: { gt: 0 } } }),
         prisma.walletTransaction.aggregate({ where: { type: "DEBIT" }, _sum: { amount: true } }),
@@ -1571,6 +1688,8 @@ export const getPayoutsSummary = async () => {
             where: { status: { in: ["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"] } },
             _sum: { totalAmount: true },
         }),
+        prisma.shopWallet.count({ where: { stripeAccountId: { not: null }, payoutsEnabled: true } }),
+        prisma.shopWallet.count(),
     ]);
 
     const grossVolume = Number(settledOrdersAgg?._sum?.totalAmount ?? 0);
@@ -1583,6 +1702,8 @@ export const getPayoutsSummary = async () => {
         totalShopBalance: Number(walletAgg._sum.balance ?? 0),
         shopsWithBalance,
         totalWithdrawn: Number(totalDebits._sum.amount ?? 0),
+        stripeConnectedCount,
+        totalShopWallets,
     };
 };
 
@@ -1667,21 +1788,29 @@ export const listAuditLogsAdmin = async (filters: {
 export const listCouponsAdmin = async (filters: {
     shopId?: string;
     isActive?: boolean;
+    type?: string;
     search?: string;
     page?: number;
     limit?: number;
 }) => {
-    const { shopId, isActive, search, page = 1, limit = 20 } = filters;
+    const { shopId, isActive, type, search, page = 1, limit = 20 } = filters;
     const skip = (page - 1) * limit;
 
     const where: any = {
         ...(shopId && { shopId }),
         ...(typeof isActive === "boolean" && { isActive }),
-        ...(search && { code: { contains: search, mode: "insensitive" } }),
+        ...(type && { type: type as any }),
+        ...(search && {
+            OR: [
+                { code: { contains: search, mode: "insensitive" } },
+                { shop: { profile: { name: { contains: search, mode: "insensitive" } } } },
+                { shop: { slug: { contains: search, mode: "insensitive" } } },
+            ],
+        }),
     };
 
     const now = new Date();
-    const [coupons, total, totalCount, activeCount, expiredCount] = await Promise.all([
+    const [coupons, total, totalCount, activeCount, expiredCount, percentageCount, fixedCount, usageAgg] = await Promise.all([
         prisma.coupon.findMany({
             where,
             skip,
@@ -1696,6 +1825,9 @@ export const listCouponsAdmin = async (filters: {
         prisma.coupon.count(),
         prisma.coupon.count({ where: { isActive: true, OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] } }),
         prisma.coupon.count({ where: { expiresAt: { lte: now } } }),
+        prisma.coupon.count({ where: { type: "PERCENTAGE" } }),
+        prisma.coupon.count({ where: { type: "FIXED_AMOUNT" } }),
+        prisma.coupon.aggregate({ _sum: { usedCount: true } }),
     ]);
 
     return {
@@ -1704,7 +1836,14 @@ export const listCouponsAdmin = async (filters: {
         page,
         limit,
         totalPages: Math.ceil(total / limit),
-        stats: { total: totalCount, active: activeCount, expired: expiredCount },
+        stats: {
+            total: totalCount,
+            active: activeCount,
+            expired: expiredCount,
+            percentage: percentageCount,
+            fixed: fixedCount,
+            totalRedemptions: usageAgg._sum.usedCount || 0,
+        },
     };
 };
 

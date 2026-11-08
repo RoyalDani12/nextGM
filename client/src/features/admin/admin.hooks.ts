@@ -14,7 +14,12 @@ import {
 import { toast } from "react-hot-toast";
 
 export const useAdminStats = () =>
-    useQuery({ queryKey: ["admin", "stats"], queryFn: adminApi.getStats, staleTime: 60_000 });
+    useQuery({
+        queryKey: ["admin", "stats"],
+        queryFn: adminApi.getStats,
+        staleTime: 5 * 60_000,
+        placeholderData: (prev) => prev,
+    });
 
 export const useAdminUsers = (filters: AdminUserFilters) =>
     useQuery({
@@ -249,8 +254,25 @@ export const useAdminDeleteReview = () => {
 export const useAdminShipments = (filters: { status?: string; search?: string; page?: number; limit?: number }) =>
     useQuery({ queryKey: ["admin", "shipments", filters], queryFn: () => adminApi.listShipments(filters), placeholderData: (previous) => previous });
 
-export const useAdminReturns = (filters: { status?: string; search?: string; page?: number; limit?: number }) =>
+export const useAdminReturns = (filters: { status?: string; search?: string; resolution?: string; page?: number; limit?: number }) =>
     useQuery({ queryKey: ["admin", "returns", filters], queryFn: () => adminApi.listReturns(filters), placeholderData: (previous) => previous });
+
+export const useUpdateReturnStatus = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, status, note }: { id: string; status: string; note?: string }) =>
+            adminApi.updateReturnStatus(id, status, note),
+        onSuccess: (_data, variables) => {
+            const pretty = variables.status.replace(/_/g, " ");
+            toast.success(`Claim status updated to ${pretty}`);
+            qc.invalidateQueries({ queryKey: ["admin", "returns"] });
+            qc.invalidateQueries({ queryKey: ["admin", "stats"] });
+        },
+        onError: (err: any) => {
+            toast.error(err?.response?.data?.message || "Failed to update return status.");
+        },
+    });
+};
 
 export const useRefundReturn = () => {
     const qc = useQueryClient();
@@ -296,11 +318,12 @@ export const usePlatformAnalytics = () =>
     useQuery({
         queryKey: ["admin", "analytics", "platform"],
         queryFn: () => adminApiExtended.getPlatformAnalytics(),
-        staleTime: 60_000,
+        staleTime: 5 * 60_000,
+        placeholderData: (prev) => prev,
     });
 
 // ─── Payouts ──────────────────────────────────
-export const useAdminPayouts = (filters: { page?: number; limit?: number }) =>
+export const useAdminPayouts = (filters: { search?: string; filter?: string; sortBy?: string; page?: number; limit?: number }) =>
     useQuery({
         queryKey: ["admin", "payouts", filters],
         queryFn: () => adminApiExtended.listPayouts(filters),

@@ -1,6 +1,7 @@
 import { extractClientIp } from './audit.service.js';
-﻿import type { Request, Response } from "express";
+import type { Request, Response } from "express";
 import { asyncHandler } from "../../utils/asyncHandler.js";
+import { AppError } from "../../middleware/appError.js";
 import {
     getPlatformStatsService,
     listUsersService,
@@ -33,6 +34,7 @@ import {
     listShipmentsService,
     listReturnsService,
     getReturnService,
+    updateReturnStatusAdminService,
     refundReturnService,
     listOrdersService,
     getOrderByIdAdminService,
@@ -295,14 +297,31 @@ export const listShipmentsController = asyncHandler(async (req: Request, res: Re
 });
 
 export const listReturnsController = asyncHandler(async (req: Request, res: Response) => {
-    const { status, search, page, limit } = req.query as Record<string, string>;
-    const data = await listReturnsService({ status, search, page: page ? Number(page) : undefined, limit: limit ? Number(limit) : undefined });
+    const { status, search, resolution, page, limit } = req.query as Record<string, string>;
+    const data = await listReturnsService({
+        status,
+        search,
+        resolution,
+        page: page ? Number(page) : undefined,
+        limit: limit ? Number(limit) : undefined,
+    });
     res.status(200).json({ success: true, data });
 });
 
 export const getReturnController = asyncHandler(async (req: Request, res: Response) => {
     const data = await getReturnService(req.params.id as string);
     res.status(200).json({ success: true, data });
+});
+
+export const updateReturnStatusAdminController = asyncHandler(async (req: Request, res: Response) => {
+    const adminUserId = req.user?.id || (req as any).user?.userId;
+    const clientIp = extractClientIp(req);
+    const { status, note } = req.body;
+    if (!status) {
+        throw new AppError("Status is required.", 400);
+    }
+    const data = await updateReturnStatusAdminService(req.params.id as string, status, note, adminUserId, clientIp);
+    res.status(200).json({ success: true, message: `Return status updated to ${status}.`, data });
 });
 
 export const refundReturnController = asyncHandler(async (req: Request, res: Response) => {
@@ -349,8 +368,11 @@ export const getPlatformAnalyticsController = asyncHandler(async (_req: Request,
 });
 
 export const listPayoutsController = asyncHandler(async (req: Request, res: Response) => {
-    const { page, limit } = req.query as Record<string, string>;
+    const { search, filter, sortBy, page, limit } = req.query as Record<string, string>;
     const data = await listPayoutsService({
+        search,
+        filter,
+        sortBy,
         page: page ? Number(page) : undefined,
         limit: limit ? Number(limit) : undefined,
     });
@@ -383,10 +405,11 @@ export const listAuditLogsController = asyncHandler(async (req: Request, res: Re
 });
 
 export const listCouponsController = asyncHandler(async (req: Request, res: Response) => {
-    const { shopId, isActive, search, page, limit } = req.query as Record<string, string>;
+    const { shopId, isActive, type, search, page, limit } = req.query as Record<string, string>;
     const data = await listCouponsService({
         shopId,
-        isActive: isActive !== undefined ? isActive === "true" : undefined,
+        isActive: isActive !== undefined && isActive !== "" ? isActive === "true" : undefined,
+        type: type || undefined,
         search,
         page: page ? Number(page) : undefined,
         limit: limit ? Number(limit) : undefined,

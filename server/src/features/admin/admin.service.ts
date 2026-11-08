@@ -35,6 +35,7 @@ import {
     listShipmentsAdmin,
     listReturnsAdmin,
     getReturnAdmin,
+    updateReturnStatusAdmin,
     setReturnRefundPendingAdmin,
     listOrdersAdmin,
     getOrderByIdAdmin,
@@ -53,8 +54,27 @@ import {
 } from "./admin.repository.js";
 import { initiateRefundService } from "../payment/payment.service.js";
 
+let platformStatsCache: { data: any; expiry: number } | null = null;
+let platformAnalyticsCache: { data: any; expiry: number } | null = null;
+
 export const getPlatformStatsService = async () => {
-    return getPlatformStats();
+    const now = Date.now();
+    if (platformStatsCache && platformStatsCache.expiry > now) {
+        return platformStatsCache.data;
+    }
+    const data = await getPlatformStats();
+    platformStatsCache = { data, expiry: now + 60_000 };
+    return data;
+};
+
+export const getPlatformAnalyticsService = async () => {
+    const now = Date.now();
+    if (platformAnalyticsCache && platformAnalyticsCache.expiry > now) {
+        return platformAnalyticsCache.data;
+    }
+    const data = await getPlatformAnalytics();
+    platformAnalyticsCache = { data, expiry: now + 60_000 };
+    return data;
 };
 
 export const listUsersService = async (filters: {
@@ -691,12 +711,56 @@ export const deleteReviewAdminService = async (id: string) => {
 
 export const listShipmentsService = (filters: { status?: string; search?: string; page?: number; limit?: number }) => listShipmentsAdmin(filters);
 
-export const listReturnsService = (filters: { status?: string; search?: string; page?: number; limit?: number }) => listReturnsAdmin(filters);
+export const listReturnsService = (filters: { status?: string; search?: string; resolution?: string; page?: number; limit?: number }) => listReturnsAdmin(filters);
 
 export const getReturnService = async (id: string) => {
     const request = await getReturnAdmin(id);
     if (!request) throw new AppError("Return request not found.", 404);
     return request;
+};
+
+export const updateReturnStatusAdminService = async (
+    id: string,
+    status: string,
+    note?: string,
+    adminUserId?: string,
+    ip?: string
+) => {
+    const validStatuses = [
+        "REQUESTED",
+        "UNDER_REVIEW",
+        "APPROVED",
+        "REJECTED",
+        "ITEM_SHIPPED",
+        "ITEM_RECEIVED",
+        "REFUND_PENDING",
+        "REFUNDED",
+        "REPLACEMENT_SENT",
+        "CLOSED",
+    ];
+    if (!validStatuses.includes(status)) {
+        throw new AppError(`Invalid return status: ${status}`, 400);
+    }
+
+    const current = await getReturnAdmin(id);
+    if (!current) throw new AppError("Return request not found.", 404);
+
+    const updated = await updateReturnStatusAdmin(id, status, note);
+    if (!updated) throw new AppError("Failed to update return request.", 500);
+
+    if (adminUserId) {
+        await recordAuditLog({
+            userId: adminUserId,
+            action: "UPDATE",
+            entity: "RETURN_REQUEST",
+            entityId: id,
+            oldValue: { status: current.status, note: current.adminNote },
+            newValue: { status, note },
+            ip,
+        });
+    }
+
+    return updated;
 };
 
 export const refundReturnService = async (id: string, adminUserId?: string, ip?: string) => {
@@ -760,9 +824,13 @@ export const getOrderByIdAdminService = async (id: string) => {
 export const getOrderAnalyticsAdminService = (filters: OrderAnalyticsFilters = {}) =>
     getOrderAnalyticsAdmin(filters);
 
-export const getPlatformAnalyticsService = () => getPlatformAnalytics();
-
-export const listPayoutsService = (filters: { page?: number; limit?: number }) => listPayoutsAdmin(filters);
+export const listPayoutsService = (filters: {
+    search?: string;
+    filter?: string;
+    sortBy?: string;
+    page?: number;
+    limit?: number;
+}) => listPayoutsAdmin(filters);
 export const getPayoutsSummaryService = () => getPayoutsSummary();
 export const getBillingOverviewService = () => getBillingOverview();
 
@@ -780,6 +848,7 @@ export const listAuditLogsService = (filters: {
 export const listCouponsService = (filters: {
     shopId?: string;
     isActive?: boolean;
+    type?: string;
     search?: string;
     page?: number;
     limit?: number;
