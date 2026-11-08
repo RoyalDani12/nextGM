@@ -16,73 +16,123 @@ const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 export const getPayoutStatusService = async (shopId: string) => {
     let wallet = await getShopWalletForPayout(shopId);
 
-    // If wallet doesn't exist or isn't enabled yet, activate it directly so withdrawals work instantly
+    // If wallet doesn't exist, create it with 0 real balance
     if (!wallet) {
         wallet = await prisma.shopWallet.create({
             data: {
                 shopId,
-                balance: 2500,
-                payoutsEnabled: true,
-                stripeAccountId: `acct_verified_${shopId.slice(-6)}`,
-            },
-        });
-    } else if (!wallet.payoutsEnabled) {
-        wallet = await prisma.shopWallet.update({
-            where: { shopId },
-            data: {
-                payoutsEnabled: true,
-                stripeAccountId: wallet.stripeAccountId || `acct_verified_${shopId.slice(-6)}`,
+                balance: 0,
+                payoutsEnabled: false,
+                stripeAccountId: null,
             },
         });
     }
 
-    // Fetch transaction history
+    // Clean up any legacy synthetic "Initial Merchant Trading Balance" transactions from this shop
+    await prisma.walletTransaction.deleteMany({
+        where: {
+            shopId,
+            note: { contains: "Initial Merchant Trading Balance" },
+        },
+    });
+
+    // Fetch all real transactions
     let transactions = await prisma.walletTransaction.findMany({
         where: { shopId },
         orderBy: { createdAt: "desc" },
         take: 100,
     });
 
-    const totalWithdrawn = transactions
-        .filter((tx) => tx.type === "DEBIT")
-        .reduce((sum, tx) => sum + Number(tx.amount), 0);
+    // Automatically sync real order settlements for paid orders if not already in ledger
+    const creditedOrderIds = new Set(
+        transactions
+            .filter((t) => t.type === "CREDIT" && t.orderId)
+            .map((t) => t.orderId)
+    );
 
-    // If no CREDIT transaction exists yet, seed initial trading balance record
-    const hasCreditTx = transactions.some((tx) => tx.type === "CREDIT");
-    if (!hasCreditTx) {
-        const startingAmount = Number(wallet.balance) + totalWithdrawn;
-        if (startingAmount > 0) {
-            try {
-                const initialTx = await prisma.walletTransaction.create({
+    const settledOrders = await prisma.order.findMany({
+        where: {
+            shopId,
+            status: { in: ["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"] },
+        },
+    });
+
+    let extraCreditsCreated = false;
+    for (const order of settledOrders) {
+        if (!creditedOrderIds.has(order.id)) {
+            const orderTotal = Number(order.totalAmount);
+            const shopCut = Math.round(orderTotal * 0.90 * 100) / 100; // 90% payout (10% platform fee)
+            if (shopCut > 0) {
+                const currentBal: number = Number(wallet.balance);
+                const nextBal: number = Math.round((currentBal + shopCut) * 100) / 100;
+                const newTx = await prisma.walletTransaction.create({
                     data: {
                         shopId,
+                        orderId: order.id,
                         type: "CREDIT",
-                        amount: startingAmount,
-                        balanceAfter: startingAmount,
-                        note: "Initial Merchant Trading Balance",
-                        createdAt: new Date(Date.now() - 3600000),
+                        amount: shopCut,
+                        balanceAfter: nextBal,
+                        note: `Order settlement (90%) - Order #${order.id.slice(-6)}`,
                     },
                 });
-                transactions.push(initialTx);
-                transactions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-            } catch {
-                // Ignore if concurrently created
+                wallet = await prisma.shopWallet.update({
+                    where: { id: wallet.id },
+                    data: { balance: nextBal },
+                });
+                transactions.unshift(newTx);
+                creditedOrderIds.add(order.id);
+                extraCreditsCreated = true;
             }
         }
     }
 
-    const creditSum = transactions
-        .filter((tx) => tx.type === "CREDIT")
-        .reduce((sum, tx) => sum + Number(tx.amount), 0);
+    if (extraCreditsCreated) {
+        transactions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    }
 
-    const totalEarned = Math.max(creditSum, Number(wallet?.balance ?? 0) + totalWithdrawn);
+    // Calculate real ledger totals
+    const totalWithdrawn = Math.round(
+        transactions
+            .filter((tx) => tx.type === "DEBIT")
+            .reduce((sum, tx) => sum + Number(tx.amount), 0) * 100
+    ) / 100;
+
+    const totalEarned = Math.round(
+        transactions
+            .filter((tx) => tx.type === "CREDIT")
+            .reduce((sum, tx) => sum + Number(tx.amount), 0) * 100
+    ) / 100;
+
+    // Real ledger balance: total earned minus total withdrawn
+    const ledgerBalance = Math.max(0, Math.round((totalEarned - totalWithdrawn) * 100) / 100);
+
+    // Sync wallet record if balance differs from ledger
+    if (Math.abs(Number(wallet.balance) - ledgerBalance) > 0.001) {
+        wallet = await prisma.shopWallet.update({
+            where: { id: wallet.id },
+            data: { balance: ledgerBalance },
+        });
+    }
+
+    const balance = Number(wallet.balance);
+
+    // Reserve Policy: Sellers CANNOT move out all balance.
+    // Rolling reserve of 10% (minimum $10 if balance >= $10) must remain for return/refund settlement guarantees.
+    const MIN_RESERVE_PERCENT = 0.10;
+    const MIN_RESERVE_FLAT = 10.0;
+    const reserveAmount = balance > 0
+        ? Math.min(balance, Math.max(MIN_RESERVE_FLAT, Math.round(balance * MIN_RESERVE_PERCENT * 100) / 100))
+        : 0;
+    const maxWithdrawable = Math.max(0, Math.round((balance - reserveAmount) * 100) / 100);
 
     return {
-        balance: Number(wallet?.balance ?? 0),
+        balance,
+        reserveAmount,
+        maxWithdrawable,
         totalWithdrawn,
         totalEarned,
-        stripeAccountId: wallet?.stripeAccountId ?? `acct_verified_${shopId.slice(-6)}`,
-        payoutsEnabled: true,
+        stripeAccountId: wallet.stripeAccountId,
+        payoutsEnabled: wallet.payoutsEnabled,
         transactions: transactions.map((t) => ({
             id: t.id,
             shopId: t.shopId,
@@ -129,8 +179,8 @@ export const generateOnboardingLinkService = async (shopId: string, origin: stri
 };
 
 export const withdrawFundsService = async (shopId: string, amount: number, userId?: string, ip?: string) => {
-    if (amount <= 0) {
-        throw new AppError("Invalid withdrawal amount.", 400);
+    if (!amount || amount <= 0 || isNaN(amount)) {
+        throw new AppError("Invalid withdrawal amount. Must be greater than 0.", 400);
     }
 
     const wallet = await getShopWalletForPayout(shopId);
@@ -138,8 +188,26 @@ export const withdrawFundsService = async (shopId: string, amount: number, userI
         throw new AppError("Wallet not found.", 404);
     }
 
-    if (Number(wallet.balance) < amount) {
-        throw new AppError("Insufficient balance.", 400);
+    const currentBalance = Number(wallet.balance);
+
+    // Rule: Sellers cannot move out all balance!
+    // A 10% safety reserve (minimum $10) must remain for return and dispute obligations.
+    const MIN_RESERVE_PERCENT = 0.10;
+    const MIN_RESERVE_FLAT = 10.0;
+    const reserveAmount = currentBalance > 0
+        ? Math.min(currentBalance, Math.max(MIN_RESERVE_FLAT, Math.round(currentBalance * MIN_RESERVE_PERCENT * 100) / 100))
+        : 0;
+    const maxWithdrawable = Math.max(0, Math.round((currentBalance - reserveAmount) * 100) / 100);
+
+    if (amount >= currentBalance) {
+        throw new AppError("Sellers cannot withdraw their entire wallet balance. A safety reserve must remain for customer return/refund and dispute obligations.", 400);
+    }
+
+    if (amount > maxWithdrawable) {
+        if (currentBalance <= reserveAmount) {
+            throw new AppError(`Cannot withdraw funds. Your current balance ($${currentBalance.toFixed(2)}) is at or below the required reserve buffer ($${reserveAmount.toFixed(2)}) for return settlements.`, 400);
+        }
+        throw new AppError(`Cannot withdraw $${amount.toFixed(2)}. A minimum safety reserve of $${reserveAmount.toFixed(2)} must remain in your wallet. Maximum withdrawable amount is $${maxWithdrawable.toFixed(2)}.`, 400);
     }
 
     const amountInCents = Math.round(amount * 100);

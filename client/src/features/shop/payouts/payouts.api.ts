@@ -13,6 +13,8 @@ export interface WalletTransactionItem {
 
 export interface PayoutStatus {
     balance: number;
+    reserveAmount?: number;
+    maxWithdrawable?: number;
     totalWithdrawn?: number;
     totalEarned?: number;
     stripeAccountId: string | null;

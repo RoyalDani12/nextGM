@@ -689,7 +689,7 @@ async function main() {
             country: "United States",
           },
         },
-        wallet: { create: { balance: 2500 } },
+        wallet: { create: { balance: 0 } },
         legalInfo: {
           create: {
             legalBusinessName: `${cfg.shopName} LLC`,

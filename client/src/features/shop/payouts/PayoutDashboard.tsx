@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { usePayoutStatus, useWithdrawFunds } from "./payouts.hooks";
+import { usePayoutStatus, useWithdrawFunds, useGenerateOnboardingLink } from "./payouts.hooks";
 import {
   AlertCircle,
   RefreshCw,
@@ -22,7 +22,6 @@ import {
   ChevronRight,
   Activity,
   BarChart3,
-  Sparkles,
   Check,
 } from "lucide-react";
 import {
@@ -44,6 +43,7 @@ export function PayoutDashboard() {
 
   const { data: status, isLoading, isError, refetch, isFetching } = usePayoutStatus(shopId);
   const withdrawMutation = useWithdrawFunds(shopId);
+  const onboardingMutation = useGenerateOnboardingLink(shopId);
 
   const [withdrawAmount, setWithdrawAmount] = useState<string>("");
   const [localError, setLocalError] = useState<string | null>(null);
@@ -95,6 +95,8 @@ export function PayoutDashboard() {
   }
 
   const balance = Number(status.balance) || 0;
+  const reserveAmount = Number(status.reserveAmount) ?? (balance > 0 ? Math.min(balance, Math.max(10, Math.round(balance * 0.1 * 100) / 100)) : 0);
+  const maxWithdrawable = Number(status.maxWithdrawable) ?? Math.max(0, Math.round((balance - reserveAmount) * 100) / 100);
   const transactions = status.transactions || [];
   const totalWithdrawn = status.totalWithdrawn ?? transactions
     .filter((tx) => tx.type === "DEBIT")
@@ -105,10 +107,11 @@ export function PayoutDashboard() {
   );
 
   const totalVolume = Math.max(balance + totalWithdrawn, totalEarned);
-  const availablePct = totalVolume > 0 ? Math.round((balance / totalVolume) * 100) : 100;
-  const withdrawnPct = 100 - availablePct;
+  const withdrawablePct = totalVolume > 0 ? Math.round((maxWithdrawable / totalVolume) * 100) : 0;
+  const reservePct = totalVolume > 0 ? Math.round((reserveAmount / totalVolume) * 100) : 0;
+  const cashedOutPct = totalVolume > 0 ? Math.max(0, 100 - withdrawablePct - reservePct) : 0;
 
-  // Prepare chronological chart data
+  // Prepare chronological chart data from real database records
   const chronologicalTxs = [...transactions].reverse();
   const rawChartData = chronologicalTxs.map((tx, idx) => {
     const d = new Date(tx.createdAt);
@@ -124,22 +127,17 @@ export function PayoutDashboard() {
   });
 
   const chartData =
-    rawChartData.length === 0
+    rawChartData.length === 1
       ? [
-          { index: "#0", date: "Start", time: "", balance: 0, withdrawal: 0, credit: totalVolume, note: "Start" },
-          { index: "#1", date: "Current", time: "", balance: balance, withdrawal: totalWithdrawn, credit: 0, note: "Current" },
-        ]
-      : rawChartData.length === 1
-      ? [
-          { index: "#0", date: "Start", time: "", balance: totalVolume, withdrawal: 0, credit: totalVolume, note: "Start" },
+          { index: "#0", date: "Initial", time: "", balance: 0, withdrawal: 0, credit: 0, note: "Initial" },
           ...rawChartData,
         ]
       : rawChartData;
 
   const handleQuickAmount = (amt: number) => {
     setLocalError(null);
-    const capped = Math.min(amt, balance);
-    setWithdrawAmount(capped.toFixed(2));
+    const capped = Math.min(amt, maxWithdrawable);
+    setWithdrawAmount(capped > 0 ? capped.toFixed(2) : "");
   };
 
   const handleWithdraw = async (e: React.FormEvent) => {
@@ -153,8 +151,13 @@ export function PayoutDashboard() {
       return;
     }
 
-    if (amountNum > balance) {
-      setLocalError("Amount exceeds your available wallet balance.");
+    if (amountNum >= balance) {
+      setLocalError("Sellers cannot withdraw their entire wallet balance. A safety reserve must remain for customer returns and dispute obligations.");
+      return;
+    }
+
+    if (amountNum > maxWithdrawable) {
+      setLocalError(`Cannot withdraw $${amountNum.toFixed(2)}. A minimum safety reserve of $${reserveAmount.toFixed(2)} must remain in your wallet. Maximum withdrawable amount is $${maxWithdrawable.toFixed(2)}.`);
       return;
     }
 
@@ -165,6 +168,18 @@ export function PayoutDashboard() {
       setTimeout(() => setSuccessMsg(null), 8000);
     } catch (err: any) {
       setLocalError(err?.response?.data?.message || "Withdrawal failed.");
+    }
+  };
+
+  const handleConnectBank = async () => {
+    try {
+      setLocalError(null);
+      const res = await onboardingMutation.mutateAsync();
+      if (res?.url) {
+        window.location.href = res.url;
+      }
+    } catch (err: any) {
+      setLocalError(err?.response?.data?.message || "Failed to generate bank onboarding link.");
     }
   };
 
@@ -248,12 +263,24 @@ export function PayoutDashboard() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">Payouts & Financial Center</h1>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
-                <CheckCircle2 className="size-3 text-emerald-600" />
-                Direct Payouts Active
-              </span>
+              {status.payoutsEnabled ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
+                  <CheckCircle2 className="size-3 text-emerald-600" />
+                  Direct Payouts Active
+                </span>
+              ) : status.stripeAccountId ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200">
+                  <Activity className="size-3 text-amber-600" />
+                  Verification Pending
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-600 border border-slate-200">
+                  <Landmark className="size-3 text-slate-500" />
+                  Bank Not Connected
+                </span>
+              )}
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">Manage wallet liquidity, cash out funds, and monitor ledger activity.</p>
+            <p className="text-xs text-slate-500 mt-0.5">Manage live wallet liquidity, cash out funds, and monitor ledger activity.</p>
           </div>
         </div>
 
@@ -288,12 +315,12 @@ export function PayoutDashboard() {
       {/* ── 2. LIGHT-THEME FINANCIAL HERO BANNER ── */}
       <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          {/* LEFT: Available Balance & Visual Meter */}
+          {/* LEFT: Live Balance & Visual Three-Tier Meter */}
           <div className="lg:col-span-7 space-y-5">
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
                 <span className="flex size-2 rounded-full bg-emerald-500" />
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Available For Instant Withdrawal</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Live Shop Wallet Balance</span>
               </div>
               <div className="flex items-baseline gap-3">
                 <span className="text-4xl sm:text-5xl font-black tracking-tight text-slate-900 font-sans">
@@ -303,41 +330,59 @@ export function PayoutDashboard() {
                   USD
                 </span>
               </div>
-              <p className="text-xs text-slate-500 font-medium">Funds settled in merchant ledger and ready for instant direct deposit.</p>
+              <p className="text-xs text-slate-500 font-medium">Real-time ledger balance from customer sales settlements minus payouts.</p>
             </div>
 
-            {/* VISUAL RATIO METER (Available vs Withdrawn) */}
+            {/* THREE-TIER VISUAL PROGRESS TRACK */}
             <div className="space-y-2 pt-1">
-              <div className="flex items-center justify-between text-xs font-bold">
-                <span className="text-orange-600 flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-orange-500" />
-                  Available: {availablePct}% (${balance.toFixed(2)})
+              <div className="grid grid-cols-3 gap-2 text-[11px] font-bold">
+                <span className="text-emerald-700 flex items-center gap-1.5 truncate">
+                  <span className="size-2 rounded-full bg-emerald-500 shrink-0" />
+                  Withdrawable: ${maxWithdrawable.toFixed(2)}
                 </span>
-                <span className="text-rose-600 flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-rose-500" />
-                  Cashed Out: {withdrawnPct}% (${totalWithdrawn.toFixed(2)})
+                <span className="text-amber-700 flex items-center gap-1.5 truncate justify-center">
+                  <span className="size-2 rounded-full bg-amber-500 shrink-0" />
+                  Reserve: ${reserveAmount.toFixed(2)}
+                </span>
+                <span className="text-rose-600 flex items-center gap-1.5 truncate justify-end">
+                  <span className="size-2 rounded-full bg-rose-500 shrink-0" />
+                  Cashed Out: ${totalWithdrawn.toFixed(2)}
                 </span>
               </div>
 
-              {/* DUAL SEGMENT PROGRESS TRACK */}
+              {/* THREE-SEGMENT TRACK */}
               <div className="h-3 w-full rounded-full bg-slate-100 overflow-hidden flex p-0.5 border border-slate-200 shadow-inner">
-                <div
-                  style={{ width: `${availablePct}%` }}
-                  className="h-full rounded-l-full bg-gradient-to-r from-orange-500 to-amber-500 transition-all duration-500"
-                  title={`Available: ${availablePct}%`}
-                />
-                <div
-                  style={{ width: `${withdrawnPct}%` }}
-                  className="h-full rounded-r-full bg-gradient-to-r from-rose-500 to-rose-600 transition-all duration-500"
-                  title={`Cashed Out: ${withdrawnPct}%`}
-                />
+                {withdrawablePct > 0 && (
+                  <div
+                    style={{ width: `${withdrawablePct}%` }}
+                    className="h-full rounded-l-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-500"
+                    title={`Withdrawable: ${withdrawablePct}% ($${maxWithdrawable.toFixed(2)})`}
+                  />
+                )}
+                {reservePct > 0 && (
+                  <div
+                    style={{ width: `${reservePct}%` }}
+                    className={`h-full bg-gradient-to-r from-amber-400 to-orange-400 transition-all duration-500 ${withdrawablePct === 0 ? "rounded-l-full" : ""} ${cashedOutPct === 0 ? "rounded-r-full" : ""}`}
+                    title={`Safety Reserve (Return Buffer): ${reservePct}% ($${reserveAmount.toFixed(2)})`}
+                  />
+                )}
+                {cashedOutPct > 0 && (
+                  <div
+                    style={{ width: `${cashedOutPct}%` }}
+                    className="h-full rounded-r-full bg-gradient-to-r from-rose-500 to-rose-600 transition-all duration-500"
+                    title={`Total Cashed Out: ${cashedOutPct}% ($${totalWithdrawn.toFixed(2)})`}
+                  />
+                )}
+                {totalVolume === 0 && (
+                  <div className="h-full w-full bg-slate-200/70 rounded-full" />
+                )}
               </div>
 
               <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
                 <span>Total Lifetime Volume: <strong className="text-slate-800">${totalVolume.toFixed(2)}</strong></span>
-                <span className="text-emerald-700 font-bold flex items-center gap-1">
-                  <Sparkles className="size-3 text-emerald-600" />
-                  0% Transfer Fee
+                <span className="text-amber-700 font-bold flex items-center gap-1">
+                  <ShieldCheck className="size-3 text-amber-600" />
+                  Safety Reserve Active (min $10)
                 </span>
               </div>
             </div>
@@ -345,7 +390,29 @@ export function PayoutDashboard() {
 
           {/* RIGHT: Metric Cards */}
           <div className="lg:col-span-5 grid grid-cols-2 gap-3.5">
-            <div className="rounded-2xl bg-slate-50/80 border border-slate-200/80 p-4 space-y-2">
+            <div className="rounded-2xl bg-slate-50/80 border border-slate-200/80 p-4 space-y-1.5">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 border border-emerald-200">
+                <ArrowUpRight className="size-4.5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Max Withdrawable</p>
+                <p className="text-xl font-bold text-slate-900 mt-0.5">${maxWithdrawable.toFixed(2)}</p>
+              </div>
+              <p className="text-[10px] text-slate-400">Available to transfer now</p>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50/80 border border-slate-200/80 p-4 space-y-1.5">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-amber-100 text-amber-700 border border-amber-200">
+                <ShieldCheck className="size-4.5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Held Reserve Buffer</p>
+                <p className="text-xl font-bold text-slate-900 mt-0.5">${reserveAmount.toFixed(2)}</p>
+              </div>
+              <p className="text-[10px] text-slate-400">10% customer return buffer</p>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50/80 border border-slate-200/80 p-4 space-y-1.5">
               <div className="flex size-9 items-center justify-center rounded-xl bg-rose-100 text-rose-600 border border-rose-200">
                 <TrendingDown className="size-4.5" />
               </div>
@@ -356,15 +423,15 @@ export function PayoutDashboard() {
               <p className="text-[10px] text-slate-400">Transferred to bank</p>
             </div>
 
-            <div className="rounded-2xl bg-slate-50/80 border border-slate-200/80 p-4 space-y-2">
-              <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 border border-emerald-200">
+            <div className="rounded-2xl bg-slate-50/80 border border-slate-200/80 p-4 space-y-1.5">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700 border border-indigo-200">
                 <TrendingUp className="size-4.5" />
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Gross Earnings</p>
                 <p className="text-xl font-bold text-slate-900 mt-0.5">${totalEarned.toFixed(2)}</p>
               </div>
-              <p className="text-[10px] text-slate-400">Sales & merchant credits</p>
+              <p className="text-[10px] text-slate-400">Net order payouts (90%)</p>
             </div>
 
             <div className="col-span-2 rounded-2xl bg-slate-50/80 border border-slate-200/80 p-4 flex items-center justify-between">
@@ -373,13 +440,31 @@ export function PayoutDashboard() {
                   <Landmark className="size-4.5" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-900">Stripe Express Bank Wire</p>
-                  <p className="text-[10px] text-slate-500 font-mono">Routing: •••• 4242</p>
+                  <p className="text-xs font-bold text-slate-900">Stripe Express Bank Routing</p>
+                  <p className="text-[10px] text-slate-500 font-mono">
+                    {status.stripeAccountId ? `Account: ${status.stripeAccountId}` : "No bank linked"}
+                  </p>
                 </div>
               </div>
-              <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
-                Connected
-              </span>
+              {status.payoutsEnabled ? (
+                <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
+                  Connected & Active
+                </span>
+              ) : status.stripeAccountId ? (
+                <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200">
+                  Verification Pending
+                </span>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleConnectBank}
+                  disabled={onboardingMutation.isPending}
+                  className="rounded-xl border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100 text-xs font-bold h-8 px-3 cursor-pointer"
+                >
+                  {onboardingMutation.isPending ? "Connecting..." : "Connect Bank"}
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -454,46 +539,58 @@ export function PayoutDashboard() {
             <p className="text-[11px] text-slate-400 mt-0.5">Historical trajectory of available funds over time</p>
           </div>
 
-          <div className="h-60 w-full pt-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="payoutBalanceGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#f97316" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} />
-                <YAxis
-                  tickFormatter={(v) => `$${v}`}
-                  tick={{ fontSize: 11, fill: "#94a3b8" }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#ffffff",
-                    borderColor: "#e2e8f0",
-                    borderRadius: "14px",
-                    boxShadow: "0 10px 25px -5px rgb(15 23 42 / 0.12)",
-                    fontSize: "12px",
-                    padding: "8px 12px",
-                  }}
-                  formatter={(val: any) => [`$${Number(val).toFixed(2)}`, "Wallet Balance"]}
-                  labelFormatter={(label) => `Date: ${label}`}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="balance"
-                  stroke="#f97316"
-                  strokeWidth={2.5}
-                  fill="url(#payoutBalanceGrad)"
-                  name="Balance"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          {chartData.length === 0 ? (
+            <div className="h-60 w-full flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-orange-100/70 text-orange-600 mb-2">
+                <Activity className="size-5" />
+              </div>
+              <p className="text-xs font-bold text-slate-700">No balance history yet</p>
+              <p className="text-[11px] text-slate-400 max-w-xs mt-1">
+                As your store receives and settles orders, your wallet trajectory will update here automatically.
+              </p>
+            </div>
+          ) : (
+            <div className="h-60 w-full pt-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="payoutBalanceGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f97316" stopOpacity={0.35} />
+                      <stop offset="95%" stopColor="#f97316" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} />
+                  <YAxis
+                    tickFormatter={(v) => `$${v}`}
+                    tick={{ fontSize: 11, fill: "#94a3b8" }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#ffffff",
+                      borderColor: "#e2e8f0",
+                      borderRadius: "14px",
+                      boxShadow: "0 10px 25px -5px rgb(15 23 42 / 0.12)",
+                      fontSize: "12px",
+                      padding: "8px 12px",
+                    }}
+                    formatter={(val: any) => [`$${Number(val).toFixed(2)}`, "Wallet Balance"]}
+                    labelFormatter={(label) => `Date: ${label}`}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="balance"
+                    stroke="#f97316"
+                    strokeWidth={2.5}
+                    fill="url(#payoutBalanceGrad)"
+                    name="Balance"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
 
           <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-100">
             <span className="flex items-center gap-1.5 text-slate-500">
@@ -514,46 +611,58 @@ export function PayoutDashboard() {
               </div>
               <div className="flex items-center gap-2 text-[10px] font-bold">
                 <span className="text-emerald-700 flex items-center gap-1">
-                  <span className="size-1.5 rounded-full bg-emerald-500" /> Deposits
+                  <span className="size-1.5 rounded-full bg-emerald-500" /> Credits
                 </span>
                 <span className="text-rose-600 flex items-center gap-1">
                   <span className="size-1.5 rounded-full bg-rose-500" /> Withdrawals
                 </span>
               </div>
             </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Credit additions vs. bank withdrawal payouts</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Order settlements vs. bank withdrawal payouts</p>
           </div>
 
-          <div className="h-60 w-full pt-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} />
-                <YAxis
-                  tickFormatter={(v) => `$${v}`}
-                  tick={{ fontSize: 11, fill: "#94a3b8" }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#ffffff",
-                    borderColor: "#e2e8f0",
-                    borderRadius: "14px",
-                    boxShadow: "0 10px 25px -5px rgb(15 23 42 / 0.12)",
-                    fontSize: "12px",
-                    padding: "8px 12px",
-                  }}
-                  formatter={(val: any, name: any) => [
-                    `$${Number(val).toFixed(2)}`,
-                    name === "credit" ? "Credit / Deposit" : "Bank Withdrawal",
-                  ]}
-                />
-                <Bar dataKey="credit" fill="#10b981" radius={[4, 4, 0, 0]} name="credit" />
-                <Bar dataKey="withdrawal" fill="#f43f5e" radius={[4, 4, 0, 0]} name="withdrawal" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          {chartData.length === 0 ? (
+            <div className="h-60 w-full flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-100/70 text-emerald-600 mb-2">
+                <BarChart3 className="size-5" />
+              </div>
+              <p className="text-xs font-bold text-slate-700">No cash flow recorded yet</p>
+              <p className="text-[11px] text-slate-400 max-w-xs mt-1">
+                Net credits from customer sales and bank debit transfers will be logged here.
+              </p>
+            </div>
+          ) : (
+            <div className="h-60 w-full pt-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} />
+                  <YAxis
+                    tickFormatter={(v) => `$${v}`}
+                    tick={{ fontSize: 11, fill: "#94a3b8" }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#ffffff",
+                      borderColor: "#e2e8f0",
+                      borderRadius: "14px",
+                      boxShadow: "0 10px 25px -5px rgb(15 23 42 / 0.12)",
+                      fontSize: "12px",
+                      padding: "8px 12px",
+                    }}
+                    formatter={(val: any, name: any) => [
+                      `$${Number(val).toFixed(2)}`,
+                      name === "credit" ? "Credit / Settlement" : "Bank Withdrawal",
+                    ]}
+                  />
+                  <Bar dataKey="credit" fill="#10b981" radius={[4, 4, 0, 0]} name="credit" />
+                  <Bar dataKey="withdrawal" fill="#f43f5e" radius={[4, 4, 0, 0]} name="withdrawal" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
 
           <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-100">
             <span className="text-emerald-700 font-semibold">Credits: +${totalEarned.toFixed(2)}</span>
@@ -576,10 +685,17 @@ export function PayoutDashboard() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-              <CheckCircle2 className="size-3.5 text-emerald-600" />
-              Ready For Transfer
-            </span>
+            {maxWithdrawable > 0 ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                <CheckCircle2 className="size-3.5 text-emerald-600" />
+                Available: ${maxWithdrawable.toFixed(2)}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+                <ShieldCheck className="size-3.5 text-amber-600" />
+                Reserve Protected ($0 withdrawable)
+              </span>
+            )}
           </div>
         </div>
 
@@ -588,12 +704,12 @@ export function PayoutDashboard() {
           <div className="lg:col-span-5 space-y-2">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Quick Select Amount</span>
             <div className="grid grid-cols-4 gap-2">
-              {[100, 500, 1000].map((amt) => (
+              {[50, 100, 500].map((amt) => (
                 <button
                   key={amt}
                   type="button"
                   onClick={() => handleQuickAmount(amt)}
-                  disabled={balance < amt}
+                  disabled={maxWithdrawable < amt}
                   className="py-2.5 text-xs font-bold rounded-xl border border-slate-200 hover:border-orange-500/50 hover:bg-orange-50/50 text-slate-700 transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
                 >
                   ${amt}
@@ -601,14 +717,16 @@ export function PayoutDashboard() {
               ))}
               <button
                 type="button"
-                onClick={() => handleQuickAmount(balance)}
-                disabled={balance <= 0}
+                onClick={() => handleQuickAmount(maxWithdrawable)}
+                disabled={maxWithdrawable <= 0}
                 className="py-2.5 text-xs font-bold rounded-xl border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100/80 transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
               >
-                All (${balance.toFixed(2)})
+                Max (${maxWithdrawable.toFixed(2)})
               </button>
             </div>
-            <p className="text-[11px] text-slate-400 pt-1">Select a quick preset or type any custom amount to the right.</p>
+            <p className="text-[11px] text-slate-400 pt-1">
+              Select a quick preset or type a custom amount. A 10% safety reserve (${reserveAmount.toFixed(2)}) remains in your wallet.
+            </p>
           </div>
 
           {/* RIGHT: Input & Withdraw CTA */}
@@ -624,11 +742,11 @@ export function PayoutDashboard() {
                     type="number"
                     step="0.01"
                     min="0.01"
-                    max={balance}
+                    max={maxWithdrawable}
                     value={withdrawAmount}
                     onChange={(e) => setWithdrawAmount(e.target.value)}
                     placeholder="0.00"
-                    disabled={withdrawMutation.isPending || balance <= 0}
+                    disabled={withdrawMutation.isPending || maxWithdrawable <= 0}
                     className="w-full rounded-xl border border-slate-200 py-2.5 pl-8 pr-4 text-base font-bold text-slate-900 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 disabled:bg-slate-50 transition-all"
                   />
                 </div>
@@ -636,7 +754,7 @@ export function PayoutDashboard() {
 
               <Button
                 type="submit"
-                disabled={withdrawMutation.isPending || balance <= 0 || !withdrawAmount}
+                disabled={withdrawMutation.isPending || maxWithdrawable <= 0 || !withdrawAmount || Number(withdrawAmount) > maxWithdrawable || Number(withdrawAmount) >= balance}
                 className="w-full sm:w-auto px-6 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl font-bold h-11 text-xs shadow-sm shadow-orange-500/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all shrink-0"
               >
                 {withdrawMutation.isPending ? (
@@ -657,7 +775,7 @@ export function PayoutDashboard() {
 
         <div className="flex items-center gap-2 text-[11px] text-slate-400 pt-3 border-t border-slate-100">
           <ShieldCheck className="size-3.5 text-emerald-600 shrink-0" />
-          <span>Encrypted direct deposit routing with automatic double-entry ledger settlement</span>
+          <span>Encrypted direct deposit routing with automatic double-entry ledger settlement and 10% safety reserve protection</span>
         </div>
       </div>
 

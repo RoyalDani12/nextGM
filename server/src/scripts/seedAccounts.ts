@@ -88,7 +88,7 @@ async function main() {
       },
       wallet: {
         create: {
-          balance: 1250.0,
+          balance: 0,
           payoutsEnabled: true,
         },
       },

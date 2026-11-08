@@ -21,6 +21,12 @@ export const createShopRepository = async (ownerId: string, slug: string, name: 
                 ownerId,
                 slug,
                 status: "PENDING",
+                wallet: {
+                    create: {
+                        balance: 0,
+                        payoutsEnabled: false,
+                    },
+                },
             },
         });
 
