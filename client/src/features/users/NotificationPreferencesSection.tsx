@@ -16,8 +16,8 @@ export default function NotificationPreferencesSection() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="size-6 animate-spin text-orange-500" />
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="size-5 animate-spin text-orange-500" />
       </div>
     );
   }
@@ -26,28 +26,28 @@ export default function NotificationPreferencesSection() {
     {
       key: "emailEnabled" as const,
       title: "Email Notifications",
-      desc: "Receive order receipts, shipping updates, and account alerts to your email.",
+      desc: "Receive transaction receipts, order updates, and critical security alerts via email.",
       icon: Mail,
       enabled: prefs?.emailEnabled ?? true,
     },
     {
       key: "orderUpdates" as const,
       title: "Order & Shipping Alerts",
-      desc: "Stay notified when your orders are placed, dispatched, or delivered.",
+      desc: "Instant notifications when orders are placed, paid, shipped, or delivered.",
       icon: Package,
       enabled: prefs?.orderUpdates ?? true,
     },
     {
       key: "reviews" as const,
       title: "Review & Reply Notifications",
-      desc: "Get notified when customers leave reviews on your products or merchants reply.",
+      desc: "Alerts when customers post product reviews or merchants respond to feedback.",
       icon: Star,
       enabled: prefs?.reviews ?? true,
     },
     {
       key: "promotions" as const,
       title: "Promotions & Discounts",
-      desc: "Receive alerts for seasonal drops, flash coupons, and store discounts.",
+      desc: "Exclusive discounts, promotional campaigns, and store sale announcements.",
       icon: Sparkles,
       enabled: prefs?.promotions ?? true,
     },
@@ -57,14 +57,15 @@ export default function NotificationPreferencesSection() {
     <div className="space-y-4">
       <div className="flex items-center justify-between pb-3 border-b border-slate-100">
         <div>
-          <h3 className="text-base font-bold text-slate-900">Notification Preferences</h3>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Choose what alerts and emails you want to receive across the marketplace.
+          <h3 className="text-xs font-semibold text-slate-900">Communication Channels</h3>
+          <p className="text-[11px] text-slate-500 mt-0.5">
+            Configure which events trigger email delivery and in-app notifications.
           </p>
         </div>
         {updatePrefs.isPending && (
-          <span className="text-xs font-semibold text-orange-600 flex items-center gap-1">
-            <Loader2 className="size-3 animate-spin" /> Saving...
+          <span className="text-[11px] font-medium text-slate-500 flex items-center gap-1.5">
+            <Loader2 className="size-3 animate-spin text-orange-500" />
+            <span>Saving...</span>
           </span>
         )}
       </div>
@@ -78,27 +79,30 @@ export default function NotificationPreferencesSection() {
               className="flex items-center justify-between py-3.5 gap-4"
             >
               <div className="flex items-start gap-3">
-                <div className="size-9 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-600 shrink-0 mt-0.5">
-                  <Icon className="size-4" />
+                <div className="size-8 rounded-md bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-600 shrink-0 mt-0.5">
+                  <Icon className="size-3.5" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-900">{item.title}</p>
-                  <p className="text-xs text-slate-500 leading-relaxed mt-0.5">{item.desc}</p>
+                  <p className="text-xs font-semibold text-slate-900">{item.title}</p>
+                  <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5 max-w-lg">
+                    {item.desc}
+                  </p>
                 </div>
               </div>
 
+              {/* Toggle switch */}
               <button
                 type="button"
                 onClick={() => handleToggle(item.key)}
                 disabled={updatePrefs.isPending}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ${
                   item.enabled ? "bg-orange-500" : "bg-slate-200"
                 }`}
                 aria-label={`Toggle ${item.title}`}
               >
                 <span
-                  className={`pointer-events-none inline-block size-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                    item.enabled ? "translate-x-5" : "translate-x-0"
+                  className={`pointer-events-none inline-block size-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${
+                    item.enabled ? "translate-x-4" : "translate-x-0"
                   }`}
                 />
               </button>
