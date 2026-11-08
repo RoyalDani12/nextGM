@@ -6,13 +6,11 @@ import {
   useGenerateOnboardingLink,
 } from "./payouts.hooks";
 import {
-  Wallet,
   Download,
   RefreshCw,
   ArrowUpRight,
   ArrowDownLeft,
   Search,
-  Filter,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -22,12 +20,8 @@ import {
   CheckCircle2,
   AlertCircle,
   HelpCircle,
-  Package,
   Landmark,
-  Activity,
-  BarChart3,
   Loader2,
-  ShieldCheck,
   ExternalLink,
 } from "lucide-react";
 import {
@@ -54,21 +48,19 @@ import {
   TooltipContent,
   TooltipProvider,
 } from "@/components/ui/tooltip";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-const formatUSD = (val: number) => {
-  return new Intl.NumberFormat("en-US", {
+const fmt = (val: number) =>
+  new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(val || 0);
-};
 
 const TYPE_OPTIONS = [
-  { value: "ALL", label: "All Types" },
-  { value: "CREDIT", label: "Earnings (Sales)" },
-  { value: "DEBIT", label: "Payouts (Withdrawals)" },
+  { value: "ALL", label: "All types" },
+  { value: "CREDIT", label: "Earnings" },
+  { value: "DEBIT", label: "Payouts" },
 ];
 
 const LIMIT_OPTIONS = [10, 20, 50, 100];
@@ -86,21 +78,18 @@ export function PayoutDashboard() {
   const withdrawMutation = useWithdrawFunds(shopId);
   const onboardingMutation = useGenerateOnboardingLink(shopId);
 
-  // Transfer Modal & Inputs
   const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState<string>("");
   const [localError, setLocalError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Search & Filter Dropdowns matching the image UX
   const [searchInput, setSearchInput] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [filterType, setFilterType] = useState<"ALL" | "CREDIT" | "DEBIT">("ALL");
   const [pageSize, setPageSize] = useState<number>(10);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [openFilterDropdown, setOpenFilterDropdown] = useState<"type" | "status" | "limit" | null>(null);
+  const [openDropdown, setOpenDropdown] = useState<"type" | "limit" | null>(null);
 
-  // Reset to page 1 whenever search, filter, or page size changes
   useEffect(() => {
     setCurrentPage(1);
   }, [filterType, searchQuery, pageSize]);
@@ -108,35 +97,21 @@ export function PayoutDashboard() {
   if (isLoading) {
     return (
       <div className="flex min-h-[460px] items-center justify-center">
-        <div className="text-center space-y-3">
-          <Loader2 className="mx-auto size-7 animate-spin text-orange-500" />
-          <p className="text-sm font-semibold text-slate-500">
-            Loading payouts and balance...
-          </p>
-        </div>
+        <Loader2 className="size-6 animate-spin text-slate-400" />
       </div>
     );
   }
 
   if (isError || !status) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-8 text-center max-w-lg mx-auto space-y-4">
-        <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
-          <AlertCircle className="size-6" />
-        </div>
-        <div>
-          <h2 className="text-base font-bold text-slate-900">
-            Couldn't load payouts
-          </h2>
-          <p className="mt-1 text-xs text-slate-500">
-            We couldn't reach the payout service. Please check your connection and try again.
-          </p>
-        </div>
+      <div className="max-w-sm mx-auto text-center py-20 space-y-3">
+        <AlertCircle className="mx-auto size-8 text-slate-300" />
+        <p className="text-sm font-medium text-slate-700">Couldn't load payouts</p>
+        <p className="text-xs text-slate-400">Check your connection and try again.</p>
         <button
           onClick={() => refetch()}
-          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-xl shadow-sm transition-all cursor-pointer"
+          className="text-xs font-medium text-orange-600 hover:text-orange-700 cursor-pointer"
         >
-          <RefreshCw size={14} />
           Retry
         </button>
       </div>
@@ -169,37 +144,21 @@ export function PayoutDashboard() {
       balance + totalWithdrawn
     );
 
-  const totalVolume = Math.max(balance + totalWithdrawn, totalEarned);
-
-  // Chronological chart data
   const chronologicalTxs = [...transactions].reverse();
   const rawChartData = chronologicalTxs.map((tx, idx) => {
     const d = new Date(tx.createdAt);
     return {
       index: `#${idx + 1}`,
       date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      time: d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
       balance: Number(tx.balanceAfter),
       withdrawal: tx.type === "DEBIT" ? Number(tx.amount) : 0,
       credit: tx.type === "CREDIT" ? Number(tx.amount) : 0,
-      note: tx.note || (tx.type === "DEBIT" ? "Bank Withdrawal" : "Order Settlement"),
     };
   });
 
   const chartData =
     rawChartData.length === 1
-      ? [
-          {
-            index: "#0",
-            date: "Initial",
-            time: "",
-            balance: 0,
-            withdrawal: 0,
-            credit: 0,
-            note: "Initial Ledger",
-          },
-          ...rawChartData,
-        ]
+      ? [{ index: "#0", date: "Start", balance: 0, withdrawal: 0, credit: 0 }, ...rawChartData]
       : rawChartData;
 
   const handleQuickAmount = (amt: number) => {
@@ -215,24 +174,20 @@ export function PayoutDashboard() {
     const amountNum = parseFloat(withdrawAmount);
 
     if (isNaN(amountNum) || amountNum <= 0) {
-      setLocalError("Please enter a valid withdrawal amount.");
+      setLocalError("Enter a valid amount.");
       return;
     }
 
     if (amountNum >= balance) {
       setLocalError(
-        "Sellers cannot withdraw their entire wallet balance. A 10% safety reserve must remain for refund and dispute obligations."
+        "You can't withdraw the full balance. A 10% safety reserve must remain."
       );
       return;
     }
 
     if (amountNum > maxWithdrawable) {
       setLocalError(
-        `Cannot withdraw ${formatUSD(amountNum)}. A required safety reserve of ${formatUSD(
-          reserveAmount
-        )} must remain in your wallet. Maximum withdrawable is ${formatUSD(
-          maxWithdrawable
-        )}.`
+        `Max withdrawal is ${fmt(maxWithdrawable)}. ${fmt(reserveAmount)} must stay as reserve.`
       );
       return;
     }
@@ -241,10 +196,8 @@ export function PayoutDashboard() {
       await withdrawMutation.mutateAsync(amountNum);
       setWithdrawAmount("");
       setIsTransferOpen(false);
-      setSuccessMsg(
-        `Withdrawal of ${formatUSD(amountNum)} has been submitted to your connected bank account.`
-      );
-      setTimeout(() => setSuccessMsg(null), 9000);
+      setSuccessMsg(`${fmt(amountNum)} sent to your bank account.`);
+      setTimeout(() => setSuccessMsg(null), 6000);
     } catch (err: any) {
       setLocalError(err?.response?.data?.message || "Withdrawal failed.");
     }
@@ -254,13 +207,9 @@ export function PayoutDashboard() {
     try {
       setLocalError(null);
       const res = await onboardingMutation.mutateAsync();
-      if (res?.url) {
-        window.location.href = res.url;
-      }
+      if (res?.url) window.location.href = res.url;
     } catch (err: any) {
-      setLocalError(
-        err?.response?.data?.message || "Failed to generate bank onboarding link."
-      );
+      setLocalError(err?.response?.data?.message || "Failed to start bank setup.");
     }
   };
 
@@ -269,21 +218,20 @@ export function PayoutDashboard() {
     setSearchQuery(searchInput);
   };
 
-  // Filter transactions
   const filteredTransactions = transactions.filter((tx) => {
     if (filterType !== "ALL" && tx.type !== filterType) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const matchNote = (tx.note || "").toLowerCase().includes(q);
-      const matchAmount = tx.amount.toString().includes(q);
-      const matchId = tx.id.toLowerCase().includes(q);
-      const matchOrder = (tx.orderId || "").toLowerCase().includes(q);
-      return matchNote || matchAmount || matchId || matchOrder;
+      return (
+        (tx.note || "").toLowerCase().includes(q) ||
+        tx.amount.toString().includes(q) ||
+        tx.id.toLowerCase().includes(q) ||
+        (tx.orderId || "").toLowerCase().includes(q)
+      );
     }
     return true;
   });
 
-  // Pagination calculation
   const totalItems = filteredTransactions.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const safePage = Math.min(currentPage, totalPages);
@@ -291,10 +239,8 @@ export function PayoutDashboard() {
   const endIndex = Math.min(startIndex + pageSize, totalItems);
   const paginatedTransactions = filteredTransactions.slice(startIndex, endIndex);
 
-  // Pagination numbers helper (exact pattern from AdminUsersPage)
-  const renderPaginationNumbers = () => {
+  const renderPageNumbers = () => {
     const pages: (number | string)[] = [];
-
     if (totalPages <= 7) {
       for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
@@ -312,20 +258,19 @@ export function PayoutDashboard() {
     return pages.map((p, idx) => {
       if (p === "...") {
         return (
-          <span key={`ellipsis-${idx}`} className="px-2 py-1 text-slate-400 text-xs select-none">
+          <span key={`e-${idx}`} className="px-1.5 text-slate-300 text-xs select-none">
             …
           </span>
         );
       }
-      const isCurrent = p === safePage;
       return (
         <button
-          key={`page-${p}`}
+          key={`p-${p}`}
           onClick={() => setCurrentPage(Number(p))}
-          className={`size-8 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-            isCurrent
-              ? "bg-orange-500 text-white font-bold shadow-sm shadow-orange-100"
-              : "text-slate-600 hover:bg-slate-100"
+          className={`size-7 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+            p === safePage
+              ? "bg-slate-900 text-white"
+              : "text-slate-500 hover:bg-slate-100"
           }`}
         >
           {p}
@@ -334,7 +279,6 @@ export function PayoutDashboard() {
     });
   };
 
-  // Export CSV handler
   const handleExportCSV = () => {
     if (filteredTransactions.length === 0) return;
 
@@ -345,15 +289,12 @@ export function PayoutDashboard() {
       "Balance After (USD)",
       "Date",
       "Time",
-      "Status",
       "Details / Note",
       "Order ID",
     ];
 
     const rows = filteredTransactions.map((tx) => {
       const dateObj = new Date(tx.createdAt);
-      const dateStr = dateObj.toLocaleDateString("en-US");
-      const timeStr = dateObj.toLocaleTimeString("en-US");
       const signedAmt =
         tx.type === "DEBIT"
           ? `-${Number(tx.amount).toFixed(2)}`
@@ -361,12 +302,11 @@ export function PayoutDashboard() {
 
       return [
         `"${tx.id}"`,
-        `"${tx.type === "DEBIT" ? "Bank Withdrawal" : "Wallet Credit"}"`,
+        `"${tx.type === "DEBIT" ? "Payout" : "Earning"}"`,
         `"${signedAmt}"`,
         `"${Number(tx.balanceAfter).toFixed(2)}"`,
-        `"${dateStr}"`,
-        `"${timeStr}"`,
-        `"Active"`,
+        `"${dateObj.toLocaleDateString("en-US")}"`,
+        `"${dateObj.toLocaleTimeString("en-US")}"`,
         `"${(tx.note || "").replace(/"/g, '""')}"`,
         `"${tx.orderId || ""}"`,
       ].join(",");
@@ -378,63 +318,57 @@ export function PayoutDashboard() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `ledger-report-${shopId || "shop"}-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `payouts-${shopId || "shop"}-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
-  const parsedWithdrawInput = parseFloat(withdrawAmount) || 0;
-  const projectedRemaining = Math.max(0, balance - parsedWithdrawInput);
+  const parsedInput = parseFloat(withdrawAmount) || 0;
+  const projectedRemaining = Math.max(0, balance - parsedInput);
 
-  const currentTypeLabel =
-    TYPE_OPTIONS.find((t) => t.value === filterType)?.label || "All Types";
+  const tooltipStyle = {
+    backgroundColor: "#fff",
+    borderColor: "#e2e8f0",
+    borderRadius: "8px",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+    fontSize: "12px",
+    padding: "6px 10px",
+  };
 
   return (
     <TooltipProvider>
-      <div className="space-y-6">
-        {/* ── 1. HEADER SECTION ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="space-y-5 max-w-[1200px]">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2.5">
-              <Wallet className="size-6 text-orange-500" />
-              Payouts & Balance
-            </h1>
-            <p className="text-sm text-slate-500 mt-1">
-              {transactions.length > 0
-                ? `${transactions.length} transactions recorded • Balance: ${formatUSD(balance)}`
-                : "Track your earnings, view history, and withdraw funds."}
+            <h1 className="text-xl font-semibold text-slate-900">Payouts</h1>
+            <p className="text-sm text-slate-500 mt-0.5">
+              {fmt(balance)} available
+              {maxWithdrawable > 0 && ` · ${fmt(maxWithdrawable)} withdrawable`}
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            {/* CSV Export Button */}
+          <div className="flex items-center gap-2">
             <button
               onClick={handleExportCSV}
               disabled={filteredTransactions.length === 0}
-              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-40"
-              title="Export transactions to CSV"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer disabled:opacity-40"
             >
-              <Download size={14} className="text-orange-500" />
-              Export CSV
+              <Download size={13} />
+              Export
             </button>
 
-            {/* Sync Button */}
             <button
               onClick={() => refetch()}
               disabled={isFetching}
-              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-40"
-              title="Refresh payout data"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer disabled:opacity-40"
             >
-              <RefreshCw
-                size={14}
-                className={`text-slate-500 ${isFetching ? "animate-spin" : ""}`}
-              />
+              <RefreshCw size={13} className={isFetching ? "animate-spin" : ""} />
               Refresh
             </button>
 
-            {/* Withdraw Button */}
             <button
               onClick={() => {
                 setLocalError(null);
@@ -442,248 +376,119 @@ export function PayoutDashboard() {
                 setIsTransferOpen(true);
               }}
               disabled={maxWithdrawable <= 0}
-              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-xl shadow-sm shadow-orange-100 transition-all cursor-pointer disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
             >
-              <ArrowUpRight size={14} />
               Withdraw
             </button>
           </div>
         </div>
 
-        {/* FEEDBACK ALERTS */}
+        {/* Alerts */}
         {localError && !isTransferOpen && (
-          <Alert variant="destructive" className="rounded-2xl border-rose-200 bg-rose-50/80 text-rose-900 py-3 shadow-sm">
-            <AlertCircle className="size-4 text-rose-600" />
-            <AlertTitle className="text-xs font-bold">Transfer Notice</AlertTitle>
-            <AlertDescription className="text-xs">{localError}</AlertDescription>
-          </Alert>
+          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg border border-rose-200 bg-rose-50 text-xs text-rose-700">
+            <AlertCircle className="size-3.5 mt-0.5 shrink-0" />
+            <span>{localError}</span>
+          </div>
         )}
 
         {successMsg && (
-          <Alert className="rounded-2xl border-emerald-200 bg-emerald-50/80 text-emerald-950 py-3 shadow-sm">
-            <CheckCircle2 className="size-4 text-emerald-600" />
-            <AlertTitle className="text-xs font-bold">Payout Initiated</AlertTitle>
-            <AlertDescription className="text-xs">{successMsg}</AlertDescription>
-          </Alert>
+          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg border border-emerald-200 bg-emerald-50 text-xs text-emerald-700">
+            <CheckCircle2 className="size-3.5 mt-0.5 shrink-0" />
+            <span>{successMsg}</span>
+          </div>
         )}
 
-        {/* ── 2. FINANCIAL OVERVIEW CARDS (PIPELINE STYLE) ── */}
-        <div>
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">
-            Overview
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* CARD 1: WALLET BALANCE (ORANGE THEME) */}
-            <div className="rounded-2xl border border-orange-200/70 bg-orange-50/50 p-3.5 sm:p-4 transition-all hover:shadow-xs flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-orange-800">Available Balance</span>
-                  <Wallet className="size-4 text-orange-600" />
-                </div>
-                <div className="mt-2 text-lg sm:text-xl lg:text-2xl font-black text-orange-950 tabular-nums">
-                  {formatUSD(balance)}
-                </div>
-                <p className="text-[11px] text-orange-700/80 mt-0.5 truncate">
-                  Ready to withdraw
-                </p>
-              </div>
-
-              <div className="mt-2.5 pt-2 border-t border-orange-200/60 flex items-center justify-between text-[11px] text-orange-900/80">
-                <span className="font-medium truncate">
-                  Available: <strong className="font-bold text-orange-950">{formatUSD(maxWithdrawable)}</strong>
-                </span>
-                {maxWithdrawable > 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => setIsTransferOpen(true)}
-                    className="font-bold text-orange-600 hover:text-orange-700 hover:underline cursor-pointer shrink-0 ml-1"
-                  >
-                    Withdraw →
-                  </button>
-                ) : (
-                  <span className="text-orange-600/70 text-[10px] font-semibold shrink-0">Reserve only</span>
-                )}
-              </div>
+        {/* Metric cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { label: "Balance", value: fmt(balance) },
+            { label: "Reserve", value: fmt(reserveAmount) },
+            { label: "Total payouts", value: fmt(totalWithdrawn) },
+            { label: "Net earnings", value: fmt(totalEarned) },
+          ].map((card) => (
+            <div
+              key={card.label}
+              className="bg-white border border-slate-200 rounded-lg px-4 py-3.5"
+            >
+              <p className="text-xs text-slate-500 font-medium">{card.label}</p>
+              <p className="text-xl font-semibold text-slate-900 mt-1 tabular-nums">
+                {card.value}
+              </p>
             </div>
-
-            {/* CARD 2: SAFETY RESERVE (AMBER THEME) */}
-            <div className="rounded-2xl border border-amber-200/70 bg-amber-50/50 p-3.5 sm:p-4 transition-all hover:shadow-xs flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-800">Reserve</span>
-                  <ShieldCheck className="size-4 text-amber-600" />
-                </div>
-                <div className="mt-2 text-lg sm:text-xl lg:text-2xl font-black text-amber-950 tabular-nums">
-                  {formatUSD(reserveAmount)}
-                </div>
-                <p className="text-[11px] text-amber-700/80 mt-0.5 truncate">
-                  Held for refunds & disputes
-                </p>
-              </div>
-
-              <div className="mt-2.5 pt-2 border-t border-amber-200/60 flex items-center justify-between text-[11px] text-amber-900/80">
-                <span className="font-medium">Safety Buffer</span>
-                <span className="font-semibold text-amber-950">10% ($10 min)</span>
-              </div>
-            </div>
-
-            {/* CARD 3: TOTAL WITHDRAWN (VIOLET THEME) */}
-            <div className="rounded-2xl border border-violet-200/70 bg-violet-50/50 p-3.5 sm:p-4 transition-all hover:shadow-xs flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-violet-800">Total Payouts</span>
-                  <ArrowUpRight className="size-4 text-violet-600" />
-                </div>
-                <div className="mt-2 text-lg sm:text-xl lg:text-2xl font-black text-violet-950 tabular-nums">
-                  {formatUSD(totalWithdrawn)}
-                </div>
-                <p className="text-[11px] text-violet-700/80 mt-0.5 truncate">
-                  Sent to your bank account
-                </p>
-              </div>
-
-              <div className="mt-2.5 pt-2 border-t border-violet-200/60 flex items-center justify-between text-[11px] text-violet-900/80">
-                <span className="font-medium">Completed Payouts</span>
-                <span className="font-semibold text-violet-950">
-                  {transactions.filter((t) => t.type === "DEBIT").length} transfers
-                </span>
-              </div>
-            </div>
-
-            {/* CARD 4: NET ORDER EARNINGS (EMERALD THEME) */}
-            <div className="rounded-2xl border border-emerald-200/70 bg-emerald-50/50 p-3.5 sm:p-4 transition-all hover:shadow-xs flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-800">Net Earnings</span>
-                  <CheckCircle2 className="size-4 text-emerald-600" />
-                </div>
-                <div className="mt-2 text-lg sm:text-xl lg:text-2xl font-black text-emerald-950 tabular-nums">
-                  {formatUSD(totalEarned)}
-                </div>
-                <p className="text-[11px] text-emerald-700/80 mt-0.5 truncate">
-                  Earnings after platform fees
-                </p>
-              </div>
-
-              <div className="mt-2.5 pt-2 border-t border-emerald-200/60 flex items-center justify-between text-[11px] text-emerald-900/80">
-                <span className="font-medium">Total Sales</span>
-                <span className="font-semibold text-emerald-950">{formatUSD(totalVolume)}</span>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
 
-        {/* ── 3. CONNECTED BANK BANNER ── */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="size-10 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center font-bold text-slate-700 shrink-0">
-              <Landmark size={18} className="text-slate-600" />
-            </div>
-            <div>
+        {/* Bank account */}
+        <div className="flex items-center justify-between gap-3 px-4 py-3 bg-white border border-slate-200 rounded-lg">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Landmark size={16} className="text-slate-400 shrink-0" />
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <p className="font-semibold text-slate-900 text-sm">
-                  Bank Account
-                </p>
+                <span className="text-sm font-medium text-slate-800">Bank account</span>
                 {status.payoutsEnabled ? (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border bg-emerald-50 text-emerald-700 border-emerald-200">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700">
                     <span className="size-1.5 rounded-full bg-emerald-500" />
                     Connected
                   </span>
                 ) : status.stripeAccountId ? (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border bg-amber-50 text-amber-700 border-amber-200">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600">
                     <span className="size-1.5 rounded-full bg-amber-500" />
-                    In Review
+                    In review
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border bg-slate-100 text-slate-600 border-slate-200">
-                    <span className="size-1.5 rounded-full bg-slate-400" />
-                    Not Connected
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400">
+                    <span className="size-1.5 rounded-full bg-slate-300" />
+                    Not connected
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {status.stripeAccountId ? (
-                  <span>
-                    Account:{" "}
-                    <strong className="font-mono text-slate-700">
-                      {status.stripeAccountId}
-                    </strong>{" "}
-                    • Direct deposits enabled
-                  </span>
-                ) : (
-                  "Connect your bank account to receive automatic or instant payouts."
-                )}
-              </p>
+              {status.stripeAccountId && (
+                <p className="text-xs text-slate-400 font-mono truncate mt-0.5">
+                  {status.stripeAccountId}
+                </p>
+              )}
             </div>
           </div>
 
-          <div className="shrink-0 self-end sm:self-auto">
+          <div className="shrink-0">
             {status.payoutsEnabled ? (
-              <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl inline-flex items-center gap-1.5">
-                <Check size={13} className="text-emerald-600" />
-                Ready for Payouts
+              <span className="text-xs font-medium text-emerald-600 flex items-center gap-1">
+                <Check size={12} />
+                Ready
               </span>
             ) : (
               <button
                 onClick={handleConnectBank}
                 disabled={onboardingMutation.isPending}
-                className="px-4 py-2 text-xs font-bold bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-sm shadow-orange-100 transition-all cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
               >
                 {onboardingMutation.isPending ? (
-                  <>
-                    <Loader2 size={13} className="animate-spin" />
-                    Connecting...
-                  </>
+                  <Loader2 size={12} className="animate-spin" />
                 ) : (
-                  <>
-                    <ExternalLink size={13} />
-                    {status.stripeAccountId ? "Complete Setup" : "Connect Bank"}
-                  </>
+                  <ExternalLink size={12} />
                 )}
+                {status.stripeAccountId ? "Complete setup" : "Connect"}
               </button>
             )}
           </div>
         </div>
 
-        {/* ── 4. ANALYTICS & CHARTS (SIDE BY SIDE) ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* CHART 1: BALANCE HISTORY */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
-              <div>
-                <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Activity size={15} className="text-orange-500" />
-                  Balance History
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Track how your balance changes over time
-                </p>
-              </div>
-
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-orange-50 text-orange-700 border-orange-200 shrink-0">
-                Current: {formatUSD(balance)}
-              </span>
-            </div>
-
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div className="bg-white border border-slate-200 rounded-lg p-4">
+            <h2 className="text-sm font-medium text-slate-800 mb-3">Balance</h2>
             {chartData.length === 0 ? (
-              <div className="h-60 w-full flex flex-col items-center justify-center text-center p-6 text-slate-400 space-y-1">
-                <Activity className="size-8 opacity-30 mb-2" />
-                <p className="font-semibold text-slate-700 text-sm">No balance history yet</p>
-                <p className="text-xs text-slate-400 max-w-xs">
-                  As you make sales and withdrawals, your balance trend will show here.
-                </p>
+              <div className="h-52 flex items-center justify-center text-xs text-slate-400">
+                No data yet
               </div>
             ) : (
-              <div className="h-60 w-full pt-1">
+              <div className="h-52">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={chartData}
-                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                  >
+                  <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
                     <defs>
-                      <linearGradient id="chartBalanceGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.18} />
-                        <stop offset="95%" stopColor="#f97316" stopOpacity={0.0} />
+                      <linearGradient id="balGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.12} />
+                        <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -700,93 +505,46 @@ export function PayoutDashboard() {
                       axisLine={false}
                     />
                     <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#ffffff",
-                        borderColor: "#e2e8f0",
-                        borderRadius: "12px",
-                        boxShadow: "0 10px 25px -5px rgba(15, 23, 42, 0.08)",
-                        fontSize: "12px",
-                        color: "#0f172a",
-                        padding: "8px 12px",
-                        fontWeight: 600,
-                      }}
-                      itemStyle={{
-                        color: "#0f172a",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                      }}
-                      labelStyle={{
-                        color: "#64748b",
-                        fontSize: "11px",
-                        fontWeight: 500,
-                        marginBottom: "4px",
-                      }}
-                      formatter={(val: any) => [`${formatUSD(Number(val))}`, "Balance"]}
-                      labelFormatter={(label) => `Date: ${label}`}
-                      cursor={{ stroke: "#ea580c", strokeWidth: 1.5, strokeDasharray: "4 4" }}
+                      contentStyle={tooltipStyle}
+                      formatter={(val: any) => [fmt(Number(val)), "Balance"]}
+                      labelFormatter={(l) => l}
+                      cursor={{ stroke: "#cbd5e1", strokeWidth: 1, strokeDasharray: "4 4" }}
                     />
                     <Area
                       type="monotone"
                       dataKey="balance"
-                      stroke="#ea580c"
-                      strokeWidth={2}
-                      fill="url(#chartBalanceGrad)"
-                      name="Balance"
+                      stroke="#f97316"
+                      strokeWidth={1.5}
+                      fill="url(#balGrad)"
                     />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
             )}
-
-            <div className="flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-slate-100">
-              <span className="flex items-center gap-1.5 font-medium">
-                <span className="size-2 rounded-full bg-orange-500" />
-                Current Balance
-              </span>
-              <span className="font-mono font-bold text-slate-900">{formatUSD(balance)}</span>
-            </div>
           </div>
 
-          {/* CHART 2: EARNINGS & PAYOUTS */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
-              <div>
-                <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <BarChart3 size={15} className="text-emerald-600" />
-                  Earnings & Payouts
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Order earnings vs bank withdrawals
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-emerald-50 text-emerald-700 border-emerald-200">
-                  <span className="size-1.5 rounded-full bg-emerald-500" />
-                  Earnings
+          <div className="bg-white border border-slate-200 rounded-lg p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <h2 className="text-sm font-medium text-slate-800">Earnings & Payouts</h2>
+              <div className="flex items-center gap-2 ml-auto text-[11px] text-slate-400">
+                <span className="flex items-center gap-1">
+                  <span className="size-2 rounded-sm bg-emerald-500" />
+                  In
                 </span>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-rose-50 text-rose-700 border-rose-200">
-                  <span className="size-1.5 rounded-full bg-rose-500" />
-                  Payouts
+                <span className="flex items-center gap-1">
+                  <span className="size-2 rounded-sm bg-rose-400" />
+                  Out
                 </span>
               </div>
             </div>
-
             {chartData.length === 0 ? (
-              <div className="h-60 w-full flex flex-col items-center justify-center text-center p-6 text-slate-400 space-y-1">
-                <BarChart3 className="size-8 opacity-30 mb-2" />
-                <p className="font-semibold text-slate-700 text-sm">No activity recorded yet</p>
-                <p className="text-xs text-slate-400 max-w-xs">
-                  Sales earnings and bank withdrawals will appear here.
-                </p>
+              <div className="h-52 flex items-center justify-center text-xs text-slate-400">
+                No data yet
               </div>
             ) : (
-              <div className="h-60 w-full pt-1">
+              <div className="h-52">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={chartData}
-                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                  >
+                  <BarChart data={chartData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                     <XAxis
                       dataKey="date"
@@ -801,108 +559,80 @@ export function PayoutDashboard() {
                       axisLine={false}
                     />
                     <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#ffffff",
-                        borderColor: "#e2e8f0",
-                        borderRadius: "12px",
-                        boxShadow: "0 10px 25px -5px rgba(15, 23, 42, 0.08)",
-                        fontSize: "12px",
-                        color: "#0f172a",
-                        padding: "8px 12px",
-                        fontWeight: 600,
-                      }}
-                      itemStyle={{
-                        fontSize: "12px",
-                        fontWeight: 600,
-                      }}
-                      labelStyle={{
-                        color: "#64748b",
-                        fontSize: "11px",
-                        fontWeight: 500,
-                        marginBottom: "4px",
-                      }}
+                      contentStyle={tooltipStyle}
                       formatter={(val: any, name: any) => [
-                        `${formatUSD(Number(val))}`,
-                        name === "credit" ? "Order Earnings" : "Bank Payout",
+                        fmt(Number(val)),
+                        name === "credit" ? "Earning" : "Payout",
                       ]}
-                      cursor={{ fill: "rgba(241, 245, 249, 0.5)", radius: 6 }}
+                      cursor={{ fill: "rgba(241, 245, 249, 0.4)" }}
                     />
-                    <Bar dataKey="credit" fill="#10b981" radius={[4, 4, 0, 0]} name="credit" />
-                    <Bar dataKey="withdrawal" fill="#f43f5e" radius={[4, 4, 0, 0]} name="withdrawal" />
+                    <Bar dataKey="credit" fill="#10b981" radius={[3, 3, 0, 0]} name="credit" />
+                    <Bar dataKey="withdrawal" fill="#f43f5e" radius={[3, 3, 0, 0]} name="withdrawal" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             )}
-
-            <div className="flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-slate-100">
-              <span className="font-medium text-emerald-700">Earnings: +{formatUSD(totalEarned)}</span>
-              <span className="font-medium text-rose-600">Payouts: -{formatUSD(totalWithdrawn)}</span>
-            </div>
           </div>
         </div>
 
-        {/* ── 5. TOP SEARCH & FILTERS ── */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 flex flex-col md:flex-row gap-3">
+        {/* Transactions header + filters */}
+        <div className="flex flex-col md:flex-row gap-2.5">
           <form onSubmit={handleSearchSubmit} className="flex gap-2 flex-1">
             <div className="relative flex-1">
-              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search by note, order #, or transaction ID..."
+                placeholder="Search transactions…"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-400 transition-all"
               />
             </div>
             <button
               type="submit"
-              className="px-5 py-2.5 text-sm font-bold bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-sm shadow-orange-100 transition-all shrink-0 cursor-pointer"
+              className="px-4 py-2 text-sm font-medium bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors cursor-pointer"
             >
               Search
             </button>
           </form>
 
-          {/* Filter Dropdown Buttons */}
-          <div className="flex flex-wrap items-center gap-2 relative">
-            {/* Type Filter Dropdown */}
+          <div className="flex items-center gap-2">
+            {/* Type filter */}
             <div className="relative">
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setOpenFilterDropdown(openFilterDropdown === "type" ? null : "type");
+                  setOpenDropdown(openDropdown === "type" ? null : "type");
                 }}
-                className={`inline-flex items-center gap-2 px-3.5 py-2.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border transition-colors cursor-pointer ${
                   filterType !== "ALL"
                     ? "bg-orange-50 text-orange-700 border-orange-200"
-                    : "bg-slate-50/50 hover:bg-white text-slate-700 border-slate-200"
+                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
                 }`}
               >
-                <Filter size={13} className={filterType !== "ALL" ? "text-orange-500" : "text-slate-400"} />
-                <span>{currentTypeLabel}</span>
-                <ChevronDown size={13} className="text-slate-400" />
+                {TYPE_OPTIONS.find((t) => t.value === filterType)?.label}
+                <ChevronDown size={12} className="text-slate-400" />
               </button>
 
-              {openFilterDropdown === "type" && (
+              {openDropdown === "type" && (
                 <>
-                  <div className="fixed inset-0 z-20" onClick={() => setOpenFilterDropdown(null)} />
-                  <div className="absolute right-0 top-full mt-1.5 z-30 w-44 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="fixed inset-0 z-20" onClick={() => setOpenDropdown(null)} />
+                  <div className="absolute right-0 top-full mt-1 z-30 w-36 bg-white rounded-lg shadow-lg border border-slate-200 py-1">
                     {TYPE_OPTIONS.map((t) => (
                       <button
                         key={t.value}
                         onClick={() => {
                           setFilterType(t.value as any);
-                          setCurrentPage(1);
-                          setOpenFilterDropdown(null);
+                          setOpenDropdown(null);
                         }}
-                        className={`w-full px-3.5 py-2 text-xs flex items-center justify-between font-medium transition-colors cursor-pointer ${
+                        className={`w-full px-3 py-1.5 text-xs text-left transition-colors cursor-pointer ${
                           filterType === t.value
-                            ? "bg-orange-50 text-orange-700 font-bold"
-                            : "text-slate-700 hover:bg-slate-50"
+                            ? "bg-orange-50 text-orange-700 font-medium"
+                            : "text-slate-600 hover:bg-slate-50"
                         }`}
                       >
-                        <span>{t.label}</span>
-                        {filterType === t.value && <Check size={13} className="text-orange-500" />}
+                        {t.label}
                       </button>
                     ))}
                   </div>
@@ -910,74 +640,38 @@ export function PayoutDashboard() {
               )}
             </div>
 
-            {/* Status Filter Dropdown */}
+            {/* Per page */}
             <div className="relative">
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setOpenFilterDropdown(openFilterDropdown === "status" ? null : "status");
+                  setOpenDropdown(openDropdown === "limit" ? null : "limit");
                 }}
-                className="inline-flex items-center gap-2 px-3.5 py-2.5 text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white text-slate-700 transition-all cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
               >
-                <span className="size-1.5 rounded-full bg-emerald-500" />
-                <span>All Statuses</span>
-                <ChevronDown size={13} className="text-slate-400" />
+                {pageSize} per page
+                <ChevronDown size={12} className="text-slate-400" />
               </button>
 
-              {openFilterDropdown === "status" && (
+              {openDropdown === "limit" && (
                 <>
-                  <div className="fixed inset-0 z-20" onClick={() => setOpenFilterDropdown(null)} />
-                  <div className="absolute right-0 top-full mt-1.5 z-30 w-40 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 animate-in fade-in zoom-in-95 duration-150">
-                    <button
-                      onClick={() => setOpenFilterDropdown(null)}
-                      className="w-full px-3.5 py-2 text-xs flex items-center justify-between font-medium text-orange-700 bg-orange-50 font-bold cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="size-1.5 rounded-full bg-emerald-500" />
-                        <span>All (Active)</span>
-                      </div>
-                      <Check size={13} className="text-orange-500" />
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Per Page Limit Dropdown */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setOpenFilterDropdown(openFilterDropdown === "limit" ? null : "limit");
-                }}
-                className="inline-flex items-center gap-2 px-3.5 py-2.5 text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white text-slate-700 transition-all cursor-pointer"
-              >
-                <span>{pageSize} per page</span>
-                <ChevronDown size={13} className="text-slate-400" />
-              </button>
-
-              {openFilterDropdown === "limit" && (
-                <>
-                  <div className="fixed inset-0 z-20" onClick={() => setOpenFilterDropdown(null)} />
-                  <div className="absolute right-0 top-full mt-1.5 z-30 w-36 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="fixed inset-0 z-20" onClick={() => setOpenDropdown(null)} />
+                  <div className="absolute right-0 top-full mt-1 z-30 w-28 bg-white rounded-lg shadow-lg border border-slate-200 py-1">
                     {LIMIT_OPTIONS.map((lim) => (
                       <button
                         key={lim}
                         onClick={() => {
                           setPageSize(lim);
-                          setCurrentPage(1);
-                          setOpenFilterDropdown(null);
+                          setOpenDropdown(null);
                         }}
-                        className={`w-full px-3.5 py-2 text-xs flex items-center justify-between font-medium transition-colors cursor-pointer ${
+                        className={`w-full px-3 py-1.5 text-xs text-left transition-colors cursor-pointer ${
                           pageSize === lim
-                            ? "bg-orange-50 text-orange-700 font-bold"
-                            : "text-slate-700 hover:bg-slate-50"
+                            ? "bg-orange-50 text-orange-700 font-medium"
+                            : "text-slate-600 hover:bg-slate-50"
                         }`}
                       >
-                        <span>{lim} per page</span>
-                        {pageSize === lim && <Check size={13} className="text-orange-500" />}
+                        {lim}
                       </button>
                     ))}
                   </div>
@@ -987,126 +681,98 @@ export function PayoutDashboard() {
           </div>
         </div>
 
-        {/* ── 6. TABLE CONTAINER (EXACT STYLE FROM IMAGE) ── */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        {/* Transaction table */}
+        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
           {filteredTransactions.length === 0 ? (
-            <div className="p-16 text-center text-slate-400 space-y-1">
-              <Wallet className="mx-auto size-12 opacity-30 mb-3" />
-              <p className="font-semibold text-slate-700 text-base">No transactions yet</p>
-              <p className="text-xs text-slate-400">
+            <div className="py-16 text-center">
+              <p className="text-sm text-slate-500">
                 {transactions.length === 0
-                  ? "When you receive customer orders or withdraw funds, they will appear here."
-                  : "Try clearing search filters or entering a different query."}
+                  ? "No transactions yet"
+                  : "No results for this search"}
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                {transactions.length === 0
+                  ? "Orders and withdrawals will show up here."
+                  : "Try a different query."}
               </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-slate-50/70 border-b border-slate-200/80 text-xs text-slate-500 uppercase tracking-wider font-semibold">
-                  <tr>
-                    <th className="px-5 py-3.5">Description</th>
-                    <th className="px-5 py-3.5">Type</th>
-                    <th className="px-5 py-3.5">Status</th>
-                    <th className="px-5 py-3.5">Order</th>
-                    <th className="px-5 py-3.5">Date</th>
-                    <th className="px-5 py-3.5 text-right">Amount</th>
-                    <th className="px-5 py-3.5 text-right">Balance</th>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 text-xs text-slate-500 font-medium">
+                    <th className="text-left px-4 py-3 font-medium">Description</th>
+                    <th className="text-left px-4 py-3 font-medium">Type</th>
+                    <th className="text-left px-4 py-3 font-medium">Date</th>
+                    <th className="text-right px-4 py-3 font-medium">Amount</th>
+                    <th className="text-right px-4 py-3 font-medium">Balance</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-50">
                   {paginatedTransactions.map((tx) => {
                     const isDebit = tx.type === "DEBIT";
-                    const dateObj = new Date(tx.createdAt);
-                    const formattedDate = dateObj.toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    });
-                    const formattedTime = dateObj.toLocaleTimeString("en-US", {
-                      hour: "numeric",
-                      minute: "2-digit",
-                    });
+                    const d = new Date(tx.createdAt);
 
                     return (
-                      <tr key={tx.id} className="hover:bg-slate-50/60 transition-colors">
-                        {/* Transaction Identity */}
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-3">
+                      <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2.5">
                             <div
-                              className={`size-10 rounded-full border flex items-center justify-center font-bold text-xs shrink-0 ${
+                              className={`size-7 rounded-full flex items-center justify-center shrink-0 ${
                                 isDebit
-                                  ? "bg-rose-50 text-rose-600 border-rose-200/70"
-                                  : "bg-emerald-50 text-emerald-700 border-emerald-200/70"
+                                  ? "bg-slate-100 text-slate-500"
+                                  : "bg-emerald-50 text-emerald-600"
                               }`}
                             >
-                              {isDebit ? <ArrowUpRight size={16} /> : <ArrowDownLeft size={16} />}
+                              {isDebit ? (
+                                <ArrowUpRight size={13} />
+                              ) : (
+                                <ArrowDownLeft size={13} />
+                              )}
                             </div>
-                            <div>
-                              <p className="font-semibold text-slate-900 leading-tight">
-                                {isDebit ? "Bank Payout" : "Order Payment"}
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-slate-800 truncate">
+                                {tx.note ||
+                                  (isDebit ? "Withdrawal" : "Order payment")}
                               </p>
-                              <p className="text-xs text-slate-400 font-mono mt-0.5">
-                                {tx.id}
-                              </p>
+                              {tx.orderId && (
+                                <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                                  {tx.orderId.slice(-8)}
+                                </p>
+                              )}
                             </div>
                           </div>
                         </td>
-
-                        {/* Type Badge (Exact RoleBadge style from image) */}
-                        <td className="px-5 py-4 whitespace-nowrap">
-                          {isDebit ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-orange-50 text-orange-700 border-orange-200">
-                              PAYOUT
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-emerald-50 text-emerald-800 border-emerald-200">
-                              EARNING
-                            </span>
-                          )}
-                        </td>
-
-                        {/* Status (Exact StatusBadge style from image) */}
-                        <td className="px-5 py-4 whitespace-nowrap">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border bg-emerald-50 text-emerald-700 border-emerald-200">
-                            <span className="size-1.5 rounded-full bg-emerald-500" />
-                            Active
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span
+                            className={`text-xs font-medium ${
+                              isDebit ? "text-slate-500" : "text-emerald-600"
+                            }`}
+                          >
+                            {isDebit ? "Payout" : "Earning"}
                           </span>
                         </td>
-
-                        {/* Order / Source Pill (Exact store pill style from image) */}
-                        <td className="px-5 py-4 whitespace-nowrap text-xs text-slate-600 font-medium">
-                          {tx.orderId ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 text-slate-700 border border-slate-200/60 font-mono">
-                              <Package size={12} className="text-slate-400" />
-                              Order #{tx.orderId.slice(-8)}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 text-slate-500 border border-slate-200/60">
-                              <Landmark size={12} className="text-slate-400" />
-                              Bank Transfer
-                            </span>
-                          )}
-                        </td>
-
-                        {/* Date (Exact Joined column style from image) */}
-                        <td className="px-5 py-4 whitespace-nowrap text-xs text-slate-500">
-                          <div>
-                            <p className="font-medium text-slate-700">{formattedDate}</p>
-                            <p className="text-[11px] text-slate-400">{formattedTime}</p>
-                          </div>
-                        </td>
-
-                        {/* Amount */}
-                        <td className="px-5 py-4 whitespace-nowrap text-right font-bold text-sm tabular-nums">
-                          <span className={isDebit ? "text-slate-900" : "text-emerald-700"}>
-                            {isDebit ? "-" : "+"}
-                            {formatUSD(Number(tx.amount))}
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="text-xs text-slate-500">
+                            {d.toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
                           </span>
                         </td>
-
-                        {/* Balance After */}
-                        <td className="px-5 py-4 whitespace-nowrap text-right font-mono font-medium text-slate-600 tabular-nums">
-                          {formatUSD(Number(tx.balanceAfter))}
+                        <td className="px-4 py-3 whitespace-nowrap text-right tabular-nums">
+                          <span
+                            className={`text-sm font-medium ${
+                              isDebit ? "text-slate-800" : "text-emerald-600"
+                            }`}
+                          >
+                            {isDebit ? "−" : "+"}
+                            {fmt(Number(tx.amount))}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-right tabular-nums text-sm text-slate-500">
+                          {fmt(Number(tx.balanceAfter))}
                         </td>
                       </tr>
                     );
@@ -1117,117 +783,90 @@ export function PayoutDashboard() {
           )}
         </div>
 
-        {/* ── 7. PAGINATION CONTROLS (EXACT STYLE FROM IMAGE) ── */}
+        {/* Pagination */}
         {totalItems > 0 && (
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-            <div>
-              Showing <span className="font-bold text-slate-800">{startIndex + 1}</span> to{" "}
-              <span className="font-bold text-slate-800">{endIndex}</span> of{" "}
-              <span className="font-bold text-slate-800">{totalItems.toLocaleString()}</span> transactions
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              {/* First Button */}
+          <div className="flex items-center justify-between text-xs text-slate-500 py-1">
+            <span>
+              {startIndex + 1}–{endIndex} of {totalItems}
+            </span>
+            <div className="flex items-center gap-1">
               <button
                 onClick={() => setCurrentPage(1)}
                 disabled={safePage === 1}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 text-slate-700 transition-all font-semibold cursor-pointer"
-                title="Go to first page"
+                className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 cursor-pointer transition-colors"
               >
                 <ChevronsLeft size={14} />
-                First
               </button>
-
-              {/* Prev Button */}
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={safePage === 1}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 text-slate-700 transition-all font-semibold cursor-pointer"
+                className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 cursor-pointer transition-colors"
               >
                 <ChevronLeft size={14} />
-                Prev
               </button>
-
-              {/* Page Numbers */}
-              <div className="flex items-center gap-1 mx-1">
-                {renderPaginationNumbers()}
-              </div>
-
-              {/* Next Button */}
+              {renderPageNumbers()}
               <button
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={safePage >= totalPages}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 text-slate-700 transition-all font-semibold cursor-pointer"
+                className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 cursor-pointer transition-colors"
               >
-                Next
                 <ChevronRight size={14} />
               </button>
-
-              {/* Last Button */}
               <button
                 onClick={() => setCurrentPage(totalPages)}
                 disabled={safePage >= totalPages}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 text-slate-700 transition-all font-semibold cursor-pointer"
-                title="Go to last page"
+                className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 cursor-pointer transition-colors"
               >
-                Last
                 <ChevronsRight size={14} />
               </button>
             </div>
           </div>
         )}
 
-        {/* ── 8. DIRECT WITHDRAWAL MODAL DIALOG ── */}
+        {/* Withdraw modal */}
         <Dialog open={isTransferOpen} onOpenChange={setIsTransferOpen}>
-          <DialogContent className="sm:max-w-md rounded-2xl bg-white p-6 shadow-xl border border-slate-200">
-            <DialogHeader className="space-y-1">
-              <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Landmark className="size-5 text-orange-500" />
-                Withdraw to Bank
+          <DialogContent className="sm:max-w-md rounded-lg bg-white p-5 shadow-xl border border-slate-200">
+            <DialogHeader className="space-y-0.5">
+              <DialogTitle className="text-base font-semibold text-slate-900">
+                Withdraw funds
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-500">
-                Transfer your available balance directly to your bank account.
+                Transfer to your connected bank account.
               </DialogDescription>
             </DialogHeader>
 
-            <form onSubmit={handleWithdraw} className="space-y-4 pt-2">
-              {/* BALANCE SUMMARY BOX */}
-              <div className="rounded-xl bg-slate-50 border border-slate-200/80 p-3.5 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Total Balance</span>
-                  <span className="font-bold text-slate-900 tabular-nums">
-                    {formatUSD(balance)}
-                  </span>
+            <form onSubmit={handleWithdraw} className="space-y-4 pt-3">
+              <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Balance</span>
+                  <span className="font-medium text-slate-800 tabular-nums">{fmt(balance)}</span>
                 </div>
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex justify-between">
                   <span className="text-slate-500 flex items-center gap-1">
-                    Safety reserve (10%)
+                    Reserve (10%)
                     <UiTooltip>
                       <TooltipTrigger asChild>
                         <HelpCircle className="size-3 text-slate-400 cursor-help" />
                       </TooltipTrigger>
-                      <TooltipContent className="text-xs bg-slate-900 text-slate-100 p-2 rounded-lg">
-                        A 10% buffer is kept in your wallet for returns and dispute protection
+                      <TooltipContent className="text-xs bg-slate-800 text-slate-100 p-2 rounded-md max-w-[200px]">
+                        10% is held for refunds and disputes ($10 minimum)
                       </TooltipContent>
                     </UiTooltip>
                   </span>
-                  <span className="font-semibold text-amber-700 tabular-nums">
-                    -{formatUSD(reserveAmount)}
+                  <span className="font-medium text-amber-600 tabular-nums">
+                    −{fmt(reserveAmount)}
                   </span>
                 </div>
-                <div className="pt-2 border-t border-slate-200/70 flex items-center justify-between text-xs">
-                  <span className="font-bold text-slate-800">Available to withdraw</span>
-                  <span className="font-bold text-emerald-700 text-sm tabular-nums">
-                    {formatUSD(maxWithdrawable)}
+                <div className="pt-2 border-t border-slate-200 flex justify-between">
+                  <span className="font-medium text-slate-700">Available</span>
+                  <span className="font-semibold text-slate-900 tabular-nums">
+                    {fmt(maxWithdrawable)}
                   </span>
                 </div>
               </div>
 
-              {/* QUICK AMOUNT CHIPS */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-600">
-                  Quick select
-                </label>
+                <label className="text-xs font-medium text-slate-600">Quick select</label>
                 <div className="grid grid-cols-4 gap-1.5">
                   {[50, 100, 500].map((amt) => (
                     <button
@@ -1235,7 +874,7 @@ export function PayoutDashboard() {
                       type="button"
                       onClick={() => handleQuickAmount(amt)}
                       disabled={maxWithdrawable < amt}
-                      className="py-2 text-xs font-semibold rounded-xl border border-slate-200 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 text-slate-700 transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                      className="py-1.5 text-xs font-medium rounded-md border border-slate-200 hover:border-orange-300 hover:text-orange-600 text-slate-600 transition-colors cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
                     >
                       ${amt}
                     </button>
@@ -1244,20 +883,17 @@ export function PayoutDashboard() {
                     type="button"
                     onClick={() => handleQuickAmount(maxWithdrawable)}
                     disabled={maxWithdrawable <= 0}
-                    className="py-2 text-xs font-bold rounded-xl border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100/80 transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                    className="py-1.5 text-xs font-semibold rounded-md border border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
                   >
                     Max
                   </button>
                 </div>
               </div>
 
-              {/* AMOUNT INPUT */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">
-                  Amount
-                </label>
+                <label className="text-xs font-medium text-slate-600">Amount</label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">
                     $
                   </span>
                   <input
@@ -1269,47 +905,46 @@ export function PayoutDashboard() {
                     onChange={(e) => setWithdrawAmount(e.target.value)}
                     placeholder="0.00"
                     disabled={withdrawMutation.isPending || maxWithdrawable <= 0}
-                    className="w-full pl-8 pr-14 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 font-bold text-slate-900 transition-all tabular-nums"
+                    className="w-full pl-7 pr-12 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-400 font-medium text-slate-900 tabular-nums transition-all"
                   />
-                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-medium text-slate-400">
                     USD
                   </span>
                 </div>
               </div>
 
-              {/* SETTLEMENT DETAILS */}
-              <div className="rounded-xl bg-slate-50/70 p-3 text-xs space-y-1.5 text-slate-500 border border-slate-200/50">
+              <div className="rounded-lg bg-slate-50 p-2.5 text-xs space-y-1 text-slate-500 border border-slate-100">
                 <div className="flex justify-between">
-                  <span>Transfer fee</span>
-                  <span className="font-semibold text-emerald-700">Free ($0.00)</span>
+                  <span>Fee</span>
+                  <span className="text-emerald-600 font-medium">Free</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Estimated arrival</span>
-                  <span className="font-medium text-slate-700">1-2 business days (or instant)</span>
+                  <span>Arrival</span>
+                  <span className="text-slate-600">1–2 business days</span>
                 </div>
-                {parsedWithdrawInput > 0 && (
-                  <div className="flex justify-between pt-1 border-t border-slate-200/60 font-medium">
-                    <span>Balance after payout</span>
-                    <span className="font-mono text-slate-800 font-semibold">
-                      {formatUSD(projectedRemaining)}
+                {parsedInput > 0 && (
+                  <div className="flex justify-between pt-1 border-t border-slate-200">
+                    <span>Remaining balance</span>
+                    <span className="font-medium text-slate-700 tabular-nums">
+                      {fmt(projectedRemaining)}
                     </span>
                   </div>
                 )}
               </div>
 
               {localError && (
-                <div className="rounded-xl bg-rose-50 border border-rose-200 p-2.5 text-xs text-rose-700 flex items-start gap-2">
-                  <AlertCircle className="size-4 text-rose-600 shrink-0 mt-0.5" />
+                <div className="flex items-start gap-2 p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700">
+                  <AlertCircle className="size-3.5 shrink-0 mt-0.5" />
                   <span>{localError}</span>
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-2.5 pt-2">
+              <div className="flex justify-end gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => setIsTransferOpen(false)}
                   disabled={withdrawMutation.isPending}
-                  className="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl shadow-sm transition-all cursor-pointer"
+                  className="px-3.5 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1319,22 +954,19 @@ export function PayoutDashboard() {
                     withdrawMutation.isPending ||
                     maxWithdrawable <= 0 ||
                     !withdrawAmount ||
-                    parsedWithdrawInput <= 0 ||
-                    parsedWithdrawInput > maxWithdrawable ||
-                    parsedWithdrawInput >= balance
+                    parsedInput <= 0 ||
+                    parsedInput > maxWithdrawable ||
+                    parsedInput >= balance
                   }
-                  className="px-5 py-2 text-xs font-bold bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-sm shadow-orange-100 transition-all cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
+                  className="px-4 py-1.5 text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-40 inline-flex items-center gap-1.5"
                 >
                   {withdrawMutation.isPending ? (
                     <>
-                      <Loader2 size={13} className="animate-spin" />
-                      <span>Transferring...</span>
+                      <Loader2 size={12} className="animate-spin" />
+                      Sending…
                     </>
                   ) : (
-                    <>
-                      <ArrowUpRight size={13} />
-                      <span>Withdraw Funds</span>
-                    </>
+                    "Withdraw"
                   )}
                 </button>
               </div>
