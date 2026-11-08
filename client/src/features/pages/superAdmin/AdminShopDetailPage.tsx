@@ -4,35 +4,21 @@ import {
     ArrowLeft,
     Loader2,
     Store,
-    User,
-    Building2,
     AlertTriangle,
     CheckCircle2,
     XCircle,
-    Clock,
     FileText,
     ExternalLink,
     Plus,
     Trash2,
     RotateCcw,
     Lock,
-    Check,
     X,
-    MessageSquare,
-    ShieldAlert,
-    MapPin,
-    Hash,
     Star,
     Search,
-    ChevronDown,
-    ListChecks,
-    Phone,
-    DollarSign,
-    Package,
-    ShoppingBag,
-    Users,
     ZoomIn,
     Ban,
+    ShieldAlert,
 } from "lucide-react";
 import {
     useAdminShop,
@@ -81,8 +67,10 @@ export const AdminShopDetailPage = () => {
             : "overview"
     );
 
-    // Mobile Section Selector Dropdown
-    const [openMobileNav, setOpenMobileNav] = useState(false);
+    const handleTabChange = (tab: "overview" | "verification" | "kyc" | "documents" | "risk" | "notes" | "reviews") => {
+        setActiveTab(tab);
+        navigate(`?tab=${tab}`, { replace: true });
+    };
 
     // Dialog state
     const [showApproveModal, setShowApproveModal] = useState(false);
@@ -425,17 +413,20 @@ export const AdminShopDetailPage = () => {
         }
     };
 
-    const NAV_SECTIONS = [
-        { id: "overview", label: "Overview & Checklist", icon: ListChecks, badge: `${checklist.filter((i: any) => i.status === "COMPLETED").length}/8 Ready`, badgeColor: "bg-emerald-50 text-emerald-800 border-emerald-200" },
-        { id: "verification", label: "Business & Tax ID", icon: Building2, badge: legal?.businessVerificationStatus || "UNVERIFIED", badgeColor: legal?.businessVerificationStatus === "VERIFIED" ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200" },
-        { id: "kyc", label: "Owner Identity (KYC)", icon: User, badge: legal?.ownerKycStatus || "UNVERIFIED", badgeColor: legal?.ownerKycStatus === "VERIFIED" ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200" },
-        { id: "documents", label: "Legal Documents Vault", icon: FileText, badge: `${legal?.documents?.length ?? 0} Docs`, badgeColor: "bg-slate-50 text-slate-700 border-slate-200" },
-        { id: "risk", label: "Risk Flags & Holds", icon: ShieldAlert, badge: openFlags.length > 0 ? `${openFlags.length} Flags` : "Clean", badgeColor: openFlags.length > 0 ? "bg-rose-50 text-rose-800 border-rose-200 font-semibold" : "bg-emerald-50 text-emerald-800 border-emerald-200" },
-        { id: "notes", label: "Audit Notes & Log", icon: MessageSquare, badge: `${shop.adminNotesList?.length ?? 0} Notes`, badgeColor: "bg-slate-50 text-slate-700 border-slate-200" },
-        { id: "reviews", label: "Customer Reviews", icon: Star, badge: reviewsData ? `${reviewsData.total} Reviews` : "Reviews", badgeColor: "bg-amber-50 text-amber-800 border-amber-200" },
+    const NAV_SECTIONS: {
+        id: "overview" | "verification" | "kyc" | "documents" | "risk" | "notes" | "reviews";
+        label: string;
+        badge: string;
+        badgeColor: string;
+    }[] = [
+        { id: "overview", label: "Overview & Checklist", badge: `${checklist.filter((i: any) => i.status === "COMPLETED").length}/8 Ready`, badgeColor: "bg-emerald-50 text-emerald-800 border-emerald-200" },
+        { id: "verification", label: "Business & Tax ID", badge: legal?.businessVerificationStatus || "UNVERIFIED", badgeColor: legal?.businessVerificationStatus === "VERIFIED" ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200" },
+        { id: "kyc", label: "Owner Identity (KYC)", badge: legal?.ownerKycStatus || "UNVERIFIED", badgeColor: legal?.ownerKycStatus === "VERIFIED" ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200" },
+        { id: "documents", label: "Legal Documents Vault", badge: `${legal?.documents?.length ?? 0} Docs`, badgeColor: "bg-slate-50 text-slate-700 border-slate-200" },
+        { id: "risk", label: "Risk Flags & Holds", badge: openFlags.length > 0 ? `${openFlags.length} Flags` : "Clean", badgeColor: openFlags.length > 0 ? "bg-rose-50 text-rose-800 border-rose-200 font-semibold" : "bg-emerald-50 text-emerald-800 border-emerald-200" },
+        { id: "notes", label: "Audit Notes & Log", badge: `${shop.adminNotesList?.length ?? 0} Notes`, badgeColor: "bg-slate-50 text-slate-700 border-slate-200" },
+        { id: "reviews", label: "Customer Reviews", badge: reviewsData ? `${reviewsData.total} Reviews` : "Reviews", badgeColor: "bg-slate-50 text-slate-700 border-slate-200" },
     ];
-
-    const currentSection = NAV_SECTIONS.find((s) => s.id === activeTab) || NAV_SECTIONS[0];
 
     return (
         <div className="space-y-5 pb-16">
@@ -618,290 +609,217 @@ export const AdminShopDetailPage = () => {
                 </div>
             </div>
 
-            {/* TWO-COLUMN COMMAND CENTER LAYOUT */}
-            <div className="flex flex-col lg:flex-row gap-5 items-start">
-                {/* ─────────────────────────────────────────────────────────────
-                    LEFT SIDEBAR: Store Summary & Vertical Navigation Rail
-                ───────────────────────────────────────────────────────────── */}
-                <div className="w-full lg:w-72 shrink-0 space-y-4">
-                    {/* Mobile Section Dropdown */}
-                    <div className="lg:hidden bg-white rounded-lg border border-slate-200 p-2.5 relative">
-                        <button
-                            type="button"
-                            onClick={() => setOpenMobileNav(!openMobileNav)}
-                            className="w-full flex items-center justify-between p-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-medium text-slate-800"
-                        >
-                            <div className="flex items-center gap-2">
-                                <currentSection.icon size={14} className="text-orange-500" />
-                                <span>{currentSection.label}</span>
-                            </div>
-                            <ChevronDown size={13} className="text-slate-400" />
-                        </button>
-
-                        {openMobileNav && (
-                            <div className="mt-1.5 space-y-0.5">
-                                {NAV_SECTIONS.map((sec) => (
-                                    <button
-                                        key={sec.id}
-                                        onClick={() => {
-                                            setActiveTab(sec.id as any);
-                                            setOpenMobileNav(false);
-                                        }}
-                                        className={`w-full flex items-center justify-between px-2.5 py-2 rounded-md text-xs font-medium transition-colors ${
-                                            activeTab === sec.id
-                                                ? "bg-slate-100 text-slate-900 font-semibold"
-                                                : "text-slate-700 hover:bg-slate-50"
-                                        }`}
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <sec.icon size={13} />
-                                            <span>{sec.label}</span>
-                                        </div>
-                                        <span className={`text-[10px] px-1.5 py-0.5 rounded border ${sec.badgeColor}`}>
-                                            {sec.badge}
-                                        </span>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Desktop Vertical Navigation Rail */}
-                    <div className="hidden lg:block bg-white rounded-lg border border-slate-200 shadow-xs p-1.5 space-y-0.5">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-2.5 py-1.5">
-                            Sections & Audits
-                        </p>
-                        {NAV_SECTIONS.map((sec) => {
-                            const isActive = activeTab === sec.id;
-                            const Icon = sec.icon;
-                            return (
-                                <button
-                                    key={sec.id}
-                                    onClick={() => setActiveTab(sec.id as any)}
-                                    className={`w-full flex items-center justify-between px-2.5 py-2 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-                                        isActive
-                                            ? "bg-slate-100 text-slate-900 font-semibold"
-                                            : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                                    }`}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <Icon size={14} className={isActive ? "text-orange-600" : "text-slate-400"} />
-                                        <span>{sec.label}</span>
-                                    </div>
-                                    <span className={`text-[10px] px-1.5 py-0.2 rounded border ${sec.badgeColor}`}>
+            {/* Horizontal Navigation Tabs: Sections & Audits */}
+            <div className="border-b border-slate-200 bg-white rounded-lg px-3 pt-1 shadow-2xs">
+                <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+                    {NAV_SECTIONS.map((sec) => {
+                        const isActive = activeTab === sec.id;
+                        return (
+                            <button
+                                key={sec.id}
+                                onClick={() => handleTabChange(sec.id)}
+                                className={`px-4 py-2.5 border-b-2 -mb-px text-xs whitespace-nowrap transition-colors cursor-pointer flex items-center gap-2 ${
+                                    isActive
+                                        ? "border-orange-500 text-slate-900 font-semibold"
+                                        : "border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300 font-medium"
+                                }`}
+                            >
+                                <span>{sec.label}</span>
+                                {sec.badge && (
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${sec.badgeColor}`}>
                                         {sec.badge}
                                     </span>
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    {/* Left Column: Health Score Card */}
-                    <div className="bg-white rounded-lg border border-slate-200 shadow-xs p-4 space-y-3">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-xs font-semibold text-slate-900">
-                                Health Score
-                            </h3>
-                            <HealthScorePill score={health?.score} />
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                            <div className="relative size-16 shrink-0 flex items-center justify-center">
-                                <svg className="size-full -rotate-90" viewBox="0 0 36 36">
-                                    <path
-                                        className="text-slate-100"
-                                        strokeWidth="3.5"
-                                        stroke="currentColor"
-                                        fill="none"
-                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                                    />
-                                    <path
-                                        className={
-                                            (health?.score ?? 70) >= 90
-                                                ? "text-emerald-500"
-                                                : (health?.score ?? 70) >= 75
-                                                ? "text-blue-500"
-                                                : (health?.score ?? 70) >= 50
-                                                ? "text-amber-500"
-                                                : "text-rose-500"
-                                        }
-                                        strokeDasharray={`${health?.score ?? 70}, 100`}
-                                        strokeWidth="3.5"
-                                        strokeLinecap="round"
-                                        stroke="currentColor"
-                                        fill="none"
-                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                                    />
-                                </svg>
-                                <div className="absolute flex flex-col items-center justify-center">
-                                    <span className="text-base font-bold text-slate-900 tabular-nums">{health?.score ?? 70}</span>
-                                    <span className="text-[8px] text-slate-400 font-semibold uppercase">/100</span>
-                                </div>
-                            </div>
-
-                            <div className="space-y-0.5">
-                                <p className="text-xs font-semibold text-slate-900">{health?.tierLabel}</p>
-                                <p className="text-[11px] text-slate-500 leading-normal">
-                                    Computed from tax validation, KYC audit, open risk flags, and legal documents.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
-                            <span className="text-slate-500 text-[11px]">Active Risk Flags:</span>
-                            <span className={`font-semibold text-xs tabular-nums ${openFlags.length > 0 ? "text-rose-600" : "text-emerald-700"}`}>
-                                {openFlags.length > 0 ? `${openFlags.length} active` : "0 (Clean)"}
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Left Column: Beneficial Owner Identity */}
-                    <div className="bg-white rounded-lg border border-slate-200 shadow-xs p-4 space-y-2.5 text-xs">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-xs font-semibold text-slate-900">
-                                Beneficial Owner
-                            </h3>
-                            <VerificationBadge status={legal?.ownerKycStatus} />
-                        </div>
-                        <div className="flex items-center gap-2.5 pt-0.5">
-                            <div className="size-8 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center font-semibold text-slate-700 text-xs shrink-0">
-                                {shop.owner.name.slice(0, 2).toUpperCase()}
-                            </div>
-                            <div className="min-w-0">
-                                <p className="font-semibold text-slate-900 text-xs truncate">{shop.owner.name}</p>
-                                <p className="text-slate-400 text-[11px] truncate">{shop.owner.email}</p>
-                            </div>
-                        </div>
-                        {shop.profile?.phone && (
-                            <div className="flex items-center gap-1.5 text-slate-500 text-[11px] pt-1 border-t border-slate-100">
-                                <Phone size={11} className="text-slate-400" />
-                                <span>{shop.profile.phone}</span>
-                            </div>
-                        )}
-                    </div>
+                                )}
+                            </button>
+                        );
+                    })}
                 </div>
+            </div>
 
-                {/* ─────────────────────────────────────────────────────────────
-                    RIGHT COLUMN: Dynamic Focused Content Canvas
-                ───────────────────────────────────────────────────────────── */}
-                <div className="flex-1 min-w-0 space-y-5 w-full">
-                    {/* SECTION 1: Overview & Onboarding Checklist */}
-                    {activeTab === "overview" && (
-                        <div className="space-y-5">
-                            {/* Checklist Card */}
-                            <div className="bg-white rounded-lg border border-slate-200 shadow-xs p-5 space-y-4">
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
-                                    <div>
-                                        <h2 className="text-xs font-semibold text-slate-900 flex items-center gap-1.5">
-                                            <ListChecks className="text-orange-500" size={16} />
-                                            Shop Onboarding & Verification Checklist
-                                        </h2>
-                                        <p className="text-[11px] text-slate-500 mt-0.5">
-                                            {checklist.filter((i: any) => i.status === "COMPLETED").length} of 8 requirements satisfied
+            {/* Tab Content Canvas (Full Width) */}
+            <div className="space-y-5">
+                {/* SECTION 1: Overview & Onboarding Checklist */}
+                {activeTab === "overview" && (
+                    <div className="space-y-5">
+                        {/* Row 1: Health Score & Beneficial Owner Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Health Score Card */}
+                            <div className="bg-white rounded-lg border border-slate-200 shadow-2xs p-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-xs font-semibold text-slate-900">Health Score</h3>
+                                    <HealthScorePill score={health?.score} />
+                                </div>
+
+                                <div className="flex items-center gap-4">
+                                    <div className="relative size-14 shrink-0 flex items-center justify-center">
+                                        <svg className="size-full -rotate-90" viewBox="0 0 36 36">
+                                            <path
+                                                className="text-slate-100"
+                                                strokeWidth="3.5"
+                                                stroke="currentColor"
+                                                fill="none"
+                                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                            />
+                                            <path
+                                                className={
+                                                    (health?.score ?? 70) >= 90
+                                                        ? "text-emerald-500"
+                                                        : (health?.score ?? 70) >= 75
+                                                        ? "text-blue-500"
+                                                        : (health?.score ?? 70) >= 50
+                                                        ? "text-amber-500"
+                                                        : "text-rose-500"
+                                                }
+                                                strokeDasharray={`${health?.score ?? 70}, 100`}
+                                                strokeWidth="3.5"
+                                                strokeLinecap="round"
+                                                stroke="currentColor"
+                                                fill="none"
+                                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                            />
+                                        </svg>
+                                        <div className="absolute flex flex-col items-center justify-center">
+                                            <span className="text-sm font-bold text-slate-900 tabular-nums">{health?.score ?? 70}</span>
+                                            <span className="text-[8px] text-slate-400 font-semibold uppercase">/100</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-0.5 min-w-0">
+                                        <p className="text-xs font-semibold text-slate-900">{health?.tierLabel}</p>
+                                        <p className="text-[11px] text-slate-500 leading-normal">
+                                            Computed from tax validation, KYC audit, open risk flags, and legal documents.
                                         </p>
                                     </div>
-                                    <span className="px-2 py-0.5 text-[11px] font-semibold rounded-md bg-orange-50 text-orange-800 border border-orange-200/80 w-fit tabular-nums">
-                                        {Math.round((checklist.filter((i: any) => i.status === "COMPLETED").length / 8) * 100)}% Ready
-                                    </span>
                                 </div>
 
-                                {/* Checklist Grid */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                                    {checklist.map((item: any, idx: number) => (
-                                        <div
-                                            key={idx}
-                                            className={`p-3 rounded-md border flex items-start gap-2.5 ${
-                                                item.status === "COMPLETED"
-                                                    ? "bg-emerald-50/30 border-emerald-200"
-                                                    : item.status === "FAILED"
-                                                    ? "bg-rose-50/30 border-rose-200"
-                                                    : "bg-slate-50/50 border-slate-200"
-                                            }`}
-                                        >
-                                            <div
-                                                className={`size-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                                                    item.status === "COMPLETED"
-                                                        ? "bg-emerald-600 text-white"
-                                                        : item.status === "FAILED"
-                                                        ? "bg-rose-600 text-white"
-                                                        : "bg-slate-200 text-slate-600"
-                                                }`}
-                                            >
-                                                {item.status === "COMPLETED" ? (
-                                                    <Check size={11} />
-                                                ) : item.status === "FAILED" ? (
-                                                    <X size={11} />
-                                                ) : (
-                                                    <Clock size={11} />
-                                                )}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center justify-between gap-1.5">
-                                                    <p className="font-semibold text-slate-900 text-xs truncate">{item.name}</p>
-                                                    <span
-                                                        className={`text-[9px] px-1.5 py-0.2 rounded font-semibold uppercase tracking-wider shrink-0 ${
-                                                            item.status === "COMPLETED"
-                                                                ? "bg-emerald-100 text-emerald-800"
-                                                                : item.status === "FAILED"
-                                                                ? "bg-rose-100 text-rose-800"
-                                                                : "bg-amber-100 text-amber-800"
-                                                        }`}
-                                                    >
-                                                        {item.badge}
-                                                    </span>
-                                                </div>
-                                                <p className="text-[11px] text-slate-500 mt-0.5 leading-normal">
-                                                    {item.description}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))}
+                                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                                    <span className="text-slate-500 text-[11px]">Active Risk Flags:</span>
+                                    <span className={`font-semibold text-xs tabular-nums ${openFlags.length > 0 ? "text-rose-600" : "text-emerald-700"}`}>
+                                        {openFlags.length > 0 ? `${openFlags.length} active` : "0 (Clean)"}
+                                    </span>
                                 </div>
                             </div>
 
-                            {/* Store Activity Metrics Grid */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                <div className="bg-white border border-slate-200 rounded-lg shadow-xs p-3.5 space-y-1">
-                                    <div className="flex items-center justify-between text-slate-400">
-                                        <span className="text-[11px] font-medium">Wallet Balance</span>
-                                        <DollarSign size={14} />
-                                    </div>
-                                    <p className="text-xl font-bold tracking-tight text-slate-900 tabular-nums">
-                                        ${Number(shop.wallet?.balance ?? 0).toFixed(2)}
-                                    </p>
-                                    <p className="text-[10px] font-medium text-slate-400">
-                                        {shop.wallet?.payoutsEnabled ? "Payouts enabled" : "Payouts not linked"}
-                                    </p>
+                            {/* Beneficial Owner Identity Card */}
+                            <div className="bg-white rounded-lg border border-slate-200 shadow-2xs p-4 space-y-3 text-xs">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-xs font-semibold text-slate-900">Beneficial Owner</h3>
+                                    <VerificationBadge status={legal?.ownerKycStatus} />
                                 </div>
 
-                                <div className="bg-white border border-slate-200 rounded-lg shadow-xs p-3.5 space-y-1">
-                                    <div className="flex items-center justify-between text-slate-400">
-                                        <span className="text-[11px] font-medium">Products</span>
-                                        <Package size={14} />
+                                <div className="flex items-center gap-3 pt-0.5">
+                                    <div className="size-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs shrink-0">
+                                        {shop.owner.name.slice(0, 2).toUpperCase()}
                                     </div>
-                                    <p className="text-xl font-bold tracking-tight text-slate-900 tabular-nums">{shop._count.products}</p>
-                                    <p className="text-[10px] font-medium text-slate-400">Catalog items</p>
+                                    <div className="min-w-0">
+                                        <p className="font-semibold text-slate-900 text-xs truncate">{shop.owner.name}</p>
+                                        <p className="text-slate-500 text-[11px] truncate">{shop.owner.email}</p>
+                                        {shop.profile?.phone && (
+                                            <p className="text-slate-400 text-[11px] truncate mt-0.5">{shop.profile.phone}</p>
+                                        )}
+                                    </div>
                                 </div>
 
-                                <div className="bg-white border border-slate-200 rounded-lg shadow-xs p-3.5 space-y-1">
-                                    <div className="flex items-center justify-between text-slate-400">
-                                        <span className="text-[11px] font-medium">Total Orders</span>
-                                        <ShoppingBag size={14} />
-                                    </div>
-                                    <p className="text-xl font-bold tracking-tight text-slate-900 tabular-nums">{shop._count.orders}</p>
-                                    <p className="text-[10px] font-medium text-slate-400">Purchases completed</p>
-                                </div>
-
-                                <div className="bg-white border border-slate-200 rounded-lg shadow-xs p-3.5 space-y-1">
-                                    <div className="flex items-center justify-between text-slate-400">
-                                        <span className="text-[11px] font-medium">Staff Members</span>
-                                        <Users size={14} />
-                                    </div>
-                                    <p className="text-xl font-bold tracking-tight text-slate-900 tabular-nums">{shop._count.employees ?? 0}</p>
-                                    <p className="text-[10px] font-medium text-slate-400">Store team members</p>
+                                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                                    <span>Identity Document:</span>
+                                    <span className="font-mono text-slate-700 font-medium">{legal?.ownerIdType || "Not Specified"}</span>
                                 </div>
                             </div>
                         </div>
+
+                        {/* Row 2: Store Activity Metrics Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div className="bg-white border border-slate-200 rounded-lg shadow-2xs p-3.5 space-y-1">
+                                <span className="text-[11px] font-medium text-slate-500">Wallet Balance</span>
+                                <p className="text-xl font-bold tracking-tight text-slate-900 tabular-nums">
+                                    ${Number(shop.wallet?.balance ?? 0).toFixed(2)}
+                                </p>
+                                <p className="text-[10px] font-medium text-slate-400">
+                                    {shop.wallet?.payoutsEnabled ? "Payouts enabled" : "Payouts not linked"}
+                                </p>
+                            </div>
+
+                            <div className="bg-white border border-slate-200 rounded-lg shadow-2xs p-3.5 space-y-1">
+                                <span className="text-[11px] font-medium text-slate-500">Products</span>
+                                <p className="text-xl font-bold tracking-tight text-slate-900 tabular-nums">{shop._count.products}</p>
+                                <p className="text-[10px] font-medium text-slate-400">Catalog items</p>
+                            </div>
+
+                            <div className="bg-white border border-slate-200 rounded-lg shadow-2xs p-3.5 space-y-1">
+                                <span className="text-[11px] font-medium text-slate-500">Total Orders</span>
+                                <p className="text-xl font-bold tracking-tight text-slate-900 tabular-nums">{shop._count.orders}</p>
+                                <p className="text-[10px] font-medium text-slate-400">Purchases completed</p>
+                            </div>
+
+                            <div className="bg-white border border-slate-200 rounded-lg shadow-2xs p-3.5 space-y-1">
+                                <span className="text-[11px] font-medium text-slate-500">Staff Members</span>
+                                <p className="text-xl font-bold tracking-tight text-slate-900 tabular-nums">{shop._count.employees ?? 0}</p>
+                                <p className="text-[10px] font-medium text-slate-400">Store team members</p>
+                            </div>
+                        </div>
+
+                        {/* Row 3: Shop Onboarding & Verification Checklist */}
+                        <div className="bg-white rounded-lg border border-slate-200 shadow-2xs p-5 space-y-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                                <div>
+                                    <h2 className="text-xs font-semibold text-slate-900">
+                                        Shop Onboarding & Verification Checklist
+                                    </h2>
+                                    <p className="text-[11px] text-slate-500 mt-0.5">
+                                        {checklist.filter((i: any) => i.status === "COMPLETED").length} of 8 requirements satisfied
+                                    </p>
+                                </div>
+                                <span className="px-2 py-0.5 text-[11px] font-semibold rounded-md bg-orange-50 text-orange-800 border border-orange-200/80 w-fit tabular-nums">
+                                    {Math.round((checklist.filter((i: any) => i.status === "COMPLETED").length / 8) * 100)}% Ready
+                                </span>
+                            </div>
+
+                            {/* Checklist Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                {checklist.map((item: any, idx: number) => (
+                                    <div
+                                        key={idx}
+                                        className={`p-3 rounded-md border flex items-start gap-3 transition-colors ${
+                                            item.status === "COMPLETED"
+                                                ? "bg-white border-emerald-200 hover:border-emerald-300"
+                                                : item.status === "FAILED"
+                                                ? "bg-white border-rose-200 hover:border-rose-300"
+                                                : "bg-white border-slate-200 hover:border-slate-300"
+                                        }`}
+                                    >
+                                        <div
+                                            className={`size-2 rounded-full shrink-0 mt-1.5 ${
+                                                item.status === "COMPLETED"
+                                                    ? "bg-emerald-500"
+                                                    : item.status === "FAILED"
+                                                    ? "bg-rose-500"
+                                                    : "bg-slate-300"
+                                            }`}
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between gap-1.5">
+                                                <p className="font-semibold text-slate-900 text-xs truncate">{item.name}</p>
+                                                <span
+                                                    className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider shrink-0 ${
+                                                        item.status === "COMPLETED"
+                                                            ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                                            : item.status === "FAILED"
+                                                            ? "bg-rose-50 text-rose-800 border border-rose-200"
+                                                            : "bg-slate-100 text-slate-600 border border-slate-200"
+                                                    }`}
+                                                >
+                                                    {item.badge}
+                                                </span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-500 mt-0.5 leading-normal">
+                                                {item.description}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
                     )}
 
                     {/* SECTION 2: Business & Tax Registration */}
@@ -910,14 +828,9 @@ export const AdminShopDetailPage = () => {
                             {/* Tax ID Card */}
                             <div className="bg-white rounded-lg border border-slate-200 shadow-xs p-4 space-y-4">
                                 <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="size-8 rounded-md bg-slate-50 border border-slate-200/80 text-slate-700 flex items-center justify-center">
-                                            <Hash size={16} />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-xs font-semibold text-slate-900">Tax ID / EIN Verification</h3>
-                                            <p className="text-[11px] text-slate-400">Business taxation authority identifier</p>
-                                        </div>
+                                    <div>
+                                        <h3 className="text-xs font-semibold text-slate-900">Tax ID / EIN Verification</h3>
+                                        <p className="text-[11px] text-slate-400">Business taxation authority identifier</p>
                                     </div>
                                     <VerificationBadge status={legal?.taxIdStatus} />
                                 </div>
@@ -957,14 +870,9 @@ export const AdminShopDetailPage = () => {
                             {/* Business Address Card */}
                             <div className="bg-white rounded-lg border border-slate-200 shadow-xs p-4 space-y-4">
                                 <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="size-8 rounded-md bg-slate-50 border border-slate-200/80 text-slate-700 flex items-center justify-center">
-                                            <MapPin size={16} />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-xs font-semibold text-slate-900">Physical Business Address</h3>
-                                            <p className="text-[11px] text-slate-400">Official registered operating location</p>
-                                        </div>
+                                    <div>
+                                        <h3 className="text-xs font-semibold text-slate-900">Physical Business Address</h3>
+                                        <p className="text-[11px] text-slate-400">Official registered operating location</p>
                                     </div>
                                     <VerificationBadge status={legal?.addressVerificationStatus} />
                                 </div>
@@ -1003,8 +911,7 @@ export const AdminShopDetailPage = () => {
                         <div className="bg-white rounded-lg border border-slate-200 shadow-xs p-5 space-y-5">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
                                 <div>
-                                    <h2 className="text-xs font-semibold text-slate-900 flex items-center gap-2">
-                                        <User className="text-orange-500" size={16} />
+                                    <h2 className="text-xs font-semibold text-slate-900">
                                         Owner Identity & Beneficial KYC Audit
                                     </h2>
                                     <p className="text-[11px] text-slate-500 mt-0.5">
@@ -1104,8 +1011,7 @@ export const AdminShopDetailPage = () => {
                         <div className="bg-white rounded-lg border border-slate-200 shadow-xs p-5 space-y-4">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                                 <div>
-                                    <h2 className="text-xs font-semibold text-slate-900 flex items-center gap-1.5">
-                                        <FileText className="text-orange-500" size={16} />
+                                    <h2 className="text-xs font-semibold text-slate-900">
                                         Legal Documents Vault
                                     </h2>
                                     <p className="text-[11px] text-slate-500 mt-0.5">
@@ -1190,8 +1096,7 @@ export const AdminShopDetailPage = () => {
                         <div className="bg-white rounded-lg border border-slate-200 shadow-xs p-5 space-y-4">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                                 <div>
-                                    <h2 className="text-xs font-semibold text-slate-900 flex items-center gap-1.5">
-                                        <ShieldAlert className="text-rose-600" size={16} />
+                                    <h2 className="text-xs font-semibold text-slate-900">
                                         Compliance Risk Flags & Administrative Holds
                                     </h2>
                                     <p className="text-[11px] text-slate-500 mt-0.5">
@@ -1252,8 +1157,7 @@ export const AdminShopDetailPage = () => {
                     {activeTab === "notes" && (
                         <div className="bg-white rounded-lg border border-slate-200 shadow-xs p-5 space-y-4">
                             <div className="pb-3 border-b border-slate-100">
-                                <h2 className="text-xs font-semibold text-slate-900 flex items-center gap-1.5">
-                                    <MessageSquare className="text-orange-500" size={16} />
+                                <h2 className="text-xs font-semibold text-slate-900">
                                     Internal Compliance Notes & Log
                                 </h2>
                                 <p className="text-[11px] text-slate-500 mt-0.5">
@@ -1495,7 +1399,7 @@ export const AdminShopDetailPage = () => {
                                     </div>
                                 ) : !reviewsData || reviewsData.reviews.length === 0 ? (
                                     <div className="p-12 text-center text-slate-400 space-y-1">
-                                        <Star className="mx-auto size-8 opacity-30 text-amber-500 fill-amber-500" />
+                                        <FileText className="mx-auto size-8 opacity-30 text-slate-400" />
                                         <p className="font-semibold text-slate-700 text-xs">No reviews found</p>
                                         <p className="text-[11px] text-slate-400">
                                             {reviewSearch || reviewRatingFilter !== undefined || reviewVisibilityFilter !== undefined
@@ -1604,7 +1508,6 @@ export const AdminShopDetailPage = () => {
                         </div>
                     )}
                 </div>
-            </div>
 
             {/* MODAL: Approve Shop Application */}
             {showApproveModal && (
