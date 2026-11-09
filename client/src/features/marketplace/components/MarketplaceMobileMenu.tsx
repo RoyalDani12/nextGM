@@ -11,7 +11,9 @@ import {
   ChevronRight,
   Receipt,
   RotateCcw,
+  MapPin,
 } from "lucide-react";
+import type { DeliveryLocation } from "../utils/deliveryLocation";
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -31,6 +33,8 @@ interface MarketplaceMobileMenuProps {
   logout: () => void;
   isLoggingOut: boolean;
   wishlistItemCount?: number;
+  deliveryLocation?: DeliveryLocation | null;
+  onOpenLocationModal?: () => void;
 }
 
 export const MarketplaceMobileMenu = ({
@@ -39,6 +43,8 @@ export const MarketplaceMobileMenu = ({
   logout,
   isLoggingOut,
   wishlistItemCount = 0,
+  deliveryLocation,
+  onOpenLocationModal,
 }: MarketplaceMobileMenuProps) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -114,6 +120,34 @@ export const MarketplaceMobileMenu = ({
         </div>
 
         <div className="p-4 space-y-4 flex-1">
+          {/* Delivery Destination Selector */}
+          {deliveryLocation && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsMobileOpen(false);
+                onOpenLocationModal?.();
+              }}
+              className="w-full flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors shadow-2xs group text-left cursor-pointer"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex size-7 items-center justify-center rounded-lg bg-orange-50 text-orange-600 shrink-0">
+                  <MapPin className="size-3.5" />
+                </div>
+                <div className="min-w-0 leading-tight">
+                  <span className="block text-[10px] font-medium text-slate-400">Deliver to</span>
+                  <span className="flex items-center gap-1.5 text-xs font-bold text-slate-800 truncate">
+                    <span>{deliveryLocation.flag}</span>
+                    <span className="truncate">{deliveryLocation.countryName}</span>
+                  </span>
+                </div>
+              </div>
+              <span className="text-[11px] font-bold text-orange-600 shrink-0 group-hover:underline">
+                Change
+              </span>
+            </button>
+          )}
+
           {/* User Account / Auth Card */}
           {isAuthenticated && user ? (
             <div className="rounded-2xl border border-slate-200/70 bg-gradient-to-br from-slate-50 to-orange-50/40 p-3.5 space-y-3 shadow-xs">

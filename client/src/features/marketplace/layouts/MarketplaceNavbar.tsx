@@ -1,6 +1,18 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ShoppingCart, Search, Command, User, LogOut, Receipt, Package, Heart, RotateCcw } from "lucide-react";
+import {
+  ShoppingCart,
+  Search,
+  Command,
+  User,
+  LogOut,
+  Receipt,
+  Package,
+  Heart,
+  RotateCcw,
+  MapPin,
+  ChevronDown,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuthStore } from "@/store/auth.store";
@@ -10,78 +22,25 @@ import { useWishlist } from "../components/marketplace.hooks";
 import { MarketplaceDesktopNav } from "../components/MarketplaceDesktopNav";
 import { MarketplaceMobileMenu } from "../components/MarketplaceMobileMenu";
 import { NotificationDropdown } from "@/features/notification/NotificationDropdown";
+import {
+  autoDetectDeliveryLocation,
+  getStoredDeliveryLocation,
+  getBrowserInstantLocation,
+  DELIVERY_LOCATION_EVENT,
+  type DeliveryLocation,
+} from "../utils/deliveryLocation";
+import { DeliveryLocationModal } from "../components/DeliveryLocationModal";
 
 type CartGroup = { items: Array<{ quantity: number }> };
-type DeliveryLocation = { countryCode: string; countryName: string };
-type ReverseGeocodeResponse = { countryCode?: string; countryName?: string };
-
-const timezoneCountries: Record<string, DeliveryLocation> = {
-  "Africa/Addis_Ababa": { countryCode: "ET", countryName: "Ethiopia" },
-  "Africa/Cairo": { countryCode: "EG", countryName: "Egypt" },
-  "Africa/Johannesburg": { countryCode: "ZA", countryName: "South Africa" },
-  "Africa/Lagos": { countryCode: "NG", countryName: "Nigeria" },
-  "Africa/Nairobi": { countryCode: "KE", countryName: "Kenya" },
-  "America/Chicago": { countryCode: "US", countryName: "United States" },
-  "America/Denver": { countryCode: "US", countryName: "United States" },
-  "America/Los_Angeles": { countryCode: "US", countryName: "United States" },
-  "America/New_York": { countryCode: "US", countryName: "United States" },
-  "Asia/Dubai": { countryCode: "AE", countryName: "United Arab Emirates" },
-  "Asia/Kolkata": { countryCode: "IN", countryName: "India" },
-  "Asia/Tokyo": { countryCode: "JP", countryName: "Japan" },
-  "Australia/Sydney": { countryCode: "AU", countryName: "Australia" },
-  "Europe/Berlin": { countryCode: "DE", countryName: "Germany" },
-  "Europe/London": { countryCode: "GB", countryName: "United Kingdom" },
-  "Europe/Paris": { countryCode: "FR", countryName: "France" },
-};
-
-function getFallbackDeliveryLocation(): DeliveryLocation {
-  const locale = navigator.languages?.[0] || navigator.language;
-  const localeRegion = locale?.match(/[-_]([A-Z]{2})$/i)?.[1]?.toUpperCase();
-
-  if (localeRegion) {
-    try {
-      const countryName = new Intl.DisplayNames([locale], { type: "region" }).of(localeRegion);
-      if (countryName) return { countryCode: localeRegion, countryName };
-    } catch {
-      // Fall through to the timezone mapping when region names are unavailable.
-    }
-  }
-
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  return timezoneCountries[timezone] || { countryCode: "US", countryName: "United States" };
-}
-
-async function detectDeliveryLocation(signal: AbortSignal): Promise<DeliveryLocation> {
-  if (!navigator.geolocation) throw new Error("Geolocation is not supported by this browser.");
-
-  const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(resolve, reject, {
-      enableHighAccuracy: false,
-      maximumAge: 300000,
-      timeout: 10000,
-    });
-  });
-  const { latitude, longitude } = position.coords;
-  const response = await fetch(
-    `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`,
-    { signal },
-  );
-  if (!response.ok) throw new Error(`Reverse geocoding failed with status ${response.status}.`);
-  const location = (await response.json()) as ReverseGeocodeResponse;
-  if (!location.countryCode || !location.countryName) throw new Error("Reverse geocoding returned no country.");
-  return { countryCode: location.countryCode.toUpperCase(), countryName: location.countryName };
-}
-
-function countryFlag(countryCode: string) {
-  return countryCode.replace(/[A-Z]/g, (letter) => String.fromCodePoint(letter.charCodeAt(0) + 127397));
-}
 
 export const MarketplaceNavbar = () => {
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [deliveryLocation, setDeliveryLocation] = useState<DeliveryLocation | null>(null);
-  const [locationSource, setLocationSource] = useState<"locating" | "detected" | "fallback">("locating");
+  const [deliveryLocation, setDeliveryLocation] = useState<DeliveryLocation>(
+    () => getStoredDeliveryLocation() || getBrowserInstantLocation()
+  );
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
@@ -105,19 +64,20 @@ export const MarketplaceNavbar = () => {
   }, []);
 
   useEffect(() => {
-    const controller = new AbortController();
-    detectDeliveryLocation(controller.signal)
-      .then((location) => {
-        setDeliveryLocation(location);
-        setLocationSource("detected");
-      })
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
-        console.warn("Precise delivery location detection failed; using browser fallback.", error);
-        setDeliveryLocation(getFallbackDeliveryLocation());
-        setLocationSource("fallback");
-      });
-    return () => controller.abort();
+    // Silently detect IP-based country in background (never prompts user for browser geolocation!)
+    autoDetectDeliveryLocation().then((loc) => {
+      if (loc) setDeliveryLocation(loc);
+    });
+
+    const handleLocationChange = (e: Event) => {
+      const customEvent = e as CustomEvent<DeliveryLocation>;
+      if (customEvent.detail) {
+        setDeliveryLocation(customEvent.detail);
+      }
+    };
+
+    window.addEventListener(DELIVERY_LOCATION_EVENT, handleLocationChange);
+    return () => window.removeEventListener(DELIVERY_LOCATION_EVENT, handleLocationChange);
   }, []);
 
   return (
@@ -142,6 +102,8 @@ export const MarketplaceNavbar = () => {
             logout={() => logout()}
             isLoggingOut={isLoggingOut}
             wishlistItemCount={wishlistItemCount}
+            deliveryLocation={deliveryLocation}
+            onOpenLocationModal={() => setIsLocationModalOpen(true)}
           />
 
           {/* Search Box */}
@@ -178,16 +140,25 @@ export const MarketplaceNavbar = () => {
             onWishlist={() => navigate("/wishlist")}
           />
 
-          <div className="hidden shrink-0 items-center gap-2 border-l border-slate-200 pl-5 text-left lg:flex" title={deliveryLocation ? `Delivery location: ${deliveryLocation.countryName}` : "Detecting your delivery location"}>
-            <span className="text-[10px] font-medium leading-none text-slate-500">Deliver to:</span>
-            {deliveryLocation ? (
-              <span className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
-                <span aria-hidden="true" className="text-base leading-none">{countryFlag(deliveryLocation.countryCode)}</span>
-                {deliveryLocation.countryCode}
-                {locationSource === "fallback" && <span className="sr-only">estimated</span>}
+          {/* Deliver To Selector Button (Amazon / Alibaba style) */}
+          <button
+            type="button"
+            onClick={() => setIsLocationModalOpen(true)}
+            className="hidden shrink-0 items-center gap-2.5 border-l border-slate-200 pl-4 pr-1 py-1 text-left lg:flex hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer group"
+            title={`Delivering to ${deliveryLocation.countryName}. Click to change delivery destination.`}
+          >
+            <div className="flex size-7 items-center justify-center rounded-full bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 group-hover:bg-orange-100 transition-colors shrink-0">
+              <MapPin className="size-3.5" />
+            </div>
+            <div className="flex flex-col text-left leading-tight min-w-0">
+              <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Deliver to</span>
+              <span className="flex items-center gap-1 text-xs font-bold text-slate-800 dark:text-slate-100">
+                <span aria-hidden="true" className="text-sm leading-none shrink-0">{deliveryLocation.flag}</span>
+                <span className="truncate max-w-[110px]">{deliveryLocation.countryName}</span>
+                <ChevronDown className="size-3 text-slate-400 group-hover:text-slate-600 shrink-0 transition-transform group-hover:translate-y-0.5" />
               </span>
-            ) : <span className="text-xs font-semibold text-slate-400">Detecting…</span>}
-          </div>
+            </div>
+          </button>
 
 
           {/* Mobile Actions: Cart + Sign In (or User Menu) */}
@@ -366,7 +337,30 @@ export const MarketplaceNavbar = () => {
             </button>
           </div>
         </form>
+
+        {/* Mobile Deliver To Strip (Amazon / Alibaba style) */}
+        <div className="mx-4 mt-2 mb-1 flex items-center justify-start lg:hidden">
+          <button
+            type="button"
+            onClick={() => setIsLocationModalOpen(true)}
+            className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-slate-100/80 hover:bg-slate-200/80 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer text-left"
+          >
+            <MapPin className="size-3 text-orange-500 shrink-0" />
+            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Deliver to</span>
+            <span className="font-bold flex items-center gap-1 text-[11px] text-slate-900 dark:text-slate-100">
+              <span aria-hidden="true">{deliveryLocation.flag}</span>
+              <span className="truncate max-w-[140px]">{deliveryLocation.countryName}</span>
+            </span>
+            <ChevronDown className="size-3 text-slate-400" />
+          </button>
+        </div>
       </div>
+
+      <DeliveryLocationModal
+        isOpen={isLocationModalOpen}
+        onClose={() => setIsLocationModalOpen(false)}
+        currentLocation={deliveryLocation}
+      />
     </header>
   );
 };

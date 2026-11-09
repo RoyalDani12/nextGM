@@ -91,6 +91,20 @@ app.get('/health', (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
+app.get('/api/v1/geo/lookup', (req, res) => {
+  const headerCountry =
+    (req.headers['cf-ipcountry'] as string) ||
+    (req.headers['x-country-code'] as string) ||
+    (req.headers['x-vercel-ip-country'] as string) ||
+    (req.headers['x-appengine-country'] as string);
+
+  if (headerCountry && headerCountry !== 'XX' && headerCountry.length === 2) {
+    return res.status(200).json({ success: true, countryCode: headerCountry.toUpperCase() });
+  }
+
+  return res.status(200).json({ success: true, countryCode: null });
+});
+
 app.use(notFound)
 app.use(errHandler)
 
