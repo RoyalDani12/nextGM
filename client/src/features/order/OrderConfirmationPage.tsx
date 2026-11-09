@@ -48,7 +48,7 @@ export function OrderConfirmationPage() {
         {/* Action Buttons */}
         <div className="mt-8 space-y-3">
           <button
-            onClick={() => navigate("/customer-order")}
+            onClick={() => navigate("/orders")}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-black px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-gray-800"
           >
             <Package className="h-4 w-4" />

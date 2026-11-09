@@ -94,7 +94,7 @@ export default function Footer() {
                         <p className="font-bold text-white text-sm tracking-wide">Let Us Help You</p>
                         <ul className="flex flex-col gap-2.5">
                             <li><Link to="/account/settings" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Your Account</Link></li>
-                            <li><Link to="/customer-order" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Manage Orders</Link></li>
+                            <li><Link to="/orders" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Manage Orders</Link></li>
                             <li><Link to="/help" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Help Center</Link></li>
                             <li><Link to="/contact" className="text-slate-400 hover:text-orange-400 hover:underline transition-colors">Contact Support</Link></li>
                         </ul>

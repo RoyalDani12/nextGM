@@ -206,9 +206,9 @@ export const MarketplaceMobileMenu = ({
 
                 {/* Orders */}
                 <button
-                  onClick={() => goTo("/customer-order")}
+                  onClick={() => goTo("/orders")}
                   className={`flex flex-col items-center justify-center p-2 rounded-xl bg-white border shadow-2xs transition-colors cursor-pointer ${
-                    isActive("/customer-order")
+                    isActive("/orders") || isActive("/customer-order")
                       ? "border-orange-200 bg-orange-50/50 text-orange-600"
                       : "border-slate-200/80 text-slate-700 hover:bg-slate-50"
                   }`}
@@ -277,9 +277,9 @@ export const MarketplaceMobileMenu = ({
             {isAuthenticated && (
               <>
                 <button
-                  onClick={() => goTo("/customer-order")}
+                  onClick={() => goTo("/orders")}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    isActive("/customer-order")
+                    isActive("/orders") || isActive("/customer-order")
                       ? "bg-orange-50 text-orange-600 shadow-xs"
                       : "text-slate-700 hover:bg-slate-100/70 hover:text-slate-900"
                   }`}

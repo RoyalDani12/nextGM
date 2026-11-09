@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getCountries, getCountryCallingCode, type Country } from "react-phone-number-input";
 import PhoneInput from "react-phone-number-input/input";
@@ -9,15 +9,34 @@ import "react-phone-number-input/style.css";
 import { useCheckout } from "./order.hooks";
 import type { ShippingMethod } from "./order.types";
 import { useCart } from "../cart/cart.hook";
+import { useAuthStore } from "@/store/auth.store";
+import { useGetMe, useUpdateProfile } from "../users/users.hook";
+import {
+  getAllCountries,
+  POPULAR_COUNTRIES,
+  countryFlag,
+  getCountryName,
+  getBrowserInstantLocation,
+  getStoredDeliveryLocation,
+  autoDetectDeliveryLocation,
+  setDeliveryLocation,
+  DELIVERY_LOCATION_EVENT,
+} from "../marketplace/utils/deliveryLocation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertCircle,
   ArrowLeft,
   Check,
+  ChevronDown,
+  Edit3,
+  Globe,
   LockKeyhole,
   MapPin,
   PackageCheck,
+  RotateCcw,
+  Search,
   Sparkles,
+  UserCheck,
 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 
@@ -114,6 +133,157 @@ function CountrySelector({ country, onChange }: CountrySelectorProps) {
   );
 }
 
+interface ShippingCountrySelectorProps {
+  country: string;
+  onChange: (countryCode: string) => void;
+}
+
+function ShippingCountrySelector({ country, onChange }: ShippingCountrySelectorProps) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const allCountries = useMemo(() => getAllCountries(), []);
+  const upperCode = (country || "ET").toUpperCase();
+  const selectedCountryName = getCountryName(upperCode);
+  const SelectedFlag = flags[upperCode as Country];
+  const selectedFlagEmoji = countryFlag(upperCode);
+
+  const filteredCountries = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return allCountries;
+    return allCountries.filter(
+      (c) => c.name.toLowerCase().includes(query) || c.code.toLowerCase().includes(query)
+    );
+  }, [allCountries, search]);
+
+  const handleSelect = (code: string) => {
+    onChange(code.toUpperCase());
+    setOpen(false);
+    setSearch("");
+  };
+
+  return (
+    <div ref={dropdownRef} className="relative w-full">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-left text-sm transition hover:border-slate-400 focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          {SelectedFlag ? (
+            <span className="h-5 w-7 shrink-0 rounded-sm overflow-hidden inline-flex items-center justify-center border border-slate-200 shadow-xs">
+              <SelectedFlag title={selectedCountryName} />
+            </span>
+          ) : (
+            <span className="text-lg leading-none shrink-0">{selectedFlagEmoji}</span>
+          )}
+          <span className="font-semibold text-slate-800 truncate">{selectedCountryName}</span>
+          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600 shrink-0">
+            {upperCode}
+          </span>
+        </div>
+        <ChevronDown className={`size-4 text-slate-400 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-[calc(100%+6px)] z-50 w-full min-w-[300px] max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl animate-in fade-in-50 zoom-in-95">
+          <div className="p-3 border-b border-slate-100 sticky top-0 bg-white z-10">
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 size-4 text-slate-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search country name or 2-letter code..."
+                autoFocus
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 py-2 text-sm outline-none focus:border-black focus:bg-white focus:ring-1 focus:ring-black"
+              />
+            </div>
+          </div>
+
+          {!search.trim() && (
+            <div className="p-3 border-b border-slate-100 bg-slate-50/70">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                Popular Destinations
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {POPULAR_COUNTRIES.slice(0, 10).map((c) => {
+                  const isSelected = c.code === upperCode;
+                  return (
+                    <button
+                      type="button"
+                      key={c.code}
+                      onClick={() => handleSelect(c.code)}
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+                        isSelected
+                          ? "bg-slate-900 text-white shadow-xs"
+                          : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      <span>{c.flag}</span>
+                      <span>{c.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="max-h-[260px] overflow-y-auto p-1.5 space-y-0.5">
+            {filteredCountries.map((item) => {
+              const ItemFlag = flags[item.code as Country];
+              const isSelected = item.code === upperCode;
+              return (
+                <button
+                  type="button"
+                  key={item.code}
+                  onClick={() => handleSelect(item.code)}
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition ${
+                    isSelected
+                      ? "bg-orange-50 font-semibold text-orange-950"
+                      : "hover:bg-slate-50 text-slate-700"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {ItemFlag ? (
+                      <span className="h-4 w-6 shrink-0 rounded-xs overflow-hidden inline-flex items-center justify-center border border-slate-200">
+                        <ItemFlag title={item.name} />
+                      </span>
+                    ) : (
+                      <span className="text-base shrink-0">{item.flag}</span>
+                    )}
+                    <span className="truncate">{item.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs text-slate-400 font-mono">{item.code}</span>
+                    {isSelected && <Check className="size-4 text-orange-600" />}
+                  </div>
+                </button>
+              );
+            })}
+            {filteredCountries.length === 0 && (
+              <div className="py-8 text-center text-sm text-slate-400">
+                No countries found for "{search}".
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function CheckoutPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -122,52 +292,133 @@ export function CheckoutPage() {
   const { data: cartResponse, isLoading: isCartLoading } = useCart();
   const checkoutMutation = useCheckout();
 
+  // User & Profile
+  const { data: profileUser } = useGetMe();
+  const authUser = useAuthStore((s) => s.user);
+  const currentUser = profileUser || authUser;
+  const { mutate: updateProfileMutate } = useUpdateProfile();
+
   const [phoneCountry, setPhoneCountry] = useState<Country>("ET");
   const [rememberMe, setRememberMe] = useState(false);
+  const [saveToProfile, setSaveToProfile] = useState(false);
+  const [detectionSource, setDetectionSource] = useState<"profile" | "autodetect" | "saved" | "custom">("autodetect");
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [couponCodes, setCouponCodes] = useState<Record<string, string>>({});
   const [shippingMethods, setShippingMethods] = useState<Record<string, ShippingMethod>>({});
-  
+
+  const userHasManuallyEditedRef = useRef(false);
   const isSubmittingRef = useRef(false);
+
+  const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
+    fullName: "",
+    phone: "",
+    address: "",
+    city: "",
+    country: "ET",
+    postalCode: "",
+  });
+
   const goBackToCart = () => {
     if (window.history.length > 1) {
       navigate(-1);
       return;
     }
-
     navigate("/cart");
   };
 
-  const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
-    fullName: "", phone: "", address: "", city: "", country: "ET", postalCode: "",
-  });
-
+  // 1. Initialize shipping address from saved storage, profile, or silent auto-detection
   useEffect(() => {
     const savedRemember = localStorage.getItem("checkout_remember_me") === "true";
     setRememberMe(savedRemember);
 
+    let loadedFromSaved = false;
     if (savedRemember) {
-      const savedAddress = localStorage.getItem("checkout_shipping_address");
-      if (savedAddress) {
+      const savedAddressRaw = localStorage.getItem("checkout_shipping_address");
+      if (savedAddressRaw) {
         try {
-          const parsed: ShippingAddress = JSON.parse(savedAddress);
-          setShippingAddress(parsed);
-          if (parsed.country) {
-            setPhoneCountry(parsed.country as Country);
+          const parsed: ShippingAddress = JSON.parse(savedAddressRaw);
+          if (parsed && (parsed.fullName || parsed.address || parsed.city)) {
+            setShippingAddress(parsed);
+            if (parsed.country) {
+              const code = parsed.country.toUpperCase();
+              if (getCountries().includes(code as Country)) {
+                setPhoneCountry(code as Country);
+              }
+            }
+            setDetectionSource("saved");
+            loadedFromSaved = true;
           }
         } catch (e) {
           console.error("Failed to parse saved shipping address:", e);
         }
       }
     }
+
+    // If no saved address in localStorage and user hasn't typed their own, prefill from profile
+    if (!loadedFromSaved && !userHasManuallyEditedRef.current) {
+      const profile = currentUser?.profile;
+      const profileCountry = (profile?.country?.toUpperCase() || "").trim();
+      const storedDelivery = getStoredDeliveryLocation();
+      const fallbackCountry =
+        profileCountry ||
+        storedDelivery?.countryCode ||
+        getBrowserInstantLocation().countryCode ||
+        "ET";
+
+      if (currentUser?.name || profile?.address || profile?.city || profile?.phone || profileCountry) {
+        setShippingAddress({
+          fullName: currentUser?.name || "",
+          phone: profile?.phone || "",
+          address: profile?.address || "",
+          city: profile?.city || "",
+          country: fallbackCountry,
+          postalCode: "",
+        });
+        if (getCountries().includes(fallbackCountry as Country)) {
+          setPhoneCountry(fallbackCountry as Country);
+        }
+        setDetectionSource("profile");
+      } else {
+        // Silently detect IP-based delivery location in background (no browser prompts!)
+        autoDetectDeliveryLocation().then((loc) => {
+          if (loc?.countryCode && !userHasManuallyEditedRef.current) {
+            const code = loc.countryCode.toUpperCase();
+            setShippingAddress((prev) => ({
+              ...prev,
+              country: code,
+            }));
+            if (getCountries().includes(code as Country)) {
+              setPhoneCountry(code as Country);
+            }
+            setDetectionSource("autodetect");
+          }
+        });
+      }
+    }
+  }, [currentUser]);
+
+  // 2. Listen to delivery location changes from marketplace header / country switcher
+  useEffect(() => {
+    const handleLocationEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ countryCode: string }>;
+      if (customEvent.detail?.countryCode && !userHasManuallyEditedRef.current) {
+        const code = customEvent.detail.countryCode.toUpperCase();
+        setShippingAddress((prev) => ({ ...prev, country: code }));
+        if (getCountries().includes(code as Country)) {
+          setPhoneCountry(code as Country);
+        }
+      }
+    };
+    window.addEventListener(DELIVERY_LOCATION_EVENT, handleLocationEvent);
+    return () => window.removeEventListener(DELIVERY_LOCATION_EVENT, handleLocationEvent);
   }, []);
 
   const cartData = cartResponse?.data;
   const groupedBy = cartData?.groupedBy ?? [];
   const totalItems = cartData?.totalItems ?? 0;
   const unavailableItems = groupedBy.flatMap((group: any) =>
-    group.items.filter((item: any) => !item.isAvailable),
+    group.items.filter((item: any) => !item.isAvailable)
   );
   const itemsTotal = Number(cartData?.totalPrice ?? 0);
   const shippingFeeFor = (shopId: string) => {
@@ -177,18 +428,39 @@ export function CheckoutPage() {
   const shippingTotal = groupedBy.reduce((sum: number, group: any) => sum + shippingFeeFor(group.shop.id), 0);
   const grandTotal = itemsTotal + shippingTotal;
 
-  const handleCountryChange = (country: Country) => {
-    setPhoneCountry(country);
+  // Handle country changes explicitly
+  const handleShippingCountryChange = (newCountryCode: string) => {
+    userHasManuallyEditedRef.current = true;
+    const upper = newCountryCode.toUpperCase();
     setShippingAddress((prev) => {
-      const updated = { ...prev, country };
+      const updated = { ...prev, country: upper };
       if (rememberMe) {
         localStorage.setItem("checkout_shipping_address", JSON.stringify(updated));
       }
       return updated;
     });
+
+    // Also update global delivery location preference for store
+    setDeliveryLocation({
+      countryCode: upper,
+      countryName: getCountryName(upper),
+      flag: countryFlag(upper),
+    });
+
+    // Sync phone calling code country
+    if (getCountries().includes(upper as Country)) {
+      setPhoneCountry(upper as Country);
+    }
+    setDetectionSource("custom");
+  };
+
+  const handlePhoneCountryChange = (country: Country) => {
+    setPhoneCountry(country);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    userHasManuallyEditedRef.current = true;
+    setDetectionSource("custom");
     const { name, value } = e.target;
     setShippingAddress((prev) => {
       const updated = { ...prev, [name]: value };
@@ -200,6 +472,8 @@ export function CheckoutPage() {
   };
 
   const handlePhoneChange = (value?: string) => {
+    userHasManuallyEditedRef.current = true;
+    setDetectionSource("custom");
     const phoneVal = value ?? "";
     setShippingAddress((prev) => {
       const updated = { ...prev, phone: phoneVal };
@@ -221,6 +495,56 @@ export function CheckoutPage() {
     }
   };
 
+  const handleRestoreProfile = () => {
+    userHasManuallyEditedRef.current = false;
+    const profile = currentUser?.profile;
+    const pCountry = (profile?.country?.toUpperCase() || shippingAddress.country || "ET").trim();
+    const updated: ShippingAddress = {
+      fullName: currentUser?.name || "",
+      phone: profile?.phone || "",
+      address: profile?.address || "",
+      city: profile?.city || "",
+      country: pCountry,
+      postalCode: "",
+    };
+    setShippingAddress(updated);
+    if (getCountries().includes(pCountry as Country)) {
+      setPhoneCountry(pCountry as Country);
+    }
+    setDetectionSource("profile");
+    if (rememberMe) {
+      localStorage.setItem("checkout_shipping_address", JSON.stringify(updated));
+    }
+    toast.add({
+      title: "Profile address restored",
+      description: "Shipping details filled from your account profile.",
+      type: "info",
+    });
+  };
+
+  const handleClearAddress = () => {
+    userHasManuallyEditedRef.current = true;
+    const currentCountry = shippingAddress.country || "ET";
+    const cleared: ShippingAddress = {
+      fullName: "",
+      phone: "",
+      address: "",
+      city: "",
+      country: currentCountry,
+      postalCode: "",
+    };
+    setShippingAddress(cleared);
+    setDetectionSource("custom");
+    if (rememberMe) {
+      localStorage.removeItem("checkout_shipping_address");
+    }
+    toast.add({
+      title: "New shipping address",
+      description: "Fields cleared. Enter your custom shipping information.",
+      type: "info",
+    });
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!shippingAddress.phone || isSubmittingRef.current) return;
@@ -237,15 +561,39 @@ export function CheckoutPage() {
     setIsSubmitting(true);
 
     try {
-     const codes = Object.fromEntries(Object.entries(couponCodes).filter(([, code]) => code.trim()));
-     const checkoutResult = await checkoutMutation.mutateAsync({ shippingAddress, couponCodes: codes, shippingMethods });
+      const codes = Object.fromEntries(Object.entries(couponCodes).filter(([, code]) => code.trim()));
+      const payloadAddress = {
+        ...shippingAddress,
+        country: (shippingAddress.country || "ET").toUpperCase().trim(),
+      };
+
+      const checkoutResult = await checkoutMutation.mutateAsync({
+        shippingAddress: payloadAddress,
+        couponCodes: codes,
+        shippingMethods,
+      });
 
       if (rememberMe) {
         localStorage.setItem("checkout_remember_me", "true");
-        localStorage.setItem("checkout_shipping_address", JSON.stringify(shippingAddress));
+        localStorage.setItem("checkout_shipping_address", JSON.stringify(payloadAddress));
       } else {
         localStorage.removeItem("checkout_remember_me");
         localStorage.removeItem("checkout_shipping_address");
+      }
+
+      // If user opted to save to their account profile, persist cleanly
+      if (saveToProfile && currentUser) {
+        try {
+          updateProfileMutate({
+            name: payloadAddress.fullName || undefined,
+            phone: payloadAddress.phone || undefined,
+            address: payloadAddress.address || undefined,
+            city: payloadAddress.city || undefined,
+            country: payloadAddress.country || undefined,
+          });
+        } catch (profileErr) {
+          console.warn("Could not save address to user profile:", profileErr);
+        }
       }
 
       setShowSuccessAlert(true);
@@ -255,7 +603,6 @@ export function CheckoutPage() {
 
       // Single redirect - backend handles all orders under one Stripe PaymentIntent
       navigate(`/payment/${checkoutId}`);
-      
     } catch (error) {
       console.error("Checkout failed:", error);
       isSubmittingRef.current = false;
@@ -287,6 +634,19 @@ export function CheckoutPage() {
       </div>
     );
   }
+
+  const profile = currentUser?.profile;
+  const hasProfileAddress = Boolean(
+    currentUser?.name ||
+    profile?.phone ||
+    profile?.address ||
+    profile?.city ||
+    profile?.country
+  );
+
+  const currentCountryCode = (shippingAddress.country || "ET").toUpperCase();
+  const currentCountryName = getCountryName(currentCountryCode);
+  const currentCountryFlag = countryFlag(currentCountryCode);
 
   return (
     <div className="min-h-screen bg-[#f7f8fc] text-slate-900">
@@ -367,69 +727,176 @@ export function CheckoutPage() {
                 </ul>
               </div>
             )}
+
             <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
               <div className="mb-6 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="flex size-9 items-center justify-center rounded-xl bg-orange-50 text-orange-600"><MapPin className="size-4" /></span>
+                  <span className="flex size-9 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
+                    <MapPin className="size-4" />
+                  </span>
                   <div>
                     <h2 className="text-lg font-bold">Shipping address</h2>
                     <p className="text-xs text-slate-500">Where should we deliver your order?</p>
                   </div>
                 </div>
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-600 select-none">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={handleRememberMeChange}
-                    className="h-4 w-4 rounded border-gray-300 text-black accent-black focus:ring-black"
-                  />
-                  Remember me
-                </label>
+              </div>
+
+              {/* Smart Country Auto-Detect & Profile Sync Notice Banner */}
+              <div className="mb-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-gradient-to-r from-orange-50/70 via-amber-50/40 to-slate-50 p-4 sm:p-5 shadow-xs">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white shadow-xs">
+                      {detectionSource === "profile" ? (
+                        <UserCheck className="size-5" />
+                      ) : (
+                        <Globe className="size-5" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-sm font-bold text-slate-900">
+                          {detectionSource === "profile"
+                            ? "Profile address connected"
+                            : detectionSource === "saved"
+                            ? "Saved checkout address loaded"
+                            : "Delivery country auto-detected"}
+                        </h3>
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-white px-2.5 py-0.5 text-xs font-semibold text-slate-800 shadow-xs">
+                          <span>{currentCountryFlag}</span>
+                          <span>{currentCountryName}</span>
+                          <span className="text-[11px] text-slate-400 font-mono">({currentCountryCode})</span>
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-slate-600 max-w-xl">
+                        {detectionSource === "profile"
+                          ? "We pre-filled your shipping details from your account profile. You have full freedom to change or customize any field below."
+                          : detectionSource === "saved"
+                          ? "We restored your previously saved checkout address. You can update it or enter a new one below."
+                          : "We automatically identified your delivery country based on your current region. Feel free to edit or change anything."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0">
+                    {hasProfileAddress && (
+                      <button
+                        type="button"
+                        onClick={handleRestoreProfile}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 hover:text-slate-950 active:scale-95"
+                        title="Restore details from your user profile"
+                      >
+                        <RotateCcw className="size-3.5 text-orange-500" /> Use profile info
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleClearAddress}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-transparent bg-slate-200/80 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-300 active:scale-95"
+                      title="Clear fields to enter a new shipping address"
+                    >
+                      <Edit3 className="size-3.5" /> Clear / New address
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="grid gap-5 md:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700">Full name</label>
-                  <input name="fullName" value={shippingAddress.fullName} onChange={handleChange} placeholder="Full name" required className="w-full rounded-lg border px-4 py-3 outline-none focus:border-black focus:ring-1 focus:ring-black" />
+                  <input
+                    name="fullName"
+                    value={shippingAddress.fullName}
+                    onChange={handleChange}
+                    placeholder="Full name"
+                    required
+                    className="w-full rounded-lg border border-slate-200 px-4 py-3 outline-none focus:border-black focus:ring-1 focus:ring-black"
+                  />
                 </div>
 
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700">Phone number</label>
-                  <div className="flex min-h-[52px] rounded-lg border bg-white focus-within:border-black focus-within:ring-1 focus-within:ring-black">
-                    <CountrySelector country={phoneCountry} onChange={handleCountryChange} />
+                  <div className="flex min-h-[52px] rounded-lg border border-slate-200 bg-white focus-within:border-black focus-within:ring-1 focus-within:ring-black">
+                    <CountrySelector country={phoneCountry} onChange={handlePhoneCountryChange} />
                     <div className="flex min-w-0 flex-1 items-center px-4">
-                      <PhoneInput country={phoneCountry} value={shippingAddress.phone} onChange={handlePhoneChange} placeholder="Phone number" className="w-full border-0 bg-transparent text-base outline-none" />
+                      <PhoneInput
+                        country={phoneCountry}
+                        value={shippingAddress.phone}
+                        onChange={handlePhoneChange}
+                        placeholder="Phone number"
+                        className="w-full border-0 bg-transparent text-base outline-none"
+                      />
                     </div>
                   </div>
-                  <p className="mt-1.5 text-xs text-gray-500">Select country and enter phone number.</p>
+                  <p className="mt-1.5 text-xs text-gray-500">Select country prefix and enter recipient phone number.</p>
                 </div>
 
                 <div className="md:col-span-2">
                   <label className="mb-2 block text-sm font-medium text-gray-700">Street address</label>
-                  <input name="address" value={shippingAddress.address} onChange={handleChange} placeholder="Street address" required className="w-full rounded-lg border px-4 py-3 outline-none focus:border-black focus:ring-1 focus:ring-black" />
+                  <input
+                    name="address"
+                    value={shippingAddress.address}
+                    onChange={handleChange}
+                    placeholder="Street address, building, apartment / unit number"
+                    required
+                    className="w-full rounded-lg border border-slate-200 px-4 py-3 outline-none focus:border-black focus:ring-1 focus:ring-black"
+                  />
                 </div>
 
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700">City</label>
-                  <input name="city" value={shippingAddress.city} onChange={handleChange} placeholder="City" required className="w-full rounded-lg border px-4 py-3 outline-none focus:border-black focus:ring-1 focus:ring-black" />
+                  <input
+                    name="city"
+                    value={shippingAddress.city}
+                    onChange={handleChange}
+                    placeholder="City or town"
+                    required
+                    className="w-full rounded-lg border border-slate-200 px-4 py-3 outline-none focus:border-black focus:ring-1 focus:ring-black"
+                  />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">Country</label>
-                  <div className="flex h-[50px] items-center gap-3 rounded-lg border bg-gray-50 px-4">
-                    {flags[phoneCountry] && (() => {
-                      const Flag = flags[phoneCountry];
-                      return <span className="h-5 w-7 rounded-sm overflow-hidden inline-flex items-center justify-center"><Flag title={en[phoneCountry as keyof typeof en]} /></span>;
-                    })()}
-                    <span className="font-medium text-gray-700">{en[phoneCountry as keyof typeof en]}</span>
-                    <span className="text-sm text-gray-400">({phoneCountry})</span>
-                  </div>
-                  <p className="mt-1.5 text-xs text-gray-500">Auto-synced from phone code.</p>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">Destination Country</label>
+                  <ShippingCountrySelector
+                    country={shippingAddress.country}
+                    onChange={handleShippingCountryChange}
+                  />
+                  <p className="mt-1.5 text-xs text-gray-500">Destination country for delivery. Click to change anytime.</p>
                 </div>
 
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700">Postal code</label>
-                  <input name="postalCode" value={shippingAddress.postalCode} onChange={handleChange} placeholder="Postal code (optional)" className="w-full rounded-lg border px-4 py-3 outline-none focus:border-black focus:ring-1 focus:ring-black" />
+                  <input
+                    name="postalCode"
+                    value={shippingAddress.postalCode}
+                    onChange={handleChange}
+                    placeholder="Postal code (optional)"
+                    className="w-full rounded-lg border border-slate-200 px-4 py-3 outline-none focus:border-black focus:ring-1 focus:ring-black"
+                  />
+                </div>
+
+                {/* Preference Toggles: Remember Me & Save to Profile */}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-slate-100 pt-5 md:col-span-2">
+                  <label className="flex cursor-pointer items-center gap-2.5 text-sm font-medium text-gray-700 select-none">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={handleRememberMeChange}
+                      className="h-4 w-4 rounded border-gray-300 text-black accent-black focus:ring-black"
+                    />
+                    Remember this address for future checkouts
+                  </label>
+
+                  {currentUser && (
+                    <label className="flex cursor-pointer items-center gap-2.5 text-sm font-medium text-gray-700 select-none">
+                      <input
+                        type="checkbox"
+                        checked={saveToProfile}
+                        onChange={(e) => setSaveToProfile(e.target.checked)}
+                        className="h-4 w-4 rounded border-gray-300 text-orange-500 accent-orange-500 focus:ring-orange-500"
+                      />
+                      <span>Save / update this address in my profile</span>
+                    </label>
+                  )}
                 </div>
               </div>
             </div>

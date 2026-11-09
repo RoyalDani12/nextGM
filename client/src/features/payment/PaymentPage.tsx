@@ -143,7 +143,7 @@ export default function PaymentPage() {
         <h1 className="text-2xl font-bold">Secure payment</h1>
         <p className="mt-2 text-sm text-gray-600">Complete payment for your order. Your card details are handled by Stripe.</p>
         <div className="mt-6"><Elements key={`${checkoutId}-${attempt}`} stripe={stripePromise} options={{ clientSecret }}><PaymentForm checkoutId={checkoutId} onLoadError={handleStripeLoadError} /></Elements></div>
-        <button onClick={() => navigate("/customer-order")} className="mt-4 w-full text-sm text-gray-600 hover:text-black">View my orders instead</button>
+        <button onClick={() => navigate("/orders")} className="mt-4 w-full text-sm text-gray-600 hover:text-black">View my orders instead</button>
       </section>
     </div>
   );
@@ -188,7 +188,7 @@ function PaymentError({ message, onRetry }: { message: string; onRetry?: () => v
         <p className="mt-2 text-sm text-gray-600">{message}</p>
         <div className="mt-6 flex justify-center gap-3">
           {onRetry && <button onClick={onRetry} className="rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white">Try payment again</button>}
-          <button onClick={() => navigate("/customer-order")} className="rounded-xl border px-5 py-3 text-sm font-semibold text-gray-700">View my orders</button>
+          <button onClick={() => navigate("/orders")} className="rounded-xl border px-5 py-3 text-sm font-semibold text-gray-700">View my orders</button>
         </div>
       </section>
     </div>
