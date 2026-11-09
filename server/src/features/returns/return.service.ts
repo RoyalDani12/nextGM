@@ -187,7 +187,7 @@ export const updateCustomerReturnEvidenceService = async (
 const sellerTransitions: Record<string, ReturnStatus[]> = {
   REQUESTED: ["UNDER_REVIEW", "APPROVED", "REJECTED"],
   UNDER_REVIEW: ["APPROVED", "REJECTED"],
-  APPROVED: ["ITEM_RECEIVED", "CLOSED"],
+  APPROVED: ["ITEM_RECEIVED", "REFUND_PENDING", "CLOSED"],
   ITEM_SHIPPED: ["ITEM_RECEIVED"],
   ITEM_RECEIVED: ["REFUND_PENDING", "REPLACEMENT_SENT", "CLOSED"],
   REPLACEMENT_SENT: ["CLOSED"],

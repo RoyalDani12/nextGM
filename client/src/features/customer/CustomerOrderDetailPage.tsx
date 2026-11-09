@@ -265,7 +265,7 @@ export default function CustomerOrderDetailPage() {
                   onClick={() => setIsReturnDialogOpen(true)}
                   className="inline-flex items-center gap-1.5 rounded-full bg-orange-500 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-orange-600"
                 >
-                  <RotateCcw className="size-3.5" /> Start Return
+                  <RotateCcw className="size-3.5" /> Request Return / Refund
                 </button>
               )}
 

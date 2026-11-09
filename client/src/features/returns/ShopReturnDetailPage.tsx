@@ -29,6 +29,7 @@ const actionButtonsMap: Record<
   ],
   APPROVED: [
     { status: "ITEM_RECEIVED", label: "Mark item received", variant: "primary" },
+    { status: "REFUND_PENDING", label: "Authorize refund now", variant: "secondary" },
   ],
   ITEM_SHIPPED: [
     { status: "ITEM_RECEIVED", label: "Mark item received", variant: "primary" },
