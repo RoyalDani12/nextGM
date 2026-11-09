@@ -10,8 +10,8 @@ export const notificationWorker = new Worker(
     async (job: Job) => {
         const { userId, type, title, body, shopId, sendEmail, meta } = job.data;
 
-        await createNotificationRecored({ userId, type, title, body, shopId });
-
+        // In-app notification record is already saved in PostgreSQL by notifyUser.
+        // Worker handles external email notification dispatch:
         if (!sendEmail) return;
               
         const user = await findUserById(userId);

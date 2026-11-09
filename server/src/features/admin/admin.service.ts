@@ -53,6 +53,7 @@ import {
     updateProductStatusAdmin,
 } from "./admin.repository.js";
 import { initiateRefundService } from "../payment/payment.service.js";
+import { notifyShopOwner, notifyUser } from "../notification/notification.service.js";
 
 let platformStatsCache: { data: any; expiry: number } | null = null;
 let platformAnalyticsCache: { data: any; expiry: number } | null = null;
@@ -760,6 +761,27 @@ export const updateReturnStatusAdminService = async (
         });
     }
 
+    try {
+        await notifyUser({
+            userId: current.customerId,
+            type: "RETURN_UPDATED",
+            title: "Return status updated",
+            body: `Your return request on order #${current.orderId.slice(-8).toUpperCase()} was updated to ${status.replace(/_/g, " ").toLowerCase()}.`,
+            meta: { returnId: id, orderId: current.orderId, status, note },
+        });
+        if (current.order?.shop?.id) {
+            await notifyShopOwner({
+                shopId: current.order.shop.id,
+                type: "RETURN_UPDATED",
+                title: "Return status updated by admin",
+                body: `Claim on order #${current.orderId.slice(-8).toUpperCase()} is now ${status.replace(/_/g, " ").toLowerCase()}.`,
+                meta: { returnId: id, orderId: current.orderId, status },
+            });
+        }
+    } catch (notifErr) {
+        console.error("Failed to send notification for admin return update:", notifErr);
+    }
+
     return updated;
 };
 
@@ -788,6 +810,19 @@ export const refundReturnService = async (id: string, adminUserId?: string, ip?:
                 newValue: { returnId: id, orderId: request.orderId, status: "REFUNDED", refundResult },
                 ip,
             });
+        }
+        if (request.order?.shop?.id) {
+            try {
+                await notifyShopOwner({
+                    shopId: request.order.shop.id,
+                    type: "PAYMENT_REFUNDED",
+                    title: "Return refunded by admin",
+                    body: `Return claim on order #${request.orderId.slice(-8).toUpperCase()} was refunded to customer.`,
+                    meta: { returnId: id, orderId: request.orderId },
+                });
+            } catch (notifErr) {
+                console.error("Failed to notify shop owner about admin refund:", notifErr);
+            }
         }
         return refundResult;
     } catch (error) {
