@@ -167,15 +167,15 @@ export const AdminReturnsPage = () => {
         let status: string | undefined = undefined;
 
         if (activeTab === "NEEDS_REVIEW") {
-            status = "REQUESTED";
+            status = "REQUESTED,UNDER_REVIEW";
         } else if (activeTab === "APPROVED") {
             status = "APPROVED";
         } else if (activeTab === "ITEM_RECEIVED") {
             status = "ITEM_RECEIVED";
         } else if (activeTab === "REFUNDED") {
-            status = "REFUNDED";
+            status = "REFUNDED,REFUND_PENDING";
         } else if (activeTab === "REJECTED") {
-            status = "REJECTED";
+            status = "REJECTED,CLOSED";
         }
 
         // Dropdown status override
@@ -343,7 +343,7 @@ export const AdminReturnsPage = () => {
     const needsReviewCount = (counts.REQUESTED ?? 0) + (counts.UNDER_REVIEW ?? 0);
     const approvedCount = counts.APPROVED ?? 0;
     const itemReceivedCount = counts.ITEM_RECEIVED ?? 0;
-    const refundedCount = counts.REFUNDED ?? 0;
+    const refundedCount = (counts.REFUNDED ?? 0) + (counts.REFUND_PENDING ?? 0);
     const rejectedCount = (counts.REJECTED ?? 0) + (counts.CLOSED ?? 0);
 
     const isFiltered = search !== "" || statusFilter !== "ALL" || resolutionFilter !== "ALL" || activeTab !== "ALL";
@@ -853,25 +853,64 @@ export const AdminReturnsPage = () => {
                                                 })}
                                             </td>
 
-                                            {/* Unified Actions Dropdown */}
+                                            {/* Direct Quick Action & Dropdown */}
                                             <td className="px-4 py-3 text-right whitespace-nowrap">
-                                                <button
-                                                    onClick={(e) => {
-                                                        const rect = e.currentTarget.getBoundingClientRect();
-                                                        const openUpwards = window.innerHeight - rect.bottom < 240;
-                                                        setDropdownState({
-                                                            returnId: claim.id,
-                                                            claim,
-                                                            top: openUpwards ? rect.top - 8 : rect.bottom + 4,
-                                                            right: window.innerWidth - rect.right,
-                                                            openUpwards,
-                                                        });
-                                                    }}
-                                                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-md shadow-2xs transition-colors cursor-pointer"
-                                                >
-                                                    <span>Actions</span>
-                                                    <ChevronDown size={12} className="text-slate-500" />
-                                                </button>
+                                                <div className="inline-flex items-center gap-1.5 justify-end">
+                                                    {/* Quick Inspect */}
+                                                    <button
+                                                        onClick={() => setSelectedReturnForInspect(claim)}
+                                                        className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-md shadow-2xs transition-colors cursor-pointer"
+                                                        title="Inspect full return claim and evidence"
+                                                    >
+                                                        <Eye size={12} className="text-slate-500" />
+                                                        <span className="hidden sm:inline">View</span>
+                                                    </button>
+
+                                                    {/* Direct Complete Refund Button */}
+                                                    {isRefund &&
+                                                        ["APPROVED", "ITEM_RECEIVED", "REQUESTED", "UNDER_REVIEW", "REFUND_PENDING"].includes(claim.status) && (
+                                                            <button
+                                                                onClick={() => setSelectedReturnForRefund(claim)}
+                                                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md shadow-2xs transition-colors cursor-pointer"
+                                                                title="Approve and execute financial refund settlement"
+                                                            >
+                                                                <DollarSign size={12} />
+                                                                <span>Refund</span>
+                                                            </button>
+                                                        )}
+
+                                                    {/* Direct Quick Approve for Claims needing review */}
+                                                    {["REQUESTED", "UNDER_REVIEW"].includes(claim.status) && (
+                                                        <button
+                                                            onClick={() => handleQuickStatusUpdate(claim.id, "APPROVED")}
+                                                            disabled={updateStatusMutation.isPending}
+                                                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md shadow-2xs transition-colors cursor-pointer"
+                                                            title="Approve return claim"
+                                                        >
+                                                            <CheckCircle2 size={12} className="text-blue-600" />
+                                                            <span>Approve</span>
+                                                        </button>
+                                                    )}
+
+                                                    {/* More actions dropdown */}
+                                                    <button
+                                                        onClick={(e) => {
+                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                            const openUpwards = window.innerHeight - rect.bottom < 240;
+                                                            setDropdownState({
+                                                                returnId: claim.id,
+                                                                claim,
+                                                                top: openUpwards ? rect.top - 8 : rect.bottom + 4,
+                                                                right: window.innerWidth - rect.right,
+                                                                openUpwards,
+                                                            });
+                                                        }}
+                                                        className="inline-flex items-center justify-center size-7 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-md shadow-2xs transition-colors cursor-pointer"
+                                                        title="More options"
+                                                    >
+                                                        <ChevronDown size={13} className="text-slate-500" />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     );

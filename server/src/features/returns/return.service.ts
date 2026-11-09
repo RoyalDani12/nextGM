@@ -20,7 +20,7 @@ const returnInclude = {
     include: {
       orderItem: {
         include: {
-          product: { select: { name: true, images: { where: { isPrimary: true }, select: { url: true }, take: 1 } } },
+          product: { select: { name: true, images: { select: { url: true }, take: 1, orderBy: { isPrimary: "desc" } } } },
           variant: { select: { name: true } },
         },
       },
@@ -229,9 +229,9 @@ export const getShopReturnsService = async (
   const page = Math.max(1, Number(query.page) || 1);
   const limit = Math.max(1, Math.min(100, Number(query.limit) || 20));
   const skip = (page - 1) * limit;
-  const where = {
+
+  const baseWhere: any = {
     order: { shopId },
-    ...(query.status && query.status !== "ALL" ? { status: query.status as ReturnStatus } : {}),
     ...(query.search
       ? {
           OR: [
@@ -243,6 +243,23 @@ export const getShopReturnsService = async (
         }
       : {}),
   };
+
+  let statusCondition: any = undefined;
+  if (query.status && query.status !== "ALL") {
+    if (query.status === "NEEDS_REVIEW") {
+      statusCondition = { in: ["REQUESTED", "UNDER_REVIEW"] };
+    } else if (query.status.includes(",")) {
+      statusCondition = { in: query.status.split(",").map((s) => s.trim()).filter(Boolean) };
+    } else {
+      statusCondition = query.status as ReturnStatus;
+    }
+  }
+
+  const where: any = {
+    ...baseWhere,
+    ...(statusCondition ? { status: statusCondition } : {}),
+  };
+
   const [returns, total, statusCounts] = await prisma.$transaction([
     prisma.returnRequest.findMany({
       where,
@@ -252,7 +269,7 @@ export const getShopReturnsService = async (
       take: limit,
     }),
     prisma.returnRequest.count({ where }),
-    prisma.returnRequest.groupBy({ by: ["status"], where, _count: { _all: true } }),
+    prisma.returnRequest.groupBy({ by: ["status"], where: baseWhere, _count: { _all: true } }),
   ]);
   return {
     returns,

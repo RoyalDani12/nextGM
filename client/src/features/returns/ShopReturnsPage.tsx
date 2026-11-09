@@ -12,6 +12,8 @@ const RETURN_STATUS_TABS: { value: string; label: string }[] = [
   { value: "UNDER_REVIEW", label: "Under review" },
   { value: "APPROVED", label: "Approved" },
   { value: "ITEM_RECEIVED", label: "Item received" },
+  { value: "REFUND_PENDING", label: "Refund pending" },
+  { value: "REFUNDED", label: "Refunded" },
   { value: "REJECTED", label: "Rejected" },
   { value: "CLOSED", label: "Closed" },
 ];
@@ -35,10 +37,25 @@ const returnStatusMeta: Record<
     dotClass: "bg-emerald-500",
     textClass: "text-emerald-700",
   },
+  ITEM_SHIPPED: {
+    label: "Item shipped",
+    dotClass: "bg-sky-500",
+    textClass: "text-sky-700",
+  },
   ITEM_RECEIVED: {
     label: "Item received",
     dotClass: "bg-indigo-500",
     textClass: "text-indigo-700",
+  },
+  REFUND_PENDING: {
+    label: "Refund pending",
+    dotClass: "bg-purple-500",
+    textClass: "text-purple-700",
+  },
+  REFUNDED: {
+    label: "Refunded",
+    dotClass: "bg-emerald-600",
+    textClass: "text-emerald-800",
   },
   REPLACEMENT_SENT: {
     label: "Replacement sent",
@@ -52,6 +69,11 @@ const returnStatusMeta: Record<
   },
   CLOSED: {
     label: "Closed",
+    dotClass: "bg-slate-400",
+    textClass: "text-slate-600",
+  },
+  CANCELLED: {
+    label: "Cancelled",
     dotClass: "bg-slate-400",
     textClass: "text-slate-600",
   },
@@ -162,17 +184,30 @@ export default function ShopReturnsPage() {
         <div className="flex items-center gap-1 border-b border-slate-200 overflow-x-auto text-xs font-medium">
           {RETURN_STATUS_TABS.map((tab) => {
             const isActive = status === tab.value;
+            const tabCount =
+              tab.value === "ALL"
+                ? (response?.pagination?.total ?? returns.length)
+                : (counts[tab.value] ?? 0);
             return (
               <button
                 key={tab.value}
                 onClick={() => setStatus(tab.value)}
-                className={`px-3 py-2 border-b-2 -mb-px transition-colors whitespace-nowrap cursor-pointer ${
+                className={`px-3 py-2 border-b-2 -mb-px transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                   isActive
                     ? "border-orange-500 text-slate-900 font-semibold"
                     : "border-transparent text-slate-500 hover:text-slate-700"
                 }`}
               >
-                {tab.label}
+                <span>{tab.label}</span>
+                <span
+                  className={`inline-flex items-center justify-center px-1.5 py-0.2 rounded-full text-[10px] font-bold tabular-nums ${
+                    isActive
+                      ? "bg-orange-100 text-orange-800"
+                      : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {tabCount}
+                </span>
               </button>
             );
           })}
