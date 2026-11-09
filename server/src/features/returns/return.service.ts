@@ -69,10 +69,15 @@ export const createReturnRequestService = async (
   },
 ) => {
   const order = await prisma.order.findFirst({
-    where: { id: input.orderId, customerId, status: "DELIVERED", deletedAt: null },
+    where: {
+      id: input.orderId,
+      customerId,
+      status: { in: ["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"] },
+      deletedAt: null,
+    },
     include: { items: true },
   });
-  if (!order) throw new AppError("Only delivered orders can be returned.", 400);
+  if (!order) throw new AppError("Order not eligible for return or refund.", 400);
 
   const requestedItemIds = new Set<string>();
   for (const item of input.items) {
@@ -187,7 +192,7 @@ export const updateCustomerReturnEvidenceService = async (
 const sellerTransitions: Record<string, ReturnStatus[]> = {
   REQUESTED: ["UNDER_REVIEW", "APPROVED", "REJECTED"],
   UNDER_REVIEW: ["APPROVED", "REJECTED"],
-  APPROVED: ["ITEM_RECEIVED", "CLOSED"],
+  APPROVED: ["ITEM_RECEIVED", "REFUND_PENDING", "CLOSED"],
   ITEM_SHIPPED: ["ITEM_RECEIVED"],
   ITEM_RECEIVED: ["REFUND_PENDING", "REPLACEMENT_SENT", "CLOSED"],
   REPLACEMENT_SENT: ["CLOSED"],

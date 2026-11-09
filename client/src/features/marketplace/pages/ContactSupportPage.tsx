@@ -227,6 +227,20 @@ export default function ContactSupportPage() {
                         </button>
                       ))}
                     </div>
+                    {form.category === "RETURN_ISSUE" && (
+                      <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-orange-200 bg-orange-50/80 p-3 text-xs text-orange-900">
+                        <RotateCcw className="size-4 text-orange-600 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold">Looking to request a return or refund for an order?</p>
+                          <p className="text-orange-700 mt-0.5">
+                            You can submit an official claim directly from your order page for immediate shop review.
+                          </p>
+                          <Link to="/customer-order" className="mt-1 inline-block font-extrabold text-orange-600 underline hover:text-orange-800">
+                            Go to My Orders →
+                          </Link>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Subject */}
@@ -288,6 +302,20 @@ export default function ContactSupportPage() {
                         </button>
                       ))}
                     </div>
+                    {form.category === "RETURN_ISSUE" && (
+                      <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-orange-200 bg-orange-50/80 p-3 text-xs text-orange-900">
+                        <RotateCcw className="size-4 text-orange-600 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold">Looking to request a return or refund for an order?</p>
+                          <p className="text-orange-700 mt-0.5">
+                            You can submit an official claim directly from your order page for immediate shop review.
+                          </p>
+                          <Link to="/customer-order" className="mt-1 inline-block font-extrabold text-orange-600 underline hover:text-orange-800">
+                            Go to My Orders →
+                          </Link>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <Button
