@@ -129,8 +129,10 @@ export function AppRoutes() {
                     <Route path="/checkout" element={<CheckoutPage />} />
                     <Route path="/payment/:checkoutId" element={<PaymentPage />} />
                     <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
+                    <Route path="/orders" element={<OrdersPage />} />
                     <Route path="/customer-order" element={<OrdersPage />} />
                     <Route path="/orders/:orderId" element={<CustomerOrderDetailPage />} />
+                    <Route path="/customer-order/:orderId" element={<CustomerOrderDetailPage />} />
                     <Route path="/returns" element={<CustomerReturnsPage />} />
                     <Route path="/shops" element={<ShopSelectionPage />} />
                     <Route path="/shops/new" element={<CreateShopPage />} />

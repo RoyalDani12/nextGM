@@ -166,7 +166,7 @@ export function NotificationDropdown({
       } else if (notification.shopId || shopId) {
         navigate(`/dashboard/shop/${notification.shopId || shopId}/orders`);
       } else {
-        navigate("/customer-order");
+        navigate("/orders");
       }
       setIsOpen(false);
       return;

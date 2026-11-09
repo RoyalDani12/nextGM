@@ -8,7 +8,7 @@ export default function CustomerReturnsPage() {
   return (
     <div className="min-h-screen bg-slate-50/70 px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl">
-        <Link to="/customer-order" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-950">
+        <Link to="/orders" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-950">
           <ArrowLeft className="size-4" /> Back to orders
         </Link>
         <div className="mt-8 flex items-end justify-between gap-4">

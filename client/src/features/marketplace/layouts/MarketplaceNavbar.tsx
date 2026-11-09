@@ -206,7 +206,7 @@ export const MarketplaceNavbar = () => {
                       <User className="mr-2 size-4 text-slate-400" /> Profile Settings
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => navigate("/customer-order")}
+                      onClick={() => navigate("/orders")}
                       className="cursor-pointer rounded-xl focus:bg-orange-50 focus:text-orange-600"
                     >
                       <Receipt className="mr-2 size-4 text-slate-400" /> Your Orders
@@ -278,7 +278,7 @@ export const MarketplaceNavbar = () => {
                       <Package className="mr-2 size-4 text-slate-400" /> See Your Shops
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => navigate("/customer-order")}
+                      onClick={() => navigate("/orders")}
                       className="cursor-pointer rounded-xl focus:bg-orange-50 focus:text-orange-600"
                     >
                       <Receipt className="mr-2 size-4 text-slate-400" />Your Orders

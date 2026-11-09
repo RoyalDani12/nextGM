@@ -235,7 +235,7 @@ export default function ContactSupportPage() {
                           <p className="text-orange-700 mt-0.5">
                             You can submit an official claim directly from your order page for immediate shop review.
                           </p>
-                          <Link to="/customer-order" className="mt-1 inline-block font-extrabold text-orange-600 underline hover:text-orange-800">
+                          <Link to="/orders" className="mt-1 inline-block font-extrabold text-orange-600 underline hover:text-orange-800">
                             Go to My Orders →
                           </Link>
                         </div>
@@ -310,7 +310,7 @@ export default function ContactSupportPage() {
                           <p className="text-orange-700 mt-0.5">
                             You can submit an official claim directly from your order page for immediate shop review.
                           </p>
-                          <Link to="/customer-order" className="mt-1 inline-block font-extrabold text-orange-600 underline hover:text-orange-800">
+                          <Link to="/orders" className="mt-1 inline-block font-extrabold text-orange-600 underline hover:text-orange-800">
                             Go to My Orders →
                           </Link>
                         </div>
