@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Bell,
   ShoppingBag,
@@ -103,6 +103,8 @@ export function NotificationDropdown({
   align = "end",
 }: NotificationDropdownProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAdminView = location.pathname.startsWith("/superadmin");
   const [filterUnread, setFilterUnread] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -129,18 +131,27 @@ export function NotificationDropdown({
       markAsRead.mutate(notification.id);
     }
 
-    if (notification.type === "REVIEW_RECEIVED" && shopId) {
-      navigate(`/dashboard/shop/${shopId}/reviews`);
+    if (notification.type === "REVIEW_RECEIVED") {
+      if (isAdminView) {
+        navigate("/superadmin/reviews");
+      } else if (shopId || notification.shopId) {
+        navigate(`/dashboard/shop/${shopId || notification.shopId}/reviews`);
+      }
       setIsOpen(false);
       return;
     }
 
     if (
-      (notification.type === "RETURN_REQUESTED" ||
-        notification.type === "RETURN_UPDATED") &&
-      notification.shopId
+      notification.type === "RETURN_REQUESTED" ||
+      notification.type === "RETURN_UPDATED"
     ) {
-      navigate(`/dashboard/shop/${notification.shopId}/returns`);
+      if (isAdminView) {
+        navigate("/superadmin/returns");
+      } else if (shopId || notification.shopId) {
+        navigate(`/dashboard/shop/${shopId || notification.shopId}/returns`);
+      } else {
+        navigate("/returns");
+      }
       setIsOpen(false);
       return;
     }
@@ -150,10 +161,24 @@ export function NotificationDropdown({
       notification.type === "ORDER_SHIPPED" ||
       notification.type === "ORDER_DELIVERED"
     ) {
-      if (notification.shopId || shopId) {
+      if (isAdminView) {
+        navigate("/superadmin/orders");
+      } else if (notification.shopId || shopId) {
         navigate(`/dashboard/shop/${notification.shopId || shopId}/orders`);
       } else {
         navigate("/customer-order");
+      }
+      setIsOpen(false);
+      return;
+    }
+
+    if (notification.type === "PAYMENT_REFUNDED") {
+      if (isAdminView) {
+        navigate("/superadmin/returns");
+      } else if (shopId || notification.shopId) {
+        navigate(`/dashboard/shop/${shopId || notification.shopId}/returns`);
+      } else {
+        navigate("/returns");
       }
       setIsOpen(false);
       return;

@@ -1,7 +1,7 @@
 import { ReturnStatus } from "@prisma/client";
 import { AppError } from "../../middleware/appError.js";
 import { prisma } from "../../config/db.js";
-import { notifyShopOwner, notifyUser } from "../notification/notification.service.js";
+import { notifyShopOwner, notifyUser, notifyAdmins } from "../notification/notification.service.js";
 
 const activeReturnStatuses: ReturnStatus[] = [
   "REQUESTED",
@@ -46,15 +46,24 @@ const notifyReturnRequested = async (returnRequest: {
   order: { shopId: string };
 }) => {
   try {
+    // Notify the shop owner
     await notifyShopOwner({
       shopId: returnRequest.order.shopId,
       type: "RETURN_REQUESTED",
       title: "New return request",
-      body: `A customer requested a return for order #${returnRequest.orderId.slice(-8).toUpperCase()}.`,
+      body: `A customer requested a return/refund for order #${returnRequest.orderId.slice(-8).toUpperCase()}.`,
       meta: { returnRequestId: returnRequest.id, orderId: returnRequest.orderId },
     });
+
+    // Notify Super Admins
+    await notifyAdmins({
+      type: "RETURN_REQUESTED",
+      title: "New return claim filed",
+      body: `Customer filed a return/refund claim for order #${returnRequest.orderId.slice(-8).toUpperCase()}.`,
+      meta: { returnRequestId: returnRequest.id, orderId: returnRequest.orderId, shopId: returnRequest.order.shopId },
+    });
   } catch (error) {
-    console.error("Failed to notify shop owner about return request:", error);
+    console.error("Failed to notify about return request:", error);
   }
 };
 
@@ -213,8 +222,15 @@ const notifyCustomerReturnUpdate = async (returnRequest: {
       body: `Your return for order #${returnRequest.orderId.slice(-8).toUpperCase()} is now ${returnRequest.status.replaceAll("_", " ").toLowerCase()}.`,
       meta: { returnRequestId: returnRequest.id, orderId: returnRequest.orderId, status: returnRequest.status, note: returnRequest.note },
     });
+
+    await notifyAdmins({
+      type: "RETURN_UPDATED",
+      title: `Return claim marked ${returnRequest.status.replaceAll("_", " ").toLowerCase()}`,
+      body: `Claim on order #${returnRequest.orderId.slice(-8).toUpperCase()} is now ${returnRequest.status.replaceAll("_", " ").toLowerCase()}.`,
+      meta: { returnRequestId: returnRequest.id, orderId: returnRequest.orderId, status: returnRequest.status },
+    });
   } catch (error) {
-    console.error("Failed to notify customer about return update:", error);
+    console.error("Failed to notify about return update:", error);
   }
 };
 

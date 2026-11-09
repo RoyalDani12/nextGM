@@ -10,6 +10,7 @@ import {
   deleteNotification,
   findShopOwnerId,
   findSuperAdminIds,
+  createNotificationRecored,
   FindNotificationsOptions,
 } from "./notification.repository.js";
 import { notificationQueue } from "../../infrastructure/queue/queue.client.js";
@@ -47,8 +48,16 @@ export const notifyUser = async (params: {
     return;
   }
 
+  // 1. Direct in-app persistence: write to database immediately so bell & dashboard update reliably
+  try {
+    await createNotificationRecored({ userId, type, title, body, shopId });
+  } catch (dbErr) {
+    logger.error({ dbErr, userId, type }, "Failed to write in-app notification to database");
+  }
+
   const emailEnabled = pref ? pref.emailEnabled : true;
 
+  // 2. Background queue for email sending
   try {
     await notificationQueue.add("send-notification", {
       userId,
@@ -60,7 +69,7 @@ export const notifyUser = async (params: {
       meta,
     });
   } catch (err) {
-    logger.error({ err, userId, type }, "Failed to enqueue notification");
+    logger.warn({ err, userId, type }, "Failed to enqueue notification for background delivery");
   }
 };
 
