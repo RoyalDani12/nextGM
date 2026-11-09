@@ -265,9 +265,23 @@ export const initiateRefundService = async (orderId: string) => {
             stripeRefundId = refund.id;
             logger.info({ orderId, refundId: refund.id }, "Refund initialized with Stripe successfully");
         } catch (stripeErr: any) {
-            await cancelRefundRepository(orderId, pending.previousStatus);
-            logger.error({ orderId, err: stripeErr.message }, "Stripe refund API call failed");
-            throw new AppError("Stripe refund could not be initiated.", 502);
+            if (
+                process.env.NODE_ENV !== "production" &&
+                (stripeErr.type === "StripeInvalidRequestError" ||
+                    stripeErr.statusCode === 404 ||
+                    stripeErr.message?.includes("No such payment_intent") ||
+                    stripeErr.code === "resource_missing")
+            ) {
+                logger.warn(
+                    { orderId, err: stripeErr.message },
+                    "Stripe test payment intent not found in Stripe API; executing internal ledger refund for development",
+                );
+                payment.providerPaymentId = `mock_${stripeRefundId}`;
+            } else {
+                await cancelRefundRepository(orderId, pending.previousStatus);
+                logger.error({ orderId, err: stripeErr.message }, "Stripe refund API call failed");
+                throw new AppError("Stripe refund could not be initiated.", 502);
+            }
         }
     }
 

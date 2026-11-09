@@ -34,7 +34,8 @@ const actionButtonsMap: Record<
     { status: "ITEM_RECEIVED", label: "Mark item received", variant: "primary" },
   ],
   ITEM_RECEIVED: [
-    { status: "REPLACEMENT_SENT", label: "Replacement sent", variant: "primary" },
+    { status: "REFUND_PENDING", label: "Authorize refund", variant: "primary" },
+    { status: "REPLACEMENT_SENT", label: "Replacement sent", variant: "secondary" },
     { status: "CLOSED", label: "Close claim", variant: "secondary" },
   ],
   REPLACEMENT_SENT: [
@@ -64,11 +65,29 @@ const returnStatusMeta: Record<
     textClass: "text-emerald-700",
     bgClass: "bg-emerald-50 border-emerald-200",
   },
+  ITEM_SHIPPED: {
+    label: "Item shipped",
+    dotClass: "bg-sky-500",
+    textClass: "text-sky-700",
+    bgClass: "bg-sky-50 border-sky-200",
+  },
   ITEM_RECEIVED: {
     label: "Item received",
     dotClass: "bg-indigo-500",
     textClass: "text-indigo-700",
     bgClass: "bg-indigo-50 border-indigo-200",
+  },
+  REFUND_PENDING: {
+    label: "Refund pending",
+    dotClass: "bg-purple-500",
+    textClass: "text-purple-700",
+    bgClass: "bg-purple-50 border-purple-200",
+  },
+  REFUNDED: {
+    label: "Refunded",
+    dotClass: "bg-emerald-600",
+    textClass: "text-emerald-800",
+    bgClass: "bg-emerald-50 border-emerald-200",
   },
   REPLACEMENT_SENT: {
     label: "Replacement sent",
@@ -84,6 +103,12 @@ const returnStatusMeta: Record<
   },
   CLOSED: {
     label: "Closed",
+    dotClass: "bg-slate-400",
+    textClass: "text-slate-600",
+    bgClass: "bg-slate-50 border-slate-200",
+  },
+  CANCELLED: {
+    label: "Cancelled",
     dotClass: "bg-slate-400",
     textClass: "text-slate-600",
     bgClass: "bg-slate-50 border-slate-200",

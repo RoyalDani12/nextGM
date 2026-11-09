@@ -5,7 +5,7 @@ const adminReturnInclude = {
         include: {
             orderItem: {
                 include: {
-                    product: { select: { name: true, images: { where: { isPrimary: true }, select: { url: true }, take: 1 } } },
+                    product: { select: { name: true, images: { select: { url: true }, take: 1, orderBy: { isPrimary: "desc" } } } },
                     variant: { select: { name: true } },
                 },
             },
@@ -1026,9 +1026,25 @@ export const listReturnsAdmin = async (filters: { status?: string; search?: stri
             ],
         } : {}),
     };
+
+    let statusCondition: any = undefined;
+    if (status && status !== "ALL") {
+        if (status === "NEEDS_REVIEW") {
+            statusCondition = { in: ["REQUESTED", "UNDER_REVIEW"] };
+        } else if (status === "REFUNDED") {
+            statusCondition = { in: ["REFUNDED", "REFUND_PENDING"] };
+        } else if (status === "REJECTED") {
+            statusCondition = { in: ["REJECTED", "CLOSED"] };
+        } else if (status.includes(",")) {
+            statusCondition = { in: status.split(",").map((s) => s.trim()).filter(Boolean) };
+        } else {
+            statusCondition = status;
+        }
+    }
+
     const where: any = {
         ...baseWhere,
-        ...(status && status !== "ALL" ? { status } : {}),
+        ...(statusCondition ? { status: statusCondition } : {}),
     };
     const [returns, total, statusCounts] = await prisma.$transaction([
         prisma.returnRequest.findMany({ where, include: adminReturnInclude, orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit }),
