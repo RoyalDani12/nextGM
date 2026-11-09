@@ -259,7 +259,7 @@ export default function CustomerOrderDetailPage() {
                 </button>
               )}
 
-              {order.status === "DELIVERED" && !activeReturn && (
+              {["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"].includes(order.status) && !activeReturn && (
                 <button
                   type="button"
                   onClick={() => setIsReturnDialogOpen(true)}
@@ -743,7 +743,7 @@ export default function CustomerOrderDetailPage() {
         </div>
       </div>
 
-      {order.status === "DELIVERED" && (
+      {["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"].includes(order.status) && (
         <ReturnRequestDialog
           open={isReturnDialogOpen}
           onOpenChange={setIsReturnDialogOpen}
