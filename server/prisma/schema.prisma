@@ -1030,16 +1030,19 @@ model Notification {
 }
 
 model NotificationPreference {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  user         User     @relation(fields: [userId], references: [id])
-  emailEnabled Boolean  @default(true)
-  pushEnabled  Boolean  @default(true)
-  orderUpdates Boolean  @default(true)
-  promotions   Boolean  @default(true)
-  reviews      Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id])
+  emailEnabled   Boolean  @default(true)
+  pushEnabled    Boolean  @default(true)
+  orderUpdates   Boolean  @default(true)
+  orderPlaced    Boolean  @default(true)
+  orderShipped   Boolean  @default(true)
+  orderDelivered Boolean  @default(true)
+  promotions     Boolean  @default(true)
+  reviews        Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 // ─────────────────────────────────────────

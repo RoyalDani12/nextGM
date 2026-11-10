@@ -12,6 +12,7 @@ import {
   Receipt,
   RotateCcw,
   MapPin,
+  ArrowRight,
 } from "lucide-react";
 import type { DeliveryLocation } from "../utils/deliveryLocation";
 
@@ -246,9 +247,10 @@ export const MarketplaceMobileMenu = ({
                 <button
                   type="button"
                   onClick={() => goTo("/login")}
-                  className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95"
+                  className="group w-full inline-flex items-center justify-center min-h-[42px] px-4 py-2.5 rounded-xl border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs sm:text-sm hover:border-orange-500 hover:text-orange-600 hover:bg-orange-50/50 transition-all cursor-pointer shadow-2xs active:scale-95"
                 >
-                  Sign in
+                  <span>Sign in</span>
+                  <ArrowRight className="size-3.5 ml-1.5 text-slate-400 group-hover:text-orange-600 transition-transform group-hover:translate-x-0.5" />
                 </button>
               </div>
             </div>

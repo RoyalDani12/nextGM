@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ShoppingCart,
   Search,
@@ -12,6 +12,8 @@ import {
   RotateCcw,
   MapPin,
   ChevronDown,
+  ArrowRight,
+  X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -35,12 +37,33 @@ type CartGroup = { items: Array<{ quantity: number }> };
 
 export const MarketplaceNavbar = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isScrolled, setIsScrolled] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [deliveryLocation, setDeliveryLocation] = useState<DeliveryLocation>(
     () => getStoredDeliveryLocation() || getBrowserInstantLocation()
   );
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+
+  useEffect(() => {
+    setSearchQuery(searchParams.get("search") || "");
+  }, [searchParams]);
+
+  const handleSearchSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const term = searchQuery.trim();
+    if (term) {
+      navigate(`/?search=${encodeURIComponent(term)}#marketplace-products`);
+      setTimeout(() => {
+        document.getElementById("marketplace-products")?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    } else {
+      navigate("/#marketplace-products");
+      setTimeout(() => {
+        document.getElementById("marketplace-products")?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
+  };
 
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
@@ -107,7 +130,7 @@ export const MarketplaceNavbar = () => {
           />
 
           {/* Search Box */}
-          <form onSubmit={(event) => { event.preventDefault(); navigate(searchQuery.trim() ? `/?search=${encodeURIComponent(searchQuery.trim())}` : "/"); }} className="hidden xl:flex flex-1 max-w-xl relative items-center">
+          <form onSubmit={handleSearchSubmit} className="hidden lg:flex flex-1 max-w-xl relative items-center">
             <div className="relative w-full flex items-center">
               <Search className="absolute left-4 size-4 text-slate-400 pointer-events-none" />
               <Input
@@ -118,6 +141,19 @@ export const MarketplaceNavbar = () => {
                 className="h-11 w-full rounded-full border border-slate-200/90 bg-[#F1F4F8] hover:bg-[#E8EDF3] dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-750 pl-11 pr-28 text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 transition-all focus-visible:bg-[#F1F4F8] dark:focus-visible:bg-zinc-800 focus-visible:border-orange-500 focus-visible:ring-2 focus-visible:ring-orange-500/20 shadow-none"
               />
               <div className="absolute right-1.5 flex items-center gap-1.5">
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery("");
+                      navigate("/#marketplace-products");
+                    }}
+                    className="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-200/60 transition-colors"
+                    aria-label="Clear search input"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
                 <div className="pointer-events-none hidden sm:flex items-center gap-1 rounded-lg border border-slate-200 bg-white/80 dark:bg-zinc-700 dark:border-zinc-600 px-1.5 py-0.5 text-[10px] font-bold text-slate-500 dark:text-slate-300 shadow-xs">
                   <Command className="size-3" />
                   <span>NG</span>
@@ -162,26 +198,31 @@ export const MarketplaceNavbar = () => {
 
 
           {/* Mobile Actions: Cart + Sign In (or User Menu) */}
-          <div className="ml-auto flex items-center gap-1.5 lg:hidden">
+          <div className="ml-auto flex items-center gap-3 sm:gap-3.5 lg:hidden">
             <button
               onClick={() => navigate("/cart")}
-              className="relative flex size-8.5 cursor-pointer items-center justify-center rounded-full text-slate-700 transition-all hover:bg-orange-50 hover:text-orange-500 active:scale-95"
+              className="relative flex size-10 cursor-pointer items-center justify-center rounded-xl border border-slate-200/90 bg-white text-slate-700 shadow-2xs transition-all hover:border-orange-500 hover:bg-orange-50 hover:text-orange-600 active:scale-95"
               aria-label="Shopping cart"
             >
-              <ShoppingCart className="size-5" />
+              <ShoppingCart className="size-5.5" />
               {cartItemCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 flex items-center justify-center rounded-full bg-orange-500 text-[9px] font-extrabold text-white shadow-xs">
+                <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1.5 flex items-center justify-center rounded-full bg-orange-600 text-[10px] font-black text-white shadow-xs border-2 border-white">
                   {cartItemCount}
                 </span>
               )}
             </button>
 
+            {isAuthenticated && (
+              <NotificationDropdown triggerClassName="size-10 flex items-center justify-center rounded-xl border border-slate-200/90 bg-white text-slate-700 shadow-2xs hover:border-orange-500 hover:bg-orange-50 hover:text-orange-600 transition-all cursor-pointer active:scale-95" />
+            )}
+
             {!isAuthenticated ? (
               <Link
                 to="/login"
-                className="inline-flex items-center justify-center h-8.5 px-3.5 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
+                className="group inline-flex items-center justify-center min-h-[40px] px-4 rounded-xl border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-100 font-bold text-xs sm:text-sm hover:border-orange-500 hover:text-orange-600 hover:bg-orange-50/60 transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
               >
-                Sign in
+                <span>Sign in</span>
+                <ArrowRight className="size-3.5 ml-1.5 text-slate-400 group-hover:text-orange-600 transition-transform group-hover:translate-x-0.5" />
               </Link>
             ) : (
               <DropdownMenu>
@@ -189,8 +230,8 @@ export const MarketplaceNavbar = () => {
                   aria-label="Open mobile account menu"
                   className="flex items-center gap-1 outline-none cursor-pointer"
                 >
-                  <div className="size-8.5 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 font-bold text-xs shadow-2xs">
-                    {user?.name?.[0]?.toUpperCase() || <User className="size-3.5" />}
+                  <div className="size-10 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 font-bold text-xs shadow-2xs">
+                    {user?.name?.[0]?.toUpperCase() || <User className="size-4" />}
                   </div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 rounded-2xl border border-slate-200 bg-white p-1 shadow-2xl">
@@ -242,9 +283,10 @@ export const MarketplaceNavbar = () => {
               <div className="flex items-center gap-2.5">
                 <Link
                   to="/login"
-                  className="inline-flex items-center px-4.5 py-2 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
+                  className="group inline-flex items-center justify-center min-h-[40px] px-5 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:border-orange-500 hover:text-orange-600 hover:bg-orange-50/60 transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
                 >
-                  Sign in
+                  <span>Sign in</span>
+                  <ArrowRight className="size-3.5 ml-1.5 text-slate-400 group-hover:text-orange-600 transition-transform group-hover:translate-x-0.5" />
                 </Link>
               </div>
             ) : (
@@ -318,7 +360,7 @@ export const MarketplaceNavbar = () => {
             )}
           </div>
         </div>
-        <form onSubmit={(event) => { event.preventDefault(); navigate(searchQuery.trim() ? `/?search=${encodeURIComponent(searchQuery.trim())}` : "/"); }} className="relative mx-4 mt-3 lg:hidden flex items-center">
+        <form onSubmit={handleSearchSubmit} className="relative mx-4 mt-3 lg:hidden flex items-center">
           <div className="relative w-full flex items-center">
             <Search className="absolute left-3.5 size-4 text-slate-400 pointer-events-none" />
             <Input
@@ -326,15 +368,30 @@ export const MarketplaceNavbar = () => {
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search products, brands and categories..."
-              className="h-10 w-full rounded-full border border-slate-200/90 bg-[#F1F4F8] hover:bg-[#E8EDF3] dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-750 pl-10 pr-12 text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 transition-all focus-visible:bg-[#F1F4F8] dark:focus-visible:bg-zinc-800 focus-visible:border-orange-500 focus-visible:ring-2 focus-visible:ring-orange-500/20 shadow-none"
+              className="h-10 w-full rounded-full border border-slate-200/90 bg-[#F1F4F8] hover:bg-[#E8EDF3] dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-750 pl-10 pr-20 text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 transition-all focus-visible:bg-[#F1F4F8] dark:focus-visible:bg-zinc-800 focus-visible:border-orange-500 focus-visible:ring-2 focus-visible:ring-orange-500/20 shadow-none"
             />
-            <button
-              type="submit"
-              aria-label="Submit search"
-              className="absolute right-1 size-8 rounded-full bg-[#F97316] hover:bg-[#EA580C] text-white flex items-center justify-center transition-colors cursor-pointer shadow-xs active:scale-95"
-            >
-              <Search className="size-4 stroke-[2.5]" />
-            </button>
+            <div className="absolute right-1 flex items-center gap-1">
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    navigate("/#marketplace-products");
+                  }}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-200/60 transition-colors"
+                  aria-label="Clear search input"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
+              <button
+                type="submit"
+                aria-label="Submit search"
+                className="size-8 rounded-full bg-[#F97316] hover:bg-[#EA580C] text-white flex items-center justify-center transition-colors cursor-pointer shadow-xs active:scale-95"
+              >
+                <Search className="size-4 stroke-[2.5]" />
+              </button>
+            </div>
           </div>
         </form>
 

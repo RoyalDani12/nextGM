@@ -86,8 +86,15 @@ export default function Hero() {
           element.scrollIntoView({ behavior: "smooth" });
         }, 80);
       }
+    } else if (params.get("search")) {
+      const element = document.getElementById("marketplace-products");
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: "smooth" });
+        }, 80);
+      }
     }
-  }, [location.hash, location.search]);
+  }, [location.hash, location.search, params]);
 
   const changeFilters = useCallback((next: CatalogFilters) => {
     setFilters(next);
@@ -114,6 +121,16 @@ export default function Hero() {
   const activeChips = useMemo(() => {
     const category = categories.flatMap((parent) => [parent, ...parent.children]).find((item) => item.slug === filters.categorySlug);
     return [
+      search ? {
+        label: `Search: "${search}"`,
+        clear: () => {
+          setSearch("");
+          setSearchInput("");
+          const next = new URLSearchParams(params);
+          next.delete("search");
+          setParams(next, { replace: true });
+        },
+      } : null,
       category && { label: `Category: ${category.name}`, clear: () => changeFilters({ ...filters, categorySlug: undefined }) },
       filters.minPrice || filters.maxPrice ? { label: `Price: $${filters.minPrice || "0"} – $${filters.maxPrice || "∞"}`, clear: () => changeFilters({ ...filters, minPrice: undefined, maxPrice: undefined }) } : null,
       filters.minRating ? { label: `Rating: ${filters.minRating}★ & Up`, clear: () => changeFilters({ ...filters, minRating: undefined }) } : null,
@@ -121,7 +138,7 @@ export default function Hero() {
       filters.verifiedShopsOnly ? { label: "Verified Stores", clear: () => changeFilters({ ...filters, verifiedShopsOnly: undefined }) } : null,
       filters.type ? { label: `Format: ${filters.type === "PHYSICAL" ? "Physical" : "Digital"}`, clear: () => changeFilters({ ...filters, type: undefined }) } : null,
     ].filter(Boolean) as Array<{ label: string; clear: () => void }>;
-  }, [categories, filters, changeFilters]);
+  }, [categories, filters, search, params, setParams, changeFilters]);
   const selectedSort = `${filters.sort || "createdAt"}:${filters.order || "desc"}`;
 
   const heroProducts = products.slice(0, 3);
@@ -134,6 +151,9 @@ export default function Hero() {
     const next = new URLSearchParams(params);
     if (query) next.set("search", query); else next.delete("search");
     setParams(next, { replace: true });
+    setTimeout(() => {
+      document.getElementById("marketplace-products")?.scrollIntoView({ behavior: "smooth" });
+    }, 80);
   };
 
   return <div className="w-full bg-slate-50 text-slate-900">
@@ -229,10 +249,16 @@ export default function Hero() {
                       </button>
                     </span>
                   ))}
+                  {search && (
+                    <span className="flex items-center gap-1">
+                      <span className="text-slate-300">›</span>
+                      <span className="font-semibold text-orange-600">"{search}"</span>
+                    </span>
+                  )}
                 </nav>
                 <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
                   <ShoppingBag className="size-5 text-orange-500" />
-                  {breadcrumb.at(-1)?.name || "All Products"}
+                  {search ? `Search results for "${search}"` : (breadcrumb.at(-1)?.name || "All Products")}
                 </h1>
                 <p className="mt-0.5 text-xs text-slate-500 font-medium">
                   Showing {total ? `1–${products.length} of ${total}` : "0"} products
@@ -369,11 +395,13 @@ export default function Hero() {
               <PackageOpen className="size-12 text-slate-300" />
               <h3 className="mt-3 text-base font-bold text-slate-800">No products found</h3>
               <p className="mt-1 text-xs text-slate-400 max-w-xs">
-                No items match your active filters. Try broadening your criteria or reset filters.
+                {search
+                  ? `No products matched "${search}". Try searching with different keywords.`
+                  : "No items match your active filters. Try broadening your criteria or reset filters."}
               </p>
               <button
                 onClick={reset}
-                className="mt-4 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-orange-500 hover:shadow-md hover:shadow-orange-500/25 transition-all cursor-pointer"
+                className="mt-4 rounded-xl bg-orange-600 px-4 py-2 text-xs font-bold text-white hover:bg-orange-700 hover:shadow-md hover:shadow-orange-600/25 transition-all cursor-pointer"
               >
                 Clear all filters
               </button>

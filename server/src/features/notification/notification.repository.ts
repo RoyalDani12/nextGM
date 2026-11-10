@@ -13,6 +13,9 @@ export const upsertNotificationPreference = async (
     emailEnabled: boolean;
     pushEnabled: boolean;
     orderUpdates: boolean;
+    orderPlaced: boolean;
+    orderShipped: boolean;
+    orderDelivered: boolean;
     promotions: boolean;
     reviews: boolean;
   }>,
