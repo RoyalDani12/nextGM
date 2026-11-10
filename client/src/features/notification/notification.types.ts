@@ -50,6 +50,9 @@ export interface NotificationPreferences {
   emailEnabled: boolean;
   pushEnabled: boolean;
   orderUpdates: boolean;
+  orderPlaced?: boolean;
+  orderShipped?: boolean;
+  orderDelivered?: boolean;
   promotions: boolean;
   reviews: boolean;
 }
@@ -58,6 +61,9 @@ export interface UpdatePreferencesPayload {
   emailEnabled?: boolean;
   pushEnabled?: boolean;
   orderUpdates?: boolean;
+  orderPlaced?: boolean;
+  orderShipped?: boolean;
+  orderDelivered?: boolean;
   promotions?: boolean;
   reviews?: boolean;
 }

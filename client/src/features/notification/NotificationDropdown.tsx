@@ -134,8 +134,8 @@ export function NotificationDropdown({
     if (notification.type === "REVIEW_RECEIVED") {
       if (isAdminView) {
         navigate("/superadmin/reviews");
-      } else if (shopId || notification.shopId) {
-        navigate(`/dashboard/shop/${shopId || notification.shopId}/reviews`);
+      } else if (shopId) {
+        navigate(`/dashboard/shop/${shopId}/reviews`);
       }
       setIsOpen(false);
       return;
@@ -147,8 +147,8 @@ export function NotificationDropdown({
     ) {
       if (isAdminView) {
         navigate("/superadmin/returns");
-      } else if (shopId || notification.shopId) {
-        navigate(`/dashboard/shop/${shopId || notification.shopId}/returns`);
+      } else if (shopId) {
+        navigate(`/dashboard/shop/${shopId}/returns`);
       } else {
         navigate("/returns");
       }
@@ -163,22 +163,26 @@ export function NotificationDropdown({
     ) {
       if (isAdminView) {
         navigate("/superadmin/orders");
-      } else if (notification.shopId || shopId) {
-        navigate(`/dashboard/shop/${notification.shopId || shopId}/orders`);
+      } else if (shopId) {
+        navigate(`/dashboard/shop/${shopId}/orders`);
       } else {
-        navigate("/orders");
+        navigate(notification.meta?.orderId ? `/orders/${notification.meta.orderId}` : "/orders");
       }
       setIsOpen(false);
       return;
     }
 
-    if (notification.type === "PAYMENT_REFUNDED") {
+    if (
+      notification.type === "PAYMENT_REFUNDED" ||
+      notification.type === "PAYMENT_SUCCESS" ||
+      notification.type === "PAYMENT_FAILED"
+    ) {
       if (isAdminView) {
-        navigate("/superadmin/returns");
-      } else if (shopId || notification.shopId) {
-        navigate(`/dashboard/shop/${shopId || notification.shopId}/returns`);
+        navigate("/superadmin/orders");
+      } else if (shopId) {
+        navigate(`/dashboard/shop/${shopId}/orders`);
       } else {
-        navigate("/returns");
+        navigate("/orders");
       }
       setIsOpen(false);
       return;

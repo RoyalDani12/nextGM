@@ -345,8 +345,11 @@ export const updateOrderStatusService = async (
                 userId: order.customerId,
                 type: "ORDER_DELIVERED",
                 title: "Order delivered",
-                body: `Your order #${orderId} has been delivered.`,
+                body: `Your order #${orderId.slice(-8).toUpperCase()} has been delivered successfully.`,
                 shopId,
+                meta: {
+                    orderId,
+                },
             });
         } catch (err) {
             logger.error({ err, orderId, newStatus }, "Failed to send order status notification");

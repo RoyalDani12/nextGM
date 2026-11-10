@@ -212,6 +212,10 @@ export const MarketplaceNavbar = () => {
               )}
             </button>
 
+            {isAuthenticated && (
+              <NotificationDropdown triggerClassName="size-10 flex items-center justify-center rounded-xl border border-slate-200/90 bg-white text-slate-700 shadow-2xs hover:border-orange-500 hover:bg-orange-50 hover:text-orange-600 transition-all cursor-pointer active:scale-95" />
+            )}
+
             {!isAuthenticated ? (
               <Link
                 to="/login"

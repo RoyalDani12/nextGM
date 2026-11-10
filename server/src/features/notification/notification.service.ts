@@ -48,6 +48,20 @@ export const notifyUser = async (params: {
     return;
   }
 
+  // Granular personal preferences for order lifecycle
+  if (type === "ORDER_PLACED" && pref?.orderPlaced === false) {
+    logger.info({ userId, type }, "Notification skipped - orderPlaced disabled by user.");
+    return;
+  }
+  if (type === "ORDER_SHIPPED" && pref?.orderShipped === false) {
+    logger.info({ userId, type }, "Notification skipped - orderShipped disabled by user.");
+    return;
+  }
+  if (type === "ORDER_DELIVERED" && pref?.orderDelivered === false) {
+    logger.info({ userId, type }, "Notification skipped - orderDelivered disabled by user.");
+    return;
+  }
+
   // 1. Direct in-app persistence: write to database immediately so bell & dashboard update reliably
   try {
     await createNotificationRecored({ userId, type, title, body, shopId });
@@ -153,6 +167,9 @@ export const getNotificationPreferencesService = async (userId: string) => {
       emailEnabled: true,
       pushEnabled: true,
       orderUpdates: true,
+      orderPlaced: true,
+      orderShipped: true,
+      orderDelivered: true,
       promotions: true,
       reviews: true,
     };
@@ -166,6 +183,9 @@ export const updateNotificationPreferencesService = async (
     emailEnabled: boolean;
     pushEnabled: boolean;
     orderUpdates: boolean;
+    orderPlaced: boolean;
+    orderShipped: boolean;
+    orderDelivered: boolean;
     promotions: boolean;
     reviews: boolean;
   }>,

@@ -31,6 +31,9 @@ export const updatePreferencesSchema = z.object({
       emailEnabled: z.boolean().optional(),
       pushEnabled: z.boolean().optional(),
       orderUpdates: z.boolean().optional(),
+      orderPlaced: z.boolean().optional(),
+      orderShipped: z.boolean().optional(),
+      orderDelivered: z.boolean().optional(),
       promotions: z.boolean().optional(),
       reviews: z.boolean().optional(),
     })

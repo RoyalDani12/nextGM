@@ -30,6 +30,16 @@ export const notificationWorker = new Worker(
                 totalAmount: String(meta.totalAmount || "0.00"),
                 itemCount: meta.itemCount || 1,
             });
+        } else if (type === "ORDER_SHIPPED" || type === "ORDER_DELIVERED") {
+            const clientUrl = process.env.CLIENT_URL || "http://localhost:3000";
+            const orderLink = meta?.orderId ? `${clientUrl}/orders/${meta.orderId}` : `${clientUrl}/orders`;
+            html = renderGenericNotificationEmail({
+                userName: user.name || "Customer",
+                title,
+                body,
+                actionUrl: orderLink,
+                actionText: "View Order Details",
+            });
         } else {
             html = renderGenericNotificationEmail({
                 userName: user.name || "Customer",
