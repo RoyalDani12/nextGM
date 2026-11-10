@@ -466,10 +466,20 @@ export const browseProductRepository = async (options: BrowseProductsOptions) =>
               }
             : {}),
         ...(search && {
-            name: {
-                contains: search,
-                mode: "insensitive",
-            },
+            OR: [
+                {
+                    name: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+                {
+                    description: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+            ],
         }),
     };
 
