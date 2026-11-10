@@ -12,6 +12,7 @@ import {
   RotateCcw,
   MapPin,
   ChevronDown,
+  ArrowRight,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -162,15 +163,15 @@ export const MarketplaceNavbar = () => {
 
 
           {/* Mobile Actions: Cart + Sign In (or User Menu) */}
-          <div className="ml-auto flex items-center gap-1.5 lg:hidden">
+          <div className="ml-auto flex items-center gap-3 sm:gap-3.5 lg:hidden">
             <button
               onClick={() => navigate("/cart")}
-              className="relative flex size-8.5 cursor-pointer items-center justify-center rounded-full text-slate-700 transition-all hover:bg-orange-50 hover:text-orange-500 active:scale-95"
+              className="relative flex size-10 cursor-pointer items-center justify-center rounded-xl border border-slate-200/90 bg-white text-slate-700 shadow-2xs transition-all hover:border-orange-500 hover:bg-orange-50 hover:text-orange-600 active:scale-95"
               aria-label="Shopping cart"
             >
-              <ShoppingCart className="size-5" />
+              <ShoppingCart className="size-5.5" />
               {cartItemCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 flex items-center justify-center rounded-full bg-orange-500 text-[9px] font-extrabold text-white shadow-xs">
+                <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1.5 flex items-center justify-center rounded-full bg-orange-600 text-[10px] font-black text-white shadow-xs border-2 border-white">
                   {cartItemCount}
                 </span>
               )}
@@ -179,9 +180,10 @@ export const MarketplaceNavbar = () => {
             {!isAuthenticated ? (
               <Link
                 to="/login"
-                className="inline-flex items-center justify-center h-8.5 px-3.5 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
+                className="group inline-flex items-center justify-center min-h-[40px] px-4 rounded-xl border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-100 font-bold text-xs sm:text-sm hover:border-orange-500 hover:text-orange-600 hover:bg-orange-50/60 transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
               >
-                Sign in
+                <span>Sign in</span>
+                <ArrowRight className="size-3.5 ml-1.5 text-slate-400 group-hover:text-orange-600 transition-transform group-hover:translate-x-0.5" />
               </Link>
             ) : (
               <DropdownMenu>
@@ -189,8 +191,8 @@ export const MarketplaceNavbar = () => {
                   aria-label="Open mobile account menu"
                   className="flex items-center gap-1 outline-none cursor-pointer"
                 >
-                  <div className="size-8.5 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 font-bold text-xs shadow-2xs">
-                    {user?.name?.[0]?.toUpperCase() || <User className="size-3.5" />}
+                  <div className="size-10 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 font-bold text-xs shadow-2xs">
+                    {user?.name?.[0]?.toUpperCase() || <User className="size-4" />}
                   </div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 rounded-2xl border border-slate-200 bg-white p-1 shadow-2xl">
@@ -242,9 +244,10 @@ export const MarketplaceNavbar = () => {
               <div className="flex items-center gap-2.5">
                 <Link
                   to="/login"
-                  className="inline-flex items-center px-4.5 py-2 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
+                  className="group inline-flex items-center justify-center min-h-[40px] px-5 rounded-full border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 font-bold text-xs hover:border-orange-500 hover:text-orange-600 hover:bg-orange-50/60 transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
                 >
-                  Sign in
+                  <span>Sign in</span>
+                  <ArrowRight className="size-3.5 ml-1.5 text-slate-400 group-hover:text-orange-600 transition-transform group-hover:translate-x-0.5" />
                 </Link>
               </div>
             ) : (
