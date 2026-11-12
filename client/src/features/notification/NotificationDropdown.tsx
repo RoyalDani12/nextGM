@@ -124,7 +124,7 @@ export function NotificationDropdown({
       unreadOnly: filterUnread,
       limit: 15,
     },
-    isOpen,
+    true,
   );
 
   const markAsRead = useMarkNotificationAsRead();
@@ -220,10 +220,15 @@ export function NotificationDropdown({
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger
-        className={`relative inline-flex items-center justify-center outline-none transition-colors cursor-pointer ${
-          triggerClassName || "size-8 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100"
-        }`}
-        aria-label="View notifications"
+        render={
+          <button
+            type="button"
+            className={`relative inline-flex items-center justify-center outline-none transition-colors cursor-pointer ${
+              triggerClassName || "size-8 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+            }`}
+            aria-label="View notifications"
+          />
+        }
       >
         <Bell className="size-4" />
         {unreadCount > 0 && (

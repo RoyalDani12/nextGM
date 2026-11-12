@@ -52,12 +52,23 @@ export interface FindNotificationsOptions {
 export const findUserNotifications = async (
   userId: string,
   options: FindNotificationsOptions = {},
+  userRole?: string,
 ) => {
   const { page = 1, limit = 20, unreadOnly = false, shopId } = options;
   const skip = (page - 1) * limit;
 
+  const isSuperAdmin = userRole === "SUPER_ADMIN";
+  const userClause: Prisma.NotificationWhereInput = isSuperAdmin
+    ? {
+        OR: [
+          { userId },
+          { type: "SHOP_CREATED" },
+        ],
+      }
+    : { userId };
+
   const where: Prisma.NotificationWhereInput = {
-    userId,
+    ...userClause,
     ...(unreadOnly ? { isRead: false } : {}),
     ...(shopId ? { shopId } : {}),
   };
@@ -86,7 +97,7 @@ export const findUserNotifications = async (
     prisma.notification.count({ where }),
     prisma.notification.count({
       where: {
-        userId,
+        ...userClause,
         isRead: false,
         ...(shopId ? { shopId } : {}),
       },
@@ -106,10 +117,21 @@ export const findUserNotifications = async (
 export const countUnreadNotifications = async (
   userId: string,
   shopId?: string,
+  userRole?: string,
 ) => {
+  const isSuperAdmin = userRole === "SUPER_ADMIN";
+  const userClause: Prisma.NotificationWhereInput = isSuperAdmin
+    ? {
+        OR: [
+          { userId },
+          { type: "SHOP_CREATED" },
+        ],
+      }
+    : { userId };
+
   return prisma.notification.count({
     where: {
-      userId,
+      ...userClause,
       isRead: false,
       ...(shopId ? { shopId } : {}),
     },
@@ -119,11 +141,13 @@ export const countUnreadNotifications = async (
 export const markNotificationAsRead = async (
   id: string,
   userId: string,
+  userRole?: string,
 ) => {
+  const isSuperAdmin = userRole === "SUPER_ADMIN";
   return prisma.notification.updateMany({
     where: {
       id,
-      userId,
+      ...(isSuperAdmin ? {} : { userId }),
     },
     data: {
       isRead: true,
@@ -134,10 +158,21 @@ export const markNotificationAsRead = async (
 export const markAllNotificationsAsRead = async (
   userId: string,
   shopId?: string,
+  userRole?: string,
 ) => {
+  const isSuperAdmin = userRole === "SUPER_ADMIN";
+  const userClause: Prisma.NotificationWhereInput = isSuperAdmin
+    ? {
+        OR: [
+          { userId },
+          { type: "SHOP_CREATED" },
+        ],
+      }
+    : { userId };
+
   return prisma.notification.updateMany({
     where: {
-      userId,
+      ...userClause,
       isRead: false,
       ...(shopId ? { shopId } : {}),
     },

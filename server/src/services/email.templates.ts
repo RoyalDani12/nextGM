@@ -344,32 +344,145 @@ export const renderShopApprovedEmail = (params: {
 }) => {
     const { ownerName, shopName, dashboardUrl } = params;
     const bodyHtml = `
-      <p style="margin:0 0 16px 0; font-size:15px; color:${TEXT_COLOR}; line-height:1.6;">
-        Hi ${ownerName},
+      <!-- Approval Celebratory Badge -->
+      <div style="text-align: center; margin-bottom: 24px;">
+        <span style="display: inline-block; padding: 6px 14px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #047857; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 9999px;">
+          ✨ APPLICATION APPROVED • READY TO LAUNCH
+        </span>
+      </div>
+
+      <p style="margin: 0 0 16px 0; font-size: 16px; color: ${TEXT_COLOR}; line-height: 1.6;">
+        Hi <strong>${ownerName}</strong>,
       </p>
-      <p style="margin:0 0 16px 0; font-size:15px; color:${TEXT_COLOR}; line-height:1.6;">
-        Great news! Your shop <strong>${shopName}</strong> has been reviewed and approved by the NextGM administration team.
+
+      <p style="margin: 0 0 16px 0; font-size: 15px; color: ${TEXT_COLOR}; line-height: 1.6;">
+        Great news! Your shop <strong>${shopName}</strong> has been officially reviewed and approved by the NextGM Administration team. Your merchant storefront is now verified and ready for business!
       </p>
-      <p style="margin:0 0 24px 0; font-size:15px; color:${TEXT_COLOR}; line-height:1.6;">
-        Your storefront is now fully active. You can log in, access your seller workspace, list your products, and start receiving customer orders.
-      </p>
-      <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 28px auto;">
+
+      <!-- Status Highlight 3D Card -->
+      <div style="margin: 22px 0 28px 0; padding: 18px 20px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #86efac; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.1);">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td width="36" valign="top">
+              <span style="font-size: 26px;">🎉</span>
+            </td>
+            <td style="padding-left: 12px;">
+              <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: 700; color: #065f46;">
+                Your Seller Workspace is Fully Unlocked
+              </p>
+              <p style="margin: 0; font-size: 13px; color: #047857; line-height: 1.5;">
+                Follow this quick 4-step launch playbook to stock your inventory, configure instant payouts, and publish your shop to active NextGM buyers:
+              </p>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Actionable Next Steps Playbook -->
+      <div style="margin: 28px 0 24px 0;">
+        <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: #0f172a; text-align: center;">
+          📋 4 Essential Steps to Launch & Start Selling
+        </h3>
+        <p style="margin: 0 0 20px 0; font-size: 13px; color: #64748b; text-align: center;">
+          Complete these steps in your merchant dashboard to maximize sales from day one:
+        </p>
+
+        <!-- Step 1: Add Products -->
+        <div style="margin-bottom: 12px; padding: 16px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td width="32" valign="top">
+                <span style="display: inline-block; width: 24px; height: 24px; line-height: 24px; text-align: center; font-size: 12px; font-weight: bold; color: #ea580c; background-color: #fff7ed; border-radius: 50%;">1</span>
+              </td>
+              <td style="padding-left: 10px;">
+                <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: 600; color: #0f172a;">
+                  Add Your Products to the Catalog
+                </p>
+                <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+                  Upload multi-angle HD imagery (1200x1200px+), set your pricing, inventory stock, and descriptive specifications. Shops with 5+ complete products convert <strong>3.4x higher</strong>.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Step 2: Connect Stripe -->
+        <div style="margin-bottom: 12px; padding: 16px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td width="32" valign="top">
+                <span style="display: inline-block; width: 24px; height: 24px; line-height: 24px; text-align: center; font-size: 12px; font-weight: bold; color: #2563eb; background-color: #eff6ff; border-radius: 50%;">2</span>
+              </td>
+              <td style="padding-left: 10px;">
+                <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: 600; color: #0f172a;">
+                  Connect Stripe & Payout Account
+                </p>
+                <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+                  Link your bank or debit card via Stripe Connect in Merchant Settings so funds from fulfilled customer orders are deposited into your balance automatically every payout cycle.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Step 3: Complete Branding -->
+        <div style="margin-bottom: 12px; padding: 16px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td width="32" valign="top">
+                <span style="display: inline-block; width: 24px; height: 24px; line-height: 24px; text-align: center; font-size: 12px; font-weight: bold; color: #7c3aed; background-color: #f5f3ff; border-radius: 50%;">3</span>
+              </td>
+              <td style="padding-left: 10px;">
+                <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: 600; color: #0f172a;">
+                  Complete Store Profile & Policies
+                </p>
+                <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+                  Upload your brand logo and banner, write an engaging store bio, and set clear shipping and return policies to build immediate trust with buyers.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Step 4: Publish Shop -->
+        <div style="margin-bottom: 12px; padding: 16px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td width="32" valign="top">
+                <span style="display: inline-block; width: 24px; height: 24px; line-height: 24px; text-align: center; font-size: 12px; font-weight: bold; color: #059669; background-color: #ecfdf5; border-radius: 50%;">4</span>
+              </td>
+              <td style="padding-left: 10px;">
+                <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: 600; color: #0f172a;">
+                  Publish Your Storefront & Go Live!
+                </p>
+                <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+                  Hit the <strong>"Publish Shop"</strong> toggle in your dashboard to make your listings visible in marketplace search, category feeds, and customer recommendations.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Main Action 3D Button -->
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 32px auto 20px auto;">
         <tr>
-          <td style="border-radius:8px; background-color:${BRAND_COLOR};">
-            <a href="${dashboardUrl}" style="display:inline-block; padding:14px 32px; font-size:15px; font-weight:600; color:#ffffff; text-decoration:none;">
-              Log In & View Your Shop
+          <td style="border-radius: 10px; background: linear-gradient(135deg, #059669 0%, #047857 100%); box-shadow: 0 4px 14px rgba(5, 150, 105, 0.4);">
+            <a href="${dashboardUrl}" style="display: inline-block; padding: 16px 36px; font-size: 15px; font-weight: 700; color: #ffffff; text-decoration: none; letter-spacing: 0.02em;">
+              Open Shop Dashboard & Start Selling →
             </a>
           </td>
         </tr>
       </table>
-      <p style="margin:24px 0 0 0; font-size:13px; color:${MUTED_COLOR}; line-height:1.5; text-align:center;">
-        If the button above does not work, visit your shop dashboard directly:<br/>
-        <a href="${dashboardUrl}" style="color:${BRAND_COLOR}; word-break:break-all;">${dashboardUrl}</a>
+
+      <p style="margin: 20px 0 0 0; font-size: 12px; color: ${MUTED_COLOR}; line-height: 1.5; text-align: center;">
+        Direct dashboard link:<br/>
+        <a href="${dashboardUrl}" style="color: #059669; word-break: break-all;">${dashboardUrl}</a>
       </p>
     `;
 
     return renderBaseTemplate({
-        previewText: `Your shop "${shopName}" is approved!`,
+        previewText: `Congratulations! Your shop "${shopName}" is approved. Follow our 4-step launch playbook to start selling.`,
         heading: "Your Shop is Approved! 🎉",
         bodyHtml,
     });

@@ -143,22 +143,23 @@ export const notifyAdmins = async (params: {
 export const getUserNotificationsService = async (
   userId: string,
   options: FindNotificationsOptions,
+  userRole?: string,
 ) => {
-  return findUserNotifications(userId, options);
+  return findUserNotifications(userId, options, userRole);
 };
 
-export const getUnreadCountService = async (userId: string, shopId?: string) => {
-  const count = await countUnreadNotifications(userId, shopId);
+export const getUnreadCountService = async (userId: string, shopId?: string, userRole?: string) => {
+  const count = await countUnreadNotifications(userId, shopId, userRole);
   return { unreadCount: count };
 };
 
-export const markAsReadService = async (id: string, userId: string) => {
-  await markNotificationAsRead(id, userId);
+export const markAsReadService = async (id: string, userId: string, userRole?: string) => {
+  await markNotificationAsRead(id, userId, userRole);
   return { message: "Notification marked as read." };
 };
 
-export const markAllAsReadService = async (userId: string, shopId?: string) => {
-  await markAllNotificationsAsRead(userId, shopId);
+export const markAllAsReadService = async (userId: string, shopId?: string, userRole?: string) => {
+  await markAllNotificationsAsRead(userId, shopId, userRole);
   return { message: "All notifications marked as read." };
 };
 
