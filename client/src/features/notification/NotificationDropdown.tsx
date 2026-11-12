@@ -13,6 +13,7 @@ import {
   Loader2,
   Inbox,
   RotateCcw,
+  Store,
 } from "lucide-react";
 
 import {
@@ -20,6 +21,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuthStore } from "@/store/auth.store";
 import {
   useNotifications,
   useUnreadNotificationCount,
@@ -37,6 +39,8 @@ interface NotificationDropdownProps {
 
 const getNotificationIcon = (type: NotificationType) => {
   switch (type) {
+    case "SHOP_CREATED":
+      return <Store className="size-3.5 text-amber-600" />;
     case "ORDER_PLACED":
       return <ShoppingBag className="size-3.5 text-emerald-600" />;
     case "ORDER_SHIPPED":
@@ -60,6 +64,8 @@ const getNotificationIcon = (type: NotificationType) => {
 
 const getNotificationBg = (type: NotificationType) => {
   switch (type) {
+    case "SHOP_CREATED":
+      return "bg-amber-50/90 border-amber-200 text-amber-800";
     case "ORDER_PLACED":
       return "bg-emerald-50/70 border-emerald-100 text-emerald-700";
     case "ORDER_SHIPPED":
@@ -104,7 +110,8 @@ export function NotificationDropdown({
 }: NotificationDropdownProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const isAdminView = location.pathname.startsWith("/superadmin");
+  const user = useAuthStore((state) => state.user);
+  const isAdminView = location.pathname.startsWith("/superadmin") || user?.role === "SUPER_ADMIN";
   const [filterUnread, setFilterUnread] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -129,6 +136,27 @@ export function NotificationDropdown({
   const handleNotificationClick = (notification: Notification) => {
     if (!notification.isRead) {
       markAsRead.mutate(notification.id);
+    }
+
+    if (
+      notification.type === "SHOP_CREATED" ||
+      notification.meta?.action === "SHOP_REVIEW" ||
+      notification.title?.toLowerCase().includes("shop application")
+    ) {
+      const targetShopId = notification.shopId || notification.meta?.shopId;
+      if (isAdminView) {
+        if (targetShopId) {
+          navigate(`/superadmin/shops/${targetShopId}`);
+        } else {
+          navigate("/superadmin/shops?status=PENDING");
+        }
+      } else if (targetShopId) {
+        navigate(`/dashboard/shop/${targetShopId}`);
+      } else {
+        navigate("/shops");
+      }
+      setIsOpen(false);
+      return;
     }
 
     if (notification.type === "REVIEW_RECEIVED") {
@@ -307,7 +335,7 @@ export function NotificationDropdown({
 
                 {/* Content */}
                 <div className="flex-1 min-w-0 pr-6">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <p
                       className={`text-xs truncate ${
                         !item.isRead
@@ -320,13 +348,28 @@ export function NotificationDropdown({
                     {!item.isRead && (
                       <span className="size-1.5 rounded-full bg-orange-500 shrink-0" />
                     )}
+                    {item.type === "SHOP_CREATED" && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
+                        Review Required
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-slate-500 line-clamp-2 mt-0.5 leading-relaxed">
                     {item.body}
                   </p>
-                  <span className="text-[10px] font-medium text-slate-400 mt-1 block tabular-nums">
-                    {formatRelativeTime(item.createdAt)}
-                  </span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] font-medium text-slate-400 tabular-nums">
+                      {formatRelativeTime(item.createdAt)}
+                    </span>
+                    {item.shop?.profile?.name && (
+                      <>
+                        <span className="text-[10px] text-slate-300">•</span>
+                        <span className="text-[10px] font-medium text-slate-600 truncate max-w-[140px]">
+                          {item.shop.profile.name}
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {/* Hover Quick Actions */}

@@ -40,6 +40,16 @@ export const notificationWorker = new Worker(
                 actionUrl: orderLink,
                 actionText: "View Order Details",
             });
+        } else if (type === "SHOP_CREATED" && (shopId || meta?.shopId)) {
+            const clientUrl = process.env.CLIENT_URL || "http://localhost:3000";
+            const targetShopId = shopId || meta?.shopId;
+            html = renderGenericNotificationEmail({
+                userName: user.name || "Administrator",
+                title,
+                body,
+                actionUrl: `${clientUrl}/superadmin/shops/${targetShopId}`,
+                actionText: "Review Shop Application",
+            });
         } else {
             html = renderGenericNotificationEmail({
                 userName: user.name || "Customer",

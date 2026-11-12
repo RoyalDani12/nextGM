@@ -20,6 +20,8 @@ import {
     suspendShopController,
     closeShopController,
     reopenShopController,
+    sendShopVerificationReminderController,
+    bulkSendShopVerificationReminderController,
     updateShopVerificationController,
     addShopDocumentController,
     updateShopDocumentStatusController,
@@ -80,6 +82,8 @@ router.post("/shops/:id/reject", rejectShopController);
 router.post("/shops/:id/suspend", suspendShopController);
 router.post("/shops/:id/close", closeShopController);
 router.post("/shops/:id/reopen", reopenShopController);
+router.post("/shops/:id/send-verification-reminder", sendShopVerificationReminderController);
+router.post("/shops/bulk-send-verification-reminder", bulkSendShopVerificationReminderController);
 router.patch("/shops/:id/verification", updateShopVerificationController);
 router.post("/shops/:id/documents", addShopDocumentController);
 router.patch("/shops/:id/documents/:documentId", updateShopDocumentStatusController);

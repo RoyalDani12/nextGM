@@ -408,7 +408,7 @@ export const listShopsAdmin = async (filters: {
                 closureReason: true,
                 createdAt: true,
                 updatedAt: true,
-                owner: { select: { id: true, name: true, email: true } },
+                owner: { select: { id: true, name: true, email: true, isEmailVerified: true } },
                 profile: { select: { logo: true, name: true, phone: true, email: true, city: true, country: true } },
                 wallet: { select: { balance: true, payoutsEnabled: true } },
                 legalInfo: {
@@ -486,6 +486,7 @@ export const getShopByIdAdmin = async (id: string) => {
                     email: true,
                     role: true,
                     status: true,
+                    isEmailVerified: true,
                     createdAt: true,
                     profile: true,
                 },

@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { recordAuditLog } from "./audit.service.js";
 import bcrypt from "bcrypt";
 import { sendEmail } from "../../services/email.transporter.js";
@@ -6,7 +7,8 @@ import { deleteUserSession } from "../../infrastructure/cache/session.cache.js";
 import { prisma } from "../../config/db.js";
 import { env } from "../../config/env.js";
 import { emailQueue } from "../../infrastructure/queue/queue.client.js";
-import { renderShopApprovedEmail, renderShopRejectedEmail } from "../../services/email.templates.js";
+import { renderShopApprovedEmail, renderShopRejectedEmail, renderMerchantEmailVerificationPrompt } from "../../services/email.templates.js";
+import { deleteOldVerificationTokens, saveNewResendVerificationToken } from "../auth/auth.repository.js";
 import {
     getPlatformStats,
     listUsersAdmin,
@@ -730,6 +732,109 @@ export const reopenShopService = async (
         ip,
     });
     return result;
+};
+
+export const sendShopVerificationReminderService = async (
+    shopId: string,
+    adminId: string,
+    adminName: string,
+    ip?: string
+) => {
+    const shop = await getShopByIdAdmin(shopId);
+    if (!shop) throw new AppError("Shop not found", 404);
+
+    const owner = shop.owner;
+    if (!owner || !owner.email) {
+        throw new AppError("Shop owner has no registered email address", 400);
+    }
+
+    if (owner.isEmailVerified) {
+        return {
+            success: true,
+            alreadyVerified: true,
+            message: `Merchant email (${owner.email}) is already verified.`,
+        };
+    }
+
+    // Invalidate old tokens and issue fresh verification token (24h validity)
+    await deleteOldVerificationTokens(owner.id);
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+    await saveNewResendVerificationToken(owner.id, hashedToken);
+
+    const clientUrl = env.CLIENT_URL || "http://localhost:3000";
+    const verificationUrl = `${clientUrl}/verify-email?token=${rawToken}`;
+    const shopName = shop.profile?.name || shop.slug;
+
+    const emailHtml = renderMerchantEmailVerificationPrompt({
+        ownerName: owner.name || "Merchant",
+        shopName,
+        verificationUrl,
+    });
+
+    const subject = `🛡️ Verify your email to build buyer trust on NextGM (${shopName})`;
+
+    try {
+        await emailQueue.add("send-merchant-verification-reminder", {
+            to: owner.email,
+            subject,
+            html: emailHtml,
+        });
+    } catch {
+        // Fallback to direct delivery
+        await sendEmail(owner.email, subject, emailHtml);
+    }
+
+    // Record an admin note on the shop for accountability
+    try {
+        await addShopAdminNoteAdmin(
+            shopId,
+            adminId,
+            adminName,
+            `Verification reminder email dispatched to merchant (${owner.email}) by ${adminName} to establish buyer trust.`
+        );
+    } catch (noteErr: any) {
+        console.error("Failed to add admin note for verification reminder:", noteErr?.message);
+    }
+
+    // Record audit trail
+    await recordAuditLog({
+        userId: adminId,
+        action: "UPDATE",
+        entity: "SHOP",
+        entityId: shopId,
+        oldValue: { ownerEmail: owner.email, isEmailVerified: false },
+        newValue: { action: "SEND_VERIFICATION_REMINDER", recipient: owner.email, sentBy: adminName },
+        ip,
+    });
+
+    return {
+        success: true,
+        alreadyVerified: false,
+        message: `Verification reminder email sent successfully to ${owner.email}`,
+    };
+};
+
+export const bulkSendShopVerificationReminderService = async (
+    shopIds: string[],
+    adminId: string,
+    adminName: string,
+    ip?: string
+) => {
+    if (!shopIds || !Array.isArray(shopIds) || shopIds.length === 0) {
+        throw new AppError("No shops selected", 400);
+    }
+
+    const results = [];
+    for (const shopId of shopIds) {
+        try {
+            const res = await sendShopVerificationReminderService(shopId, adminId, adminName, ip);
+            results.push({ shopId, success: true, message: res.message, alreadyVerified: res.alreadyVerified });
+        } catch (err: any) {
+            results.push({ shopId, success: false, message: err?.message || "Failed to dispatch verification email" });
+        }
+    }
+    return results;
 };
 
 export const updateShopVerificationService = async (

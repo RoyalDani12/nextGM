@@ -27,6 +27,7 @@ const CATEGORY_MAP: Record<NotificationType, "orderUpdates" | "promotions" | "re
   RETURN_REQUESTED: "orderUpdates",
   RETURN_UPDATED: "orderUpdates",
   REVIEW_RECEIVED: "reviews",
+  SHOP_CREATED: "orderUpdates",
 };
 
 export const notifyUser = async (params: {
@@ -40,26 +41,31 @@ export const notifyUser = async (params: {
   const { userId, type, title, body, shopId, meta } = params;
   const pref = await findNotificationPreference(userId);
 
-  const category = CATEGORY_MAP[type];
-  const categoryEnabled = pref ? pref[category] : true;
+  // Administrative / System compliance notifications should not be muted by customer shopping filters
+  const isSystemAlert = type === "SHOP_CREATED" || meta?.action === "SHOP_REVIEW";
 
-  if (!categoryEnabled) {
-    logger.info({ userId, type }, "Notification skipped - category disabled by user.");
-    return;
-  }
+  if (!isSystemAlert) {
+    const category = CATEGORY_MAP[type];
+    const categoryEnabled = pref && category ? pref[category] : true;
 
-  // Granular personal preferences for order lifecycle
-  if (type === "ORDER_PLACED" && pref?.orderPlaced === false) {
-    logger.info({ userId, type }, "Notification skipped - orderPlaced disabled by user.");
-    return;
-  }
-  if (type === "ORDER_SHIPPED" && pref?.orderShipped === false) {
-    logger.info({ userId, type }, "Notification skipped - orderShipped disabled by user.");
-    return;
-  }
-  if (type === "ORDER_DELIVERED" && pref?.orderDelivered === false) {
-    logger.info({ userId, type }, "Notification skipped - orderDelivered disabled by user.");
-    return;
+    if (!categoryEnabled) {
+      logger.info({ userId, type }, "Notification skipped - category disabled by user.");
+      return;
+    }
+
+    // Granular personal preferences for order lifecycle
+    if (type === "ORDER_PLACED" && pref?.orderPlaced === false) {
+      logger.info({ userId, type }, "Notification skipped - orderPlaced disabled by user.");
+      return;
+    }
+    if (type === "ORDER_SHIPPED" && pref?.orderShipped === false) {
+      logger.info({ userId, type }, "Notification skipped - orderShipped disabled by user.");
+      return;
+    }
+    if (type === "ORDER_DELIVERED" && pref?.orderDelivered === false) {
+      logger.info({ userId, type }, "Notification skipped - orderDelivered disabled by user.");
+      return;
+    }
   }
 
   // 1. Direct in-app persistence: write to database immediately so bell & dashboard update reliably
@@ -116,6 +122,7 @@ export const notifyAdmins = async (params: {
   type: NotificationType;
   title: string;
   body: string;
+  shopId?: string;
   meta?: Record<string, any>;
 }) => {
   const adminIds = await findSuperAdminIds();
@@ -126,6 +133,7 @@ export const notifyAdmins = async (params: {
         type: params.type,
         title: params.title,
         body: params.body,
+        shopId: params.shopId,
         meta: params.meta,
       }),
     ),

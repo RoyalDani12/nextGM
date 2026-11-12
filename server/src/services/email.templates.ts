@@ -418,3 +418,277 @@ export const renderShopRejectedEmail = (params: {
         bodyHtml,
     });
 };
+
+export const renderMerchantWelcomeEmail = (params: {
+    ownerName: string;
+    shopName: string;
+    dashboardUrl: string;
+    isEmailVerified: boolean;
+    verificationUrl?: string;
+}) => {
+    const { ownerName, shopName, dashboardUrl, isEmailVerified, verificationUrl } = params;
+
+    const bodyHtml = `
+      <!-- Welcome Hero Badge -->
+      <div style="text-align: center; margin-bottom: 24px;">
+        <span style="display: inline-block; padding: 6px 14px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #ea580c; background-color: #fff7ed; border: 1px solid #ffedd5; border-radius: 9999px;">
+          🚀 MERCHANT STUDIO • WELCOME ABOARD
+        </span>
+      </div>
+
+      <p style="margin: 0 0 16px 0; font-size: 16px; color: ${TEXT_COLOR}; line-height: 1.6;">
+        Hi <strong>${ownerName}</strong>,
+      </p>
+
+      <p style="margin: 0 0 20px 0; font-size: 15px; color: ${TEXT_COLOR}; line-height: 1.6;">
+        Congratulations on launching <strong>${shopName}</strong> on NextGM! You've taken the first step toward connecting with thousands of active buyers across our multi-tenant marketplace.
+      </p>
+
+      <!-- Review Status Banner (3D Card) -->
+      <div style="margin: 24px 0; padding: 18px 20px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td width="36" valign="top">
+              <span style="font-size: 24px;">⏳</span>
+            </td>
+            <td style="padding-left: 12px;">
+              <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: 700; color: #0f172a;">
+                Application Status: Under Review
+              </p>
+              <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.5;">
+                Our compliance team is currently reviewing your shop credentials. You will receive an instant email notification once your storefront is live. In the meantime, prepare your store to outrank the competition!
+              </p>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      ${
+        !isEmailVerified && verificationUrl
+          ? `
+      <!-- Unverified Email Trust Alert (3D Glowing Card) -->
+      <div style="margin: 24px 0; padding: 20px; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 2px solid #f59e0b; border-radius: 14px; box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.15);">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td width="36" valign="top">
+              <span style="font-size: 24px;">🛡️</span>
+            </td>
+            <td style="padding-left: 12px;">
+              <p style="margin: 0 0 6px 0; font-size: 14px; font-weight: 700; color: #92400e;">
+                Action Required: Verify Your Merchant Email to Build Buyer Trust
+              </p>
+              <p style="margin: 0 0 14px 0; font-size: 13px; color: #78350f; line-height: 1.5;">
+                NextGM customers strongly prefer purchasing from verified merchants. Unverified stores cannot receive the official <strong>Verified Seller Badge</strong>. Confirm your email address today to establish immediate trust and prevent review delays.
+              </p>
+              <a href="${verificationUrl}" style="display: inline-block; padding: 10px 22px; font-size: 13px; font-weight: 700; color: #ffffff; background-color: #d97706; border-radius: 8px; text-decoration: none; box-shadow: 0 2px 4px rgba(217, 119, 6, 0.3);">
+                Verify Email & Activate Trust Badge →
+              </a>
+            </td>
+          </tr>
+        </table>
+      </div>
+      `
+          : ""
+      }
+
+      <!-- Competitive Recommendations Section -->
+      <div style="margin: 32px 0 24px 0;">
+        <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: #0f172a; text-align: center;">
+          🏆 4 Competitive Recommendations to Win on NextGM
+        </h3>
+        <p style="margin: 0 0 20px 0; font-size: 13px; color: #64748b; text-align: center;">
+          Proven playbooks used by the top 5% of merchants to maximize buyer conversion from day one:
+        </p>
+
+        <!-- Card 1: Listing Quality -->
+        <div style="margin-bottom: 12px; padding: 16px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td width="32" valign="top">
+                <span style="display: inline-block; width: 24px; height: 24px; line-height: 24px; text-align: center; font-size: 12px; font-weight: bold; color: #ea580c; background-color: #fff7ed; border-radius: 50%;">1</span>
+              </td>
+              <td style="padding-left: 10px;">
+                <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: 600; color: #0f172a;">
+                  Curate High-Resolution Listings
+                </p>
+                <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+                  Upload multi-angle imagery (1200x1200px+) and comprehensive feature bullets. Stores launching with <strong>5+ complete listings</strong> experience <strong>3.4x higher conversion</strong> in their first week.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Card 2: Brand Identity -->
+        <div style="margin-bottom: 12px; padding: 16px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td width="32" valign="top">
+                <span style="display: inline-block; width: 24px; height: 24px; line-height: 24px; text-align: center; font-size: 12px; font-weight: bold; color: #2563eb; background-color: #eff6ff; border-radius: 50%;">2</span>
+              </td>
+              <td style="padding-left: 10px;">
+                <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: 600; color: #0f172a;">
+                  Complete Your Brand Profile & Policies
+                </p>
+                <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+                  Add your store avatar, high-definition banner, and transparent returns/shipping policy. Transparent policies lower pre-purchase friction by <strong>85%</strong>.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Card 3: Rapid Fulfillment -->
+        <div style="margin-bottom: 12px; padding: 16px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td width="32" valign="top">
+                <span style="display: inline-block; width: 24px; height: 24px; line-height: 24px; text-align: center; font-size: 12px; font-weight: bold; color: #059669; background-color: #ecfdf5; border-radius: 50%;">3</span>
+              </td>
+              <td style="padding-left: 10px;">
+                <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: 600; color: #0f172a;">
+                  Aim for Same-Day Fulfillment
+                </p>
+                <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+                  Merchants who dispatch orders within 24 hours earn the prestigious <strong>"Fast Shipper"</strong> badge, unlocking algorithmic recommendation boosts on customer search pages.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Card 4: Wallet & Payouts -->
+        <div style="margin-bottom: 12px; padding: 16px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td width="32" valign="top">
+                <span style="display: inline-block; width: 24px; height: 24px; line-height: 24px; text-align: center; font-size: 12px; font-weight: bold; color: #7c3aed; background-color: #f5f3ff; border-radius: 50%;">4</span>
+              </td>
+              <td style="padding-left: 10px;">
+                <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: 600; color: #0f172a;">
+                  Set Up Automated Payouts
+                </p>
+                <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+                  Configure your settlement bank account in Merchant Settings so revenue from your delivered orders is disbursed automatically without delays.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Main CTA Button (3D Button) -->
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 32px auto 20px auto;">
+        <tr>
+          <td style="border-radius: 10px; background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); box-shadow: 0 4px 12px rgba(234, 88, 12, 0.35);">
+            <a href="${dashboardUrl}" style="display: inline-block; padding: 16px 36px; font-size: 15px; font-weight: 700; color: #ffffff; text-decoration: none; letter-spacing: 0.02em;">
+              Enter Merchant Workspace →
+            </a>
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin: 20px 0 0 0; font-size: 12px; color: ${MUTED_COLOR}; line-height: 1.5; text-align: center;">
+        Direct workspace link: <a href="${dashboardUrl}" style="color: #ea580c; word-break: break-all;">${dashboardUrl}</a>
+      </p>
+    `;
+
+    return renderBaseTemplate({
+        previewText: `Welcome to NextGM Merchants! Your store "${shopName}" is registered.`,
+        heading: `Welcome to NextGM Merchants, ${ownerName}! 🎉`,
+        bodyHtml,
+    });
+};
+
+export const renderMerchantEmailVerificationPrompt = (params: {
+    ownerName: string;
+    shopName: string;
+    verificationUrl: string;
+    expiresInHours?: number;
+}) => {
+    const { ownerName, shopName, verificationUrl, expiresInHours = 24 } = params;
+
+    const bodyHtml = `
+      <!-- Trust Shield Badge -->
+      <div style="text-align: center; margin-bottom: 20px;">
+        <span style="display: inline-block; padding: 6px 14px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #0284c7; background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 9999px;">
+          🛡️ MERCHANT SECURITY & TRUST NETWORK
+        </span>
+      </div>
+
+      <p style="margin: 0 0 16px 0; font-size: 16px; color: ${TEXT_COLOR}; line-height: 1.6;">
+        Hi <strong>${ownerName}</strong>,
+      </p>
+
+      <p style="margin: 0 0 20px 0; font-size: 15px; color: ${TEXT_COLOR}; line-height: 1.6;">
+        To activate and publish your store <strong>${shopName}</strong> on NextGM, please verify your email address. Email verification confirms your ownership and unlocks the official <strong>Verified Merchant</strong> status for your shop.
+      </p>
+
+      <!-- Why Verification Matters 3D Box -->
+      <div style="margin: 24px 0; padding: 20px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #cbd5e1; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+        <p style="margin: 0 0 12px 0; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #334155;">
+          Why NextGM Merchants Must Be Verified:
+        </p>
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 10px;">
+          <tr>
+            <td width="28" valign="top"><span style="font-size: 16px;">🌟</span></td>
+            <td style="padding-left: 8px;">
+              <p style="margin: 0; font-size: 13px; color: #0f172a; line-height: 1.4;">
+                <strong>Build Immediate Buyer Trust:</strong> Shoppers look for the blue Verified Merchant badge before checkout, boosting average cart conversion by <strong>45%</strong>.
+              </p>
+            </td>
+          </tr>
+        </table>
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 10px;">
+          <tr>
+            <td width="28" valign="top"><span style="font-size: 16px;">🚀</span></td>
+            <td style="padding-left: 8px;">
+              <p style="margin: 0; font-size: 13px; color: #0f172a; line-height: 1.4;">
+                <strong>Fast-Track Review Approval:</strong> Super Admins require a verified email before approving storefront public listings.
+              </p>
+            </td>
+          </tr>
+        </table>
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td width="28" valign="top"><span style="font-size: 16px;">🔒</span></td>
+            <td style="padding-left: 8px;">
+              <p style="margin: 0; font-size: 13px; color: #0f172a; line-height: 1.4;">
+                <strong>Secure Financial Transactions:</strong> Ensures all settlement notifications, dispute responses, and payout alerts reach only you.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Action Button (3D Glowing Emerald Button) -->
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 32px auto 20px auto;">
+        <tr>
+          <td style="border-radius: 10px; background: linear-gradient(135deg, #059669 0%, #047857 100%); box-shadow: 0 4px 14px rgba(5, 150, 105, 0.4);">
+            <a href="${verificationUrl}" style="display: inline-block; padding: 16px 36px; font-size: 15px; font-weight: 700; color: #ffffff; text-decoration: none; letter-spacing: 0.02em;">
+              Verify Merchant Email Now 🛡️
+            </a>
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin: 20px 0 0 0; font-size: 12px; color: #64748b; line-height: 1.5; text-align: center;">
+        This secure verification link expires in <strong>${expiresInHours} hours</strong>.<br/>
+        If the button does not work, copy and paste this link into your browser:<br/>
+        <a href="${verificationUrl}" style="color: #059669; word-break: break-all;">${verificationUrl}</a>
+      </p>
+
+      <p style="margin: 16px 0 0 0; font-size: 11px; color: #94a3b8; text-align: center;">
+        If you did not register a shop on NextGM, you can safely ignore this email.
+      </p>
+    `;
+
+    return renderBaseTemplate({
+        previewText: `Verify your email for "${shopName}" to build trust with NextGM buyers.`,
+        heading: "Verify Your Merchant Email 🛡️",
+        bodyHtml,
+    });
+};

@@ -166,6 +166,7 @@ export const findUserById = async (id: string) => {
             email: true,
             role: true,
             status: true,
+            isEmailVerified: true,
             passwordChangedAt: true,
         },
     });

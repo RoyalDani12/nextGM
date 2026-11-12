@@ -173,6 +173,7 @@ enum NotificationType {
   MEMBERSHIP_EXPIRING
   RETURN_REQUESTED
   RETURN_UPDATED
+  SHOP_CREATED
 }
 
 enum MembershipPlanType {

@@ -1,3 +1,5 @@
+import crypto from "crypto";
+import { env } from "../../config/env.js";
 import { AppError } from "../../middleware/appError.js";
 import { generateUniqueSlug } from "../../utils/generateSlug.js";
 import {
@@ -17,7 +19,10 @@ import {
 } from "./shop.repository.js";
 import { deleteUserSession } from "../../infrastructure/cache/session.cache.js";
 import { generateAccessToken } from "../auth/token.service.js";
-import { findUserById } from "../auth/auth.repository.js";
+import { findUserById, deleteOldVerificationTokens, saveNewResendVerificationToken } from "../auth/auth.repository.js";
+import { notifyAdmins } from "../notification/notification.service.js";
+import { sendEmail } from "../../services/email.transporter.js";
+import { renderMerchantWelcomeEmail, renderMerchantEmailVerificationPrompt } from "../../services/email.templates.js";
 
 export const createShopService = async (ownerId: string, name: string) => {
     // const existingShop = await findShopByOwnerId(ownerId);
@@ -32,6 +37,72 @@ export const createShopService = async (ownerId: string, name: string) => {
     await deleteUserSession(ownerId);
     const updatedUser = await findUserById(ownerId);
     const accessToken = generateAccessToken(ownerId, updatedUser?.role || "SHOP_OWNER");
+
+    // Notify all active Super Admins of the new shop registration
+    try {
+        await notifyAdmins({
+            type: "SHOP_CREATED",
+            title: `New Shop Application: ${name}`,
+            body: `Store "${name}" was created by ${updatedUser?.name || "a user"} (${updatedUser?.email || ""}) and is awaiting administrative review.`,
+            shopId: shop.id,
+            meta: {
+                shopId: shop.id,
+                shopSlug: shop.slug,
+                shopName: name,
+                ownerId,
+                ownerName: updatedUser?.name,
+                ownerEmail: updatedUser?.email,
+                url: `/superadmin/shops/${shop.id}`,
+                action: "SHOP_REVIEW",
+            },
+        });
+    } catch (notifErr: any) {
+        console.error("Failed to notify admins of new shop creation:", notifErr?.message);
+    }
+
+    // Send high-converting Merchant Welcome & Verification Emails to the store creator
+    if (updatedUser?.email) {
+        try {
+            const dashboardUrl = `${env.CLIENT_URL}/dashboard/shop/${shop.id}`;
+            const isEmailVerified = Boolean(updatedUser.isEmailVerified);
+            let verificationUrl: string | undefined;
+
+            if (!isEmailVerified) {
+                // Invalidate old tokens and issue fresh verification link
+                await deleteOldVerificationTokens(ownerId);
+                const rawToken = crypto.randomBytes(32).toString("hex");
+                const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+                await saveNewResendVerificationToken(ownerId, hashedToken);
+                verificationUrl = `${env.CLIENT_URL}/verify-email?token=${rawToken}`;
+            }
+
+            // 1. Merchant Welcome Email with competitive recommendations
+            const welcomeEmail = renderMerchantWelcomeEmail({
+                ownerName: updatedUser.name || "Merchant",
+                shopName: name,
+                dashboardUrl,
+                isEmailVerified,
+                verificationUrl,
+            });
+            await sendEmail(updatedUser.email, `Welcome to NextGM Merchants, ${updatedUser.name}! 🎉`, welcomeEmail);
+
+            // 2. If unverified, send dedicated trust-building merchant verification prompt
+            if (!isEmailVerified && verificationUrl) {
+                const verificationPrompt = renderMerchantEmailVerificationPrompt({
+                    ownerName: updatedUser.name || "Merchant",
+                    shopName: name,
+                    verificationUrl,
+                });
+                await sendEmail(
+                    updatedUser.email,
+                    `🛡️ Verify your email to build buyer trust on NextGM (${name})`,
+                    verificationPrompt
+                );
+            }
+        } catch (emailErr: any) {
+            console.error("Failed to dispatch merchant onboarding emails:", emailErr?.message);
+        }
+    }
 
     return {
         id: shop.id,
