@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { computeShopOnboardingAndHealth } from "./admin.service.js";
 import { renderShopApprovedEmail } from "../../services/email.templates.js";
+import { htmlToPlainText } from "../../services/email.transporter.js";
 
 describe("Shop Approval, Verification & Health Matrix", () => {
     it("should compute accurate health score and checklist for a brand new pending shop", () => {
@@ -106,7 +107,7 @@ describe("Shop Approval, Verification & Health Matrix", () => {
         expect(result.healthScore.tierLabel).toBe("High Risk / Critical");
     });
 
-    it("should render actionable 4-step merchant onboarding email upon shop approval", () => {
+    it("should render actionable 4-step merchant onboarding email upon shop approval with compliant headers", () => {
         const html = renderShopApprovedEmail({
             ownerName: "Daniel",
             shopName: "Nexio Flagship",
@@ -122,5 +123,23 @@ describe("Shop Approval, Verification & Health Matrix", () => {
         expect(html).toContain("Complete Store Profile & Policies");
         expect(html).toContain("Publish Your Storefront & Go Live!");
         expect(html).toContain("http://localhost:5173/dashboard/shop/shop_123");
+        expect(html).toContain("NextGM Marketplace");
+        expect(html).not.toContain('href="#"');
+    });
+
+    it("should extract clean plain text from HTML to prevent MIME_HTML_ONLY spam penalties", () => {
+        const html = `
+            <h2>Welcome to NextGM</h2>
+            <p>Your shop application has been approved.</p>
+            <a href="https://nextgm.com/dashboard">Go to Dashboard</a>
+            <style>body { color: red; }</style>
+        `;
+
+        const plainText = htmlToPlainText(html);
+        expect(plainText).toContain("Welcome to NextGM");
+        expect(plainText).toContain("Your shop application has been approved.");
+        expect(plainText).toContain("Go to Dashboard (https://nextgm.com/dashboard)");
+        expect(plainText).not.toContain("<style>");
+        expect(plainText).not.toContain("<h2>");
     });
 });
