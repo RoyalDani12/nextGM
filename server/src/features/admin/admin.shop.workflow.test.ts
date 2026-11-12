@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { computeShopOnboardingAndHealth } from "./admin.service.js";
+import { renderShopApprovedEmail } from "../../services/email.templates.js";
 
 describe("Shop Approval, Verification & Health Matrix", () => {
     it("should compute accurate health score and checklist for a brand new pending shop", () => {
@@ -103,5 +104,23 @@ describe("Shop Approval, Verification & Health Matrix", () => {
         expect(result.healthScore.score).toBe(5);
         expect(result.healthScore.tier).toBe("POOR");
         expect(result.healthScore.tierLabel).toBe("High Risk / Critical");
+    });
+
+    it("should render actionable 4-step merchant onboarding email upon shop approval", () => {
+        const html = renderShopApprovedEmail({
+            ownerName: "Daniel",
+            shopName: "Nexio Flagship",
+            dashboardUrl: "http://localhost:5173/dashboard/shop/shop_123",
+        });
+
+        expect(html).toContain("Hi <strong>Daniel</strong>");
+        expect(html).toContain("Nexio Flagship");
+        expect(html).toContain("APPLICATION APPROVED • READY TO LAUNCH");
+        expect(html).toContain("4 Essential Steps to Launch & Start Selling");
+        expect(html).toContain("Add Your Products to the Catalog");
+        expect(html).toContain("Connect Stripe & Payout Account");
+        expect(html).toContain("Complete Store Profile & Policies");
+        expect(html).toContain("Publish Your Storefront & Go Live!");
+        expect(html).toContain("http://localhost:5173/dashboard/shop/shop_123");
     });
 });

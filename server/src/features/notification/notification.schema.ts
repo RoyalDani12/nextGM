@@ -5,9 +5,10 @@ export const getNotificationsSchema = z.object({
     .object({
       page: z.string().optional(),
       limit: z.string().optional(),
-      unreadOnly: z.enum(["true", "false"]).optional(),
+      unreadOnly: z.string().optional(),
       shopId: z.string().optional(),
     })
+    .passthrough()
     .optional(),
 });
 
