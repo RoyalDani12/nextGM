@@ -540,6 +540,55 @@ export const AdminShopDetailPage = () => {
                 </div>
             )}
 
+            {shop.status === "PENDING" && (
+                <div className="bg-amber-50/90 border border-amber-200 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs animate-in fade-in">
+                    <div className="flex items-start gap-3.5 min-w-0">
+                        <div className="size-11 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0 mt-0.5 shadow-2xs">
+                            <Store className="size-5" />
+                        </div>
+                        <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+                                    <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                    New Shop Application • Review Required
+                                </span>
+                                <span className="text-slate-400 text-xs">•</span>
+                                <span className="text-slate-500 text-xs">
+                                    Submitted {new Date(shop.createdAt).toLocaleDateString()}
+                                </span>
+                            </div>
+                            <h2 className="text-sm sm:text-base font-bold text-slate-900 truncate">
+                                Store application awaiting administrative approval
+                            </h2>
+                            <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
+                                Registered by <strong>{shop.owner?.name || "Merchant"}</strong> ({shop.owner?.email || "No email"}). 
+                                Review the seller information and documents below. Approving will activate this store and email the merchant.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0 pt-2 sm:pt-0">
+                        <button
+                            type="button"
+                            onClick={() => setShowApproveModal(true)}
+                            className="flex-1 sm:flex-initial h-9 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-xs cursor-pointer transition-all"
+                        >
+                            <CheckCircle2 size={15} />
+                            <span>Approve Store</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowRejectModal(true)}
+                            className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg border border-rose-300 bg-white hover:bg-rose-50 active:scale-95 text-rose-700 font-bold text-xs inline-flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                        >
+                            <XCircle size={15} />
+                            <span>Reject Application</span>
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Merchant Top Header Card */}
             <div className="bg-white rounded-lg border border-slate-200 shadow-xs p-5">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">

@@ -9,7 +9,8 @@ export type NotificationType =
   | "RETURN_REQUESTED"
   | "RETURN_UPDATED"
   | "COUPON_EXPIRING"
-  | "MEMBERSHIP_EXPIRING";
+  | "MEMBERSHIP_EXPIRING"
+  | "SHOP_CREATED";
 
 export interface Notification {
   id: string;
@@ -24,6 +25,10 @@ export interface Notification {
     returnRequestId?: string;
     orderId?: string;
     status?: string;
+    shopId?: string;
+    shopSlug?: string;
+    action?: string;
+    url?: string;
   } | null;
   shop?: {
     id: string;

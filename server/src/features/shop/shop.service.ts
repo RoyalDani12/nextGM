@@ -18,6 +18,7 @@ import {
 import { deleteUserSession } from "../../infrastructure/cache/session.cache.js";
 import { generateAccessToken } from "../auth/token.service.js";
 import { findUserById } from "../auth/auth.repository.js";
+import { notifyAdmins } from "../notification/notification.service.js";
 
 export const createShopService = async (ownerId: string, name: string) => {
     // const existingShop = await findShopByOwnerId(ownerId);
@@ -32,6 +33,28 @@ export const createShopService = async (ownerId: string, name: string) => {
     await deleteUserSession(ownerId);
     const updatedUser = await findUserById(ownerId);
     const accessToken = generateAccessToken(ownerId, updatedUser?.role || "SHOP_OWNER");
+
+    // Notify all active Super Admins of the new shop registration
+    try {
+        await notifyAdmins({
+            type: "SHOP_CREATED",
+            title: `New Shop Application: ${name}`,
+            body: `Store "${name}" was created by ${updatedUser?.name || "a user"} (${updatedUser?.email || ""}) and is awaiting administrative review.`,
+            shopId: shop.id,
+            meta: {
+                shopId: shop.id,
+                shopSlug: shop.slug,
+                shopName: name,
+                ownerId,
+                ownerName: updatedUser?.name,
+                ownerEmail: updatedUser?.email,
+                url: `/superadmin/shops/${shop.id}`,
+                action: "SHOP_REVIEW",
+            },
+        });
+    } catch (notifErr: any) {
+        console.error("Failed to notify admins of new shop creation:", notifErr?.message);
+    }
 
     return {
         id: shop.id,
