@@ -336,3 +336,85 @@ export const renderGenericNotificationEmail = (params: {
         bodyHtml,
     });
 };
+
+export const renderShopApprovedEmail = (params: {
+    ownerName: string;
+    shopName: string;
+    dashboardUrl: string;
+}) => {
+    const { ownerName, shopName, dashboardUrl } = params;
+    const bodyHtml = `
+      <p style="margin:0 0 16px 0; font-size:15px; color:${TEXT_COLOR}; line-height:1.6;">
+        Hi ${ownerName},
+      </p>
+      <p style="margin:0 0 16px 0; font-size:15px; color:${TEXT_COLOR}; line-height:1.6;">
+        Great news! Your shop <strong>${shopName}</strong> has been reviewed and approved by the NextGM administration team.
+      </p>
+      <p style="margin:0 0 24px 0; font-size:15px; color:${TEXT_COLOR}; line-height:1.6;">
+        Your storefront is now fully active. You can log in, access your seller workspace, list your products, and start receiving customer orders.
+      </p>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 28px auto;">
+        <tr>
+          <td style="border-radius:8px; background-color:${BRAND_COLOR};">
+            <a href="${dashboardUrl}" style="display:inline-block; padding:14px 32px; font-size:15px; font-weight:600; color:#ffffff; text-decoration:none;">
+              Log In & View Your Shop
+            </a>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:24px 0 0 0; font-size:13px; color:${MUTED_COLOR}; line-height:1.5; text-align:center;">
+        If the button above does not work, visit your shop dashboard directly:<br/>
+        <a href="${dashboardUrl}" style="color:${BRAND_COLOR}; word-break:break-all;">${dashboardUrl}</a>
+      </p>
+    `;
+
+    return renderBaseTemplate({
+        previewText: `Your shop "${shopName}" is approved!`,
+        heading: "Your Shop is Approved! 🎉",
+        bodyHtml,
+    });
+};
+
+export const renderShopRejectedEmail = (params: {
+    ownerName: string;
+    shopName: string;
+    reason: string;
+    notes?: string;
+    supportUrl: string;
+}) => {
+    const { ownerName, shopName, reason, notes, supportUrl } = params;
+    const bodyHtml = `
+      <p style="margin:0 0 16px 0; font-size:15px; color:${TEXT_COLOR}; line-height:1.6;">
+        Hi ${ownerName},
+      </p>
+      <p style="margin:0 0 16px 0; font-size:15px; color:${TEXT_COLOR}; line-height:1.6;">
+        Thank you for submitting your shop application for <strong>${shopName}</strong>.
+      </p>
+      <p style="margin:0 0 16px 0; font-size:15px; color:${TEXT_COLOR}; line-height:1.6;">
+        After administrative review, we regret to inform you that your shop application could not be approved at this time.
+      </p>
+      <div style="margin:20px 0; padding:16px; border-left:4px solid #ef4444; background-color:#fef2f2; border-radius:6px;">
+        <p style="margin:0 0 8px 0; font-size:14px; font-weight:bold; color:#991b1b;">Reason for decision:</p>
+        <p style="margin:0; font-size:14px; color:#b91c1c;">${reason}</p>
+        ${notes ? `<p style="margin:8px 0 0 0; font-size:13px; color:#7f1d1d;"><strong>Note:</strong> ${notes}</p>` : ""}
+      </div>
+      <p style="margin:0 0 24px 0; font-size:15px; color:${TEXT_COLOR}; line-height:1.6;">
+        If you have questions or would like to submit updated information, please reach out to our support team.
+      </p>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 24px auto;">
+        <tr>
+          <td style="border-radius:8px; background-color:${BRAND_COLOR};">
+            <a href="${supportUrl}" style="display:inline-block; padding:14px 32px; font-size:15px; font-weight:600; color:#ffffff; text-decoration:none;">
+              Contact Support
+            </a>
+          </td>
+        </tr>
+      </table>
+    `;
+
+    return renderBaseTemplate({
+        previewText: `Update regarding your shop application for "${shopName}"`,
+        heading: "Shop Application Update",
+        bodyHtml,
+    });
+};

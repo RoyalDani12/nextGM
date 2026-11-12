@@ -38,6 +38,10 @@ export function DashboardNavbar() {
     const activeShop = shopsResponse?.data?.find((shop) => shop.id === shopId);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
 
+    const isLive = activeShop?.status?.toUpperCase() === "ACTIVE";
+    const isPending = activeShop?.status?.toUpperCase() === "PENDING";
+    const isRejected = activeShop?.status?.toUpperCase() === "REJECTED";
+
     const initials = user?.name
         ?.split(" ")
         .map((part) => part[0])
@@ -48,32 +52,34 @@ export function DashboardNavbar() {
     return (
         <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-4 border-b border-slate-200 bg-white/95 backdrop-blur-md px-4 sm:px-6 transition-all duration-300">
             <div className="flex items-center gap-3">
-                {/* Mobile Drawer Trigger */}
-                <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
-                    <SheetTrigger
-                        render={
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="lg:hidden size-8 text-slate-700 hover:bg-slate-100 rounded-md cursor-pointer"
-                            >
-                                <Menu className="size-4.5" />
-                            </Button>
-                        }
-                    />
-                    <SheetContent
-                        side="left"
-                        className="p-0 w-[300px] sm:w-[320px] max-w-[85vw] bg-[#533257] border-r border-white/10 text-white shadow-2xl [&_[data-slot=sheet-close]]:hidden"
-                    >
-                        <SheetHeader className="sr-only">
-                            <SheetTitle>Store Navigation</SheetTitle>
-                        </SheetHeader>
-                        <DashboardSidebar
-                            variant="mobile"
-                            onNavItemClick={() => setIsMobileOpen(false)}
+                {/* Mobile Drawer Trigger (only when shop is live) */}
+                {isLive && (
+                    <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
+                        <SheetTrigger
+                            render={
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="lg:hidden size-8 text-slate-700 hover:bg-slate-100 rounded-md cursor-pointer"
+                                >
+                                    <Menu className="size-4.5" />
+                                </Button>
+                            }
                         />
-                    </SheetContent>
-                </Sheet>
+                        <SheetContent
+                            side="left"
+                            className="p-0 w-[300px] sm:w-[320px] max-w-[85vw] bg-[#533257] border-r border-white/10 text-white shadow-2xl [&_[data-slot=sheet-close]]:hidden"
+                        >
+                            <SheetHeader className="sr-only">
+                                <SheetTitle>Store Navigation</SheetTitle>
+                            </SheetHeader>
+                            <DashboardSidebar
+                                variant="mobile"
+                                onNavItemClick={() => setIsMobileOpen(false)}
+                            />
+                        </SheetContent>
+                    </Sheet>
+                )}
 
                 {/* Mobile Store Name (hidden on desktop) */}
                 <div className="flex items-center gap-2 lg:hidden">
@@ -83,6 +89,11 @@ export function DashboardNavbar() {
                     <span className="text-xs font-semibold tracking-tight text-slate-900 truncate max-w-[140px]">
                         {activeShop?.profile?.name || "Merchant"}
                     </span>
+                    {isPending && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                            Review
+                        </span>
+                    )}
                 </div>
 
                 {/* Desktop Store Breadcrumb & Status */}
@@ -98,7 +109,16 @@ export function DashboardNavbar() {
                         </span>
                     </div>
 
-                    {activeShop?.legalInfo?.ownerKycStatus === 'VERIFIED' ? (
+                    {isPending ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                            <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                            Under Review
+                        </span>
+                    ) : isRejected ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
+                            Rejected
+                        </span>
+                    ) : activeShop?.legalInfo?.ownerKycStatus === 'VERIFIED' ? (
                         <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-800">
                             <ShieldCheck className="size-3 text-emerald-600" />
                             Verified Merchant
@@ -114,16 +134,18 @@ export function DashboardNavbar() {
 
             {/* RIGHT CONTROLS */}
             <div className="flex items-center gap-2">
-                {/* View Public Storefront Link */}
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 cursor-pointer transition-colors"
-                    onClick={() => window.open(activeShop ? `/${activeShop.slug}` : "/", "_blank")}
-                    title="Open public storefront"
-                >
-                    <ExternalLink className="size-3.5" />
-                </Button>
+                {/* View Public Storefront Link (only when live) */}
+                {isLive && (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 cursor-pointer transition-colors"
+                        onClick={() => window.open(activeShop ? `/${activeShop.slug}` : "/", "_blank")}
+                        title="Open public storefront"
+                    >
+                        <ExternalLink className="size-3.5" />
+                    </Button>
+                )}
 
                 {/* Notifications */}
                 <div>

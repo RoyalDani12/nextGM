@@ -16,6 +16,8 @@ import {
     getWalletTransactions
 } from "./shop.repository.js";
 import { deleteUserSession } from "../../infrastructure/cache/session.cache.js";
+import { generateAccessToken } from "../auth/token.service.js";
+import { findUserById } from "../auth/auth.repository.js";
 
 export const createShopService = async (ownerId: string, name: string) => {
     // const existingShop = await findShopByOwnerId(ownerId);
@@ -27,12 +29,30 @@ export const createShopService = async (ownerId: string, name: string) => {
 
     const shop = await createShopRepository(ownerId, slug, name);
 
-    await deleteUserSession(ownerId)
+    await deleteUserSession(ownerId);
+    const updatedUser = await findUserById(ownerId);
+    const accessToken = generateAccessToken(ownerId, updatedUser?.role || "SHOP_OWNER");
+
     return {
         id: shop.id,
         slug: shop.slug,
         status: shop.status,
         createdAt: shop.createdAt,
+        profile: {
+            name,
+            description: null,
+            logoUrl: null,
+            bannerUrl: null,
+        },
+        user: updatedUser
+            ? {
+                  id: updatedUser.id,
+                  name: updatedUser.name,
+                  email: updatedUser.email,
+                  role: updatedUser.role,
+              }
+            : undefined,
+        accessToken,
     };
 };
 
@@ -44,6 +64,8 @@ export const getMyShopsService = async (ownerId: string) => {
         slug: shop.slug,
         status: shop.status,
         createdAt: shop.createdAt,
+        rejectionReason: shop.rejectionReason,
+        rejectionNotes: shop.rejectionNotes,
         profile: shop.profile
             ? {
                   name: shop.profile.name,

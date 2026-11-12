@@ -30,7 +30,7 @@ import {
 
 import type { CreateShopPayload, UpdateShopProfilePayload, UpdateShopLegalInfoPayload } from "./shop.types";
 
-export const useMyShops = () => {
+export const useMyShops = (options?: { refetchInterval?: number | false }) => {
   const userId = useAuthStore((state) => state.user?.id);
 
   return useQuery({
@@ -38,10 +38,9 @@ export const useMyShops = () => {
     queryFn: getMyShopRequest,
     enabled: !!userId,
     retry: false,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 1000,
     gcTime: 30 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    refetchInterval: options?.refetchInterval,
   });
 };
 
@@ -52,9 +51,42 @@ export const useCreateShop = () => {
     mutationFn: (payload: CreateShopPayload) =>
       createShopRequest(payload),
 
-    onSuccess: () => {
+    onSuccess: (response: any) => {
+      const { user, accessToken, ...newShop } = response?.data || {};
+      if (user && accessToken) {
+        useAuthStore.getState().setAuth(user, accessToken);
+      } else if (user) {
+        const currentToken = useAuthStore.getState().accessToken || "";
+        useAuthStore.getState().setAuth(user, currentToken);
+      } else {
+        const currentUser = useAuthStore.getState().user;
+        if (currentUser && currentUser.role === "CUSTOMER") {
+          useAuthStore.getState().setAuth(
+            { ...currentUser, role: "SHOP_OWNER" },
+            useAuthStore.getState().accessToken || ""
+          );
+        }
+      }
+
+      const activeUserId = user?.id || useAuthStore.getState().user?.id;
+      if (newShop && newShop.id && activeUserId) {
+        queryClient.setQueryData(["my-shops", activeUserId], (old: any) => {
+          const oldList = old?.data || (Array.isArray(old) ? old : []);
+          return {
+            ...old,
+            success: true,
+            statusCode: 200,
+            message: "Shop fetched successfully.",
+            data: [newShop, ...oldList.filter((s: any) => s.id !== newShop.id)],
+          };
+        });
+      }
+
       queryClient.invalidateQueries({
         queryKey: ["my-shops"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["user-me"],
       });
     },
   });

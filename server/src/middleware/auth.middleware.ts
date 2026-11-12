@@ -70,3 +70,30 @@ export const authenticate = asyncHandler(
         next();
     },
 );
+
+export const optionalAuthenticate = asyncHandler(
+    async (req: Request, _res: Response, next: NextFunction) => {
+        const authHeaders = req.headers.authorization;
+
+        if (!authHeaders || !authHeaders.startsWith("Bearer ")) {
+            return next();
+        }
+
+        const token = authHeaders.split(" ")[1];
+        if (!token) return next();
+
+        try {
+            const decoded = verifyAccessToken(token) as AccessTokenPayload;
+            if (decoded?.userId) {
+                const user = await findUserById(decoded.userId);
+                if (user && user.status === "ACTIVE") {
+                    req.user = user;
+                }
+            }
+        } catch {
+            // Silently proceed as unauthenticated for optional route
+        }
+
+        next();
+    },
+);
