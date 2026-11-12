@@ -139,7 +139,7 @@ export function AppRoutes() {
                 </Route>
 
                 {/* 3. SHOP OWNER ROUTES */}
-                <Route element={<ProtectedRoute allowedRoles={["SHOP_OWNER"]} />}>
+                <Route element={<ProtectedRoute allowedRoles={["SHOP_OWNER", "CUSTOMER"]} />}>
                     <Route path="/dashboard/shop/:shopId" element={<DashboardLayout />}>
                         <Route index element={<DashboardHome />} />
                         <Route path="products" element={<ProductPage />} />

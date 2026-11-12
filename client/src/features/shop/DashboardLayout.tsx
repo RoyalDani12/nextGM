@@ -4,22 +4,24 @@ import { Loader2 } from "lucide-react";
 import { DashboardSidebar } from "./DashboardSidebar";
 import { DashboardNavbar } from "./DashboardNavbar";
 import { useMyShops } from "./shop.hooks";
+import { ShopUnderReview } from "./components/ShopUnderReview";
 
 export function DashboardLayout() {
     const { shopId = "" } = useParams<{ shopId: string }>();
     const location = useLocation();
     const navigate = useNavigate();
-    const { data: shopsResponse, isLoading, isError } = useMyShops();
+    const { data: shopsResponse, isLoading, isFetching, isError, refetch, isRefetching } = useMyShops();
     const shops = shopsResponse?.data ?? [];
-    const hasShopAccess = shops.some((shop) => shop.id === shopId);
+    const currentShop = shops.find((shop) => shop.id === shopId);
+    const hasShopAccess = !!currentShop;
 
     useEffect(() => {
-        if (!isLoading && !isError && shopId && !hasShopAccess) {
+        if (!isLoading && !isFetching && !isError && shopId && !hasShopAccess) {
             navigate("/shops", { replace: true, state: { from: location.pathname } });
         }
-    }, [hasShopAccess, isError, isLoading, location.pathname, navigate, shopId]);
+    }, [hasShopAccess, isError, isFetching, isLoading, location.pathname, navigate, shopId]);
 
-    if (isLoading) {
+    if (isLoading || (!hasShopAccess && isFetching)) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-500">
                 <div className="flex items-center gap-2 text-xs">
@@ -30,8 +32,20 @@ export function DashboardLayout() {
         );
     }
 
-    if (isError || !hasShopAccess) {
+    if (isError || !hasShopAccess || !currentShop) {
         return <Navigate to="/shops" replace />;
+    }
+
+    // If shop is pending review or rejected by admin, display the dedicated review status workspace
+    if (currentShop.status?.toUpperCase() === "PENDING" || currentShop.status?.toUpperCase() === "REJECTED") {
+        return (
+            <div className="min-h-screen bg-slate-50 font-sans antialiased flex flex-col">
+                <DashboardNavbar />
+                <main className="flex-1 p-4 sm:p-6 lg:p-8">
+                    <ShopUnderReview shop={currentShop} onRefresh={refetch} isRefreshing={isRefetching} />
+                </main>
+            </div>
+        );
     }
 
     return (

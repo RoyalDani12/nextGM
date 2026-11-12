@@ -4,6 +4,9 @@ import { sendEmail } from "../../services/email.transporter.js";
 import { AppError } from "../../middleware/appError.js";
 import { deleteUserSession } from "../../infrastructure/cache/session.cache.js";
 import { prisma } from "../../config/db.js";
+import { env } from "../../config/env.js";
+import { emailQueue } from "../../infrastructure/queue/queue.client.js";
+import { renderShopApprovedEmail, renderShopRejectedEmail } from "../../services/email.templates.js";
 import {
     getPlatformStats,
     listUsersAdmin,
@@ -525,6 +528,64 @@ export const approveShopService = async (
         newValue: { status: "ACTIVE", approvedBy: adminName, notes },
         ip,
     });
+
+    const owner = shop.owner;
+    const shopName = shop.profile?.name || shop.slug;
+
+    if (owner?.id) {
+        // Ensure owner role is updated to SHOP_OWNER in PostgreSQL
+        await prisma.user.updateMany({
+            where: { id: owner.id, role: "CUSTOMER" },
+            data: { role: "SHOP_OWNER" },
+        });
+
+        // Invalidate owner session in Redis cache so their next request reads fresh status
+        await deleteUserSession(owner.id);
+
+        // Send in-app notification to the shop owner
+        try {
+            await notifyUser({
+                userId: owner.id,
+                type: "ORDER_PLACED",
+                title: "Your shop is approved! 🎉",
+                body: `Your shop "${shopName}" has been approved by the admin. You can log in and see your shop.`,
+                shopId: shop.id,
+                meta: {
+                    shopId: shop.id,
+                    shopSlug: shop.slug,
+                },
+            });
+        } catch (notifErr: any) {
+            console.error("Failed to send in-app notification for shop approval:", notifErr?.message);
+        }
+
+        // Send transactional email to the user: "your shop is approved you can login and see you shop"
+        if (owner.email) {
+            try {
+                const clientUrl = env.CLIENT_URL || "http://localhost:3000";
+                const dashboardUrl = `${clientUrl}/dashboard/shop/${shop.id}`;
+                const html = renderShopApprovedEmail({
+                    ownerName: owner.name || "Merchant",
+                    shopName,
+                    dashboardUrl,
+                });
+
+                try {
+                    await emailQueue.add("send-shop-approved-email", {
+                        to: owner.email,
+                        subject: `Your shop "${shopName}" is approved!`,
+                        html,
+                    });
+                } catch {
+                    // Fallback to direct delivery
+                    await sendEmail(owner.email, `Your shop "${shopName}" is approved!`, html);
+                }
+            } catch (emailErr: any) {
+                console.error("Failed to send shop approval email:", emailErr?.message);
+            }
+        }
+    }
+
     return result;
 };
 
@@ -549,6 +610,52 @@ export const rejectShopService = async (
         newValue: { status: "REJECTED", reason: reason.trim(), notes: notes?.trim(), rejectedBy: adminName },
         ip,
     });
+
+    const owner = shop.owner;
+    const shopName = shop.profile?.name || shop.slug;
+
+    if (owner?.id) {
+        await deleteUserSession(owner.id);
+
+        try {
+            await notifyUser({
+                userId: owner.id,
+                type: "ORDER_PLACED",
+                title: "Shop application update",
+                body: `Your shop application for "${shopName}" was reviewed and could not be approved: ${reason.trim()}`,
+                shopId: shop.id,
+            });
+        } catch (notifErr: any) {
+            console.error("Failed to send in-app rejection notification:", notifErr?.message);
+        }
+
+        if (owner.email) {
+            try {
+                const clientUrl = env.CLIENT_URL || "http://localhost:3000";
+                const supportUrl = `${clientUrl}/support`;
+                const html = renderShopRejectedEmail({
+                    ownerName: owner.name || "Merchant",
+                    shopName,
+                    reason: reason.trim(),
+                    notes: notes?.trim(),
+                    supportUrl,
+                });
+
+                try {
+                    await emailQueue.add("send-shop-rejected-email", {
+                        to: owner.email,
+                        subject: `Shop application update for "${shopName}"`,
+                        html,
+                    });
+                } catch {
+                    await sendEmail(owner.email, `Shop application update for "${shopName}"`, html);
+                }
+            } catch (emailErr: any) {
+                console.error("Failed to send shop rejection email:", emailErr?.message);
+            }
+        }
+    }
+
     return result;
 };
 
