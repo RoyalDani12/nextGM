@@ -6,6 +6,8 @@ import { addToCartRequest,
         updateCartItemRequest,
          removeCartItemRequest,
          mergeCartRequest,
+         validateCartCouponRequest,
+         type ValidateCouponPayload,
          } from "./cart.api";
 import type { AddToCartPayload } from "./cart.types";
 import { useAuthStore } from "@/store/auth.store";
@@ -127,5 +129,11 @@ export const useMergeCart = () => {
         queryKey: ["cart"],
       });
     },
+  });
+};
+
+export const useValidateCoupon = () => {
+  return useMutation({
+    mutationFn: (payload: ValidateCouponPayload) => validateCartCouponRequest(payload),
   });
 };

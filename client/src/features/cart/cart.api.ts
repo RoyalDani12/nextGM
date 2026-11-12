@@ -58,3 +58,21 @@ export const mergeCartRequest = async () => {
 
   return data;
 };
+
+export interface ValidateCouponPayload {
+  code: string;
+  shopIds?: string[];
+  subtotal?: number;
+  items?: Array<{
+    productId: string;
+    variantId?: string | null;
+    quantity: number;
+    price: number;
+    shopId?: string;
+  }>;
+}
+
+export const validateCartCouponRequest = async (payload: ValidateCouponPayload) => {
+  const { data } = await api.post("/cart/validate-coupon", payload);
+  return data;
+};

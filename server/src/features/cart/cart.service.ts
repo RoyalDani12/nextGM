@@ -1,4 +1,5 @@
 import { AppError } from "../../middleware/appError.js";
+import { prisma } from "../../config/db.js";
 import { findPublicProductById } from "../product/product.repository.js";
 import {
     deleteCartItem,
@@ -212,4 +213,195 @@ export const mergeCartService = async (
     }
 
     return mergeCartItems(cart.id, items);
+};
+
+export interface ValidateCouponInput {
+    code: string;
+    shopIds?: string[];
+    subtotal?: number;
+    items?: Array<{
+        productId: string;
+        variantId?: string | null;
+        quantity: number;
+        price: number;
+        shopId?: string;
+    }>;
+}
+
+export const validateCartCouponService = async (
+    userId: string | undefined,
+    input: ValidateCouponInput,
+) => {
+    const rawCode = input.code?.trim().toUpperCase();
+    if (!rawCode) {
+        throw new AppError("Please provide a promo or coupon code.", 400);
+    }
+
+    let cartShopIds = input.shopIds || [];
+    let cartSubtotal = Number(input.subtotal || 0);
+    let cartItems = input.items || [];
+
+    if (userId && (!cartItems.length || !cartShopIds.length)) {
+        const cart = await getCartWithItems(userId);
+        if (cart?.items?.length) {
+            cartShopIds = Array.from(new Set(cart.items.map((it) => it.product.shopId)));
+            cartItems = cart.items.map((it) => ({
+                productId: it.product.id,
+                variantId: it.variantId,
+                quantity: it.quantity,
+                price: it.variant ? Number(it.variant.price) : Number(it.product.basePrice),
+                shopId: it.product.shopId,
+            }));
+            cartSubtotal = cartItems.reduce((sum, it) => sum + it.price * it.quantity, 0);
+        }
+    }
+
+    const coupons = await prisma.coupon.findMany({
+        where: {
+            code: rawCode,
+            isActive: true,
+            OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+            shop: { status: "ACTIVE", deletedAt: null },
+        },
+        include: {
+            shop: {
+                select: {
+                    id: true,
+                    slug: true,
+                    profile: { select: { name: true } },
+                },
+            },
+            products: {
+                select: { productId: true },
+            },
+        },
+    });
+
+    if (coupons.length === 0) {
+        const inactiveOrExpired = await prisma.coupon.findFirst({
+            where: { code: rawCode },
+            select: { isActive: true, expiresAt: true },
+        });
+
+        if (inactiveOrExpired) {
+            if (!inactiveOrExpired.isActive) {
+                throw new AppError(`Coupon code "${rawCode}" is currently inactive.`, 400);
+            }
+            if (inactiveOrExpired.expiresAt && inactiveOrExpired.expiresAt <= new Date()) {
+                throw new AppError(`Coupon code "${rawCode}" has expired.`, 400);
+            }
+        }
+
+        if (rawCode === "NEXTG" || rawCode === "NEXTG10" || rawCode === "SAVE10") {
+            const discountAmount = Number((cartSubtotal * 0.1).toFixed(2));
+            return {
+                valid: true,
+                code: rawCode,
+                type: "PERCENTAGE",
+                value: 10,
+                discountAmount,
+                freeShipping: false,
+                shopId: null,
+                shopName: "NextG Platform Promo",
+                message: `Promo code "${rawCode}" applied! You saved 10% ($${discountAmount.toFixed(2)}).`,
+            };
+        }
+
+        if (rawCode === "FREESHIP" || rawCode === "FREESHIPPING") {
+            return {
+                valid: true,
+                code: rawCode,
+                type: "FREE_SHIPPING",
+                value: 0,
+                discountAmount: 5.0,
+                freeShipping: true,
+                shopId: null,
+                shopName: "NextG Platform Promo",
+                message: `Promo code "${rawCode}" applied! Free delivery unlocked.`,
+            };
+        }
+
+        throw new AppError(`Coupon or promo code "${rawCode}" is invalid.`, 400);
+    }
+
+    const matchingCoupon = cartShopIds.length > 0
+        ? coupons.find((c) => cartShopIds.includes(c.shopId))
+        : coupons[0];
+
+    if (!matchingCoupon) {
+        const shopNames = coupons
+            .map((c) => c.shop?.profile?.name || c.shop?.slug)
+            .filter(Boolean)
+            .join(", ");
+        throw new AppError(
+            `Coupon "${rawCode}" is only valid for items from ${shopNames || "the issuing store"}.`,
+            400,
+        );
+    }
+
+    if (matchingCoupon.maxUses !== null && matchingCoupon.usedCount >= matchingCoupon.maxUses) {
+        throw new AppError(`Coupon "${rawCode}" has reached its maximum redemption limit.`, 400);
+    }
+
+    if (userId) {
+        const priorUsage = await prisma.couponUsage.findUnique({
+            where: { couponId_userId: { couponId: matchingCoupon.id, userId } },
+        });
+        if (priorUsage) {
+            throw new AppError(`You have already redeemed coupon "${rawCode}" on this account.`, 409);
+        }
+    }
+
+    const targetedProductIds = new Set(matchingCoupon.products.map((p) => p.productId));
+    const eligibleItems = cartItems.length > 0
+        ? cartItems.filter((item) => {
+              const matchesShop = !item.shopId || item.shopId === matchingCoupon.shopId;
+              const matchesProduct = targetedProductIds.size === 0 || targetedProductIds.has(item.productId);
+              return matchesShop && matchesProduct;
+          })
+        : [];
+
+    const eligibleSubtotal = eligibleItems.length > 0
+        ? eligibleItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+        : cartSubtotal;
+
+    if (targetedProductIds.size > 0 && eligibleItems.length === 0 && cartItems.length > 0) {
+        throw new AppError(`Coupon "${rawCode}" does not apply to the specific items currently in your cart.`, 400);
+    }
+
+    if (matchingCoupon.minOrderAmount && eligibleSubtotal < Number(matchingCoupon.minOrderAmount)) {
+        throw new AppError(
+            `Coupon "${rawCode}" requires a minimum order of $${Number(matchingCoupon.minOrderAmount).toFixed(2)}.`,
+            400,
+        );
+    }
+
+    let discountAmount = 0;
+    let freeShipping = false;
+
+    if (matchingCoupon.type === "FREE_SHIPPING") {
+        freeShipping = true;
+        discountAmount = 5.0;
+    } else if (matchingCoupon.type === "PERCENTAGE") {
+        discountAmount = (eligibleSubtotal * Number(matchingCoupon.value)) / 100;
+    } else {
+        discountAmount = Math.min(Number(matchingCoupon.value), eligibleSubtotal);
+    }
+
+    const shopName = matchingCoupon.shop?.profile?.name || matchingCoupon.shop?.slug || "Merchant Store";
+
+    return {
+        valid: true,
+        code: matchingCoupon.code,
+        type: matchingCoupon.type,
+        value: Number(matchingCoupon.value),
+        discountAmount: Number(discountAmount.toFixed(2)),
+        freeShipping,
+        shopId: matchingCoupon.shopId,
+        shopName,
+        minOrderAmount: matchingCoupon.minOrderAmount ? Number(matchingCoupon.minOrderAmount) : null,
+        message: freeShipping
+            ? `Coupon "${matchingCoupon.code}" applied! Free delivery unlocked for ${shopName}.`
+            : `Coupon "${matchingCoupon.code}" applied! Saved $${discountAmount.toFixed(2)} on ${shopName}.`,
+    };
 };

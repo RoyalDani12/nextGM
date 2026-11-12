@@ -8,6 +8,7 @@ import {
     updateCartItemService,
     clearCartService,
     mergeCartService,
+    validateCartCouponService,
 } from "./cart.service.js";
 
 export const addToCartController = asyncHandler(async (req: Request, res: Response) => {
@@ -101,6 +102,18 @@ export const mergeCartController = asyncHandler(async (req: Request, res: Respon
         success: true,
         statusCode: 200,
         message: "Guest cart merged successfully.",
+        data: result,
+    });
+});
+
+export const validateCartCouponController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    const result = await validateCartCouponService(userId, req.body);
+
+    res.status(200).json({
+        success: true,
+        statusCode: 200,
+        message: result.message,
         data: result,
     });
 });

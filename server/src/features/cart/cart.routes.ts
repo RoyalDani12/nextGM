@@ -1,5 +1,5 @@
 import express from "express"
-import { authenticate } from "../../middleware/auth.middleware.js"
+import { authenticate, optionalAuthenticate } from "../../middleware/auth.middleware.js"
 import { validate } from "../../middleware/validate.middleware.js"
 import { addToCartSchema, mergeCartSchema, updateCartItemSchema } from "./cart.schema.js"
 import {
@@ -9,6 +9,7 @@ import {
      removeCartItemController,
      clearCartController,
      mergeCartController,
+     validateCartCouponController,
      } from "./cart.controller.js"
 
 const router = express.Router()
@@ -45,6 +46,11 @@ router.post(
     authenticate,
     validate(mergeCartSchema),
     mergeCartController
+)
+router.post(
+    "/validate-coupon",
+    optionalAuthenticate,
+    validateCartCouponController
 )
 
 export default router

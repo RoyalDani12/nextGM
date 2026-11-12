@@ -428,6 +428,46 @@ export function CheckoutPage() {
   const shippingTotal = groupedBy.reduce((sum: number, group: any) => sum + shippingFeeFor(group.shop.id), 0);
   const grandTotal = itemsTotal + shippingTotal;
 
+  // Pre-populate couponCodes & shippingMethods from cart page selections
+  useEffect(() => {
+    try {
+      const savedCouponRaw = localStorage.getItem("cart_applied_coupon");
+      if (savedCouponRaw) {
+        const parsed = JSON.parse(savedCouponRaw);
+        if (parsed?.code) {
+          setCouponCodes((current) => {
+            const next = { ...current };
+            if (parsed.shopId) {
+              next[parsed.shopId] = parsed.code.toUpperCase();
+            } else {
+              for (const group of groupedBy) {
+                const sId = group.shop?.id || group.shopId;
+                if (sId) next[sId] = parsed.code.toUpperCase();
+              }
+            }
+            return next;
+          });
+        }
+      }
+
+      const savedShipping = localStorage.getItem("cart_shipping_method");
+      if (savedShipping && groupedBy.length > 0) {
+        setShippingMethods((current) => {
+          const next = { ...current };
+          for (const group of groupedBy) {
+            const sId = group.shop?.id || group.shopId;
+            if (sId && !next[sId]) {
+              next[sId] = savedShipping === "free" ? "PICKUP" : "STANDARD";
+            }
+          }
+          return next;
+        });
+      }
+    } catch {
+      // ignore
+    }
+  }, [groupedBy]);
+
   // Handle country changes explicitly
   const handleShippingCountryChange = (newCountryCode: string) => {
     userHasManuallyEditedRef.current = true;
