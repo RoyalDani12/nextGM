@@ -23,6 +23,7 @@ import {
     Ban,
     ChevronDown,
     AlertTriangle,
+    MailCheck,
 } from "lucide-react";
 import {
     useAdminShop,
@@ -31,6 +32,7 @@ import {
     useSuspendShop,
     useCloseShop,
     useReopenShop,
+    useSendVerificationReminder,
     useUpdateShopVerification,
     useAddShopDocument,
     useUpdateShopDocumentStatus,
@@ -154,6 +156,30 @@ export const AdminShopDetailPage = () => {
     const addNoteMutation = useAddShopAdminNote();
     const addRiskMutation = useAddShopRiskFlag();
     const resolveRiskMutation = useResolveShopRiskFlag();
+    const sendVerificationReminderMutation = useSendVerificationReminder();
+    const [isSendingReminder, setIsSendingReminder] = useState(false);
+
+    const handleSendVerificationReminder = async () => {
+        if (!shop?.id) return;
+        try {
+            setIsSendingReminder(true);
+            const res = await sendVerificationReminderMutation.mutateAsync(shop.id);
+            toast.add({
+                title: "Verification Email Sent",
+                description: res.message || "Verification email has been dispatched to the merchant.",
+                type: "success",
+            });
+            refetch();
+        } catch (err: any) {
+            toast.add({
+                title: "Failed to Send Verification",
+                description: err?.response?.data?.message || err?.message || "An error occurred",
+                type: "error",
+            });
+        } finally {
+            setIsSendingReminder(false);
+        }
+    };
 
     const { data: reviewsData, isLoading: reviewsLoading, refetch: refetchReviews } = useAdminReviews({
         shopId: id,
@@ -552,6 +578,15 @@ export const AdminShopDetailPage = () => {
                                     <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
                                     New Shop Application • Review Required
                                 </span>
+                                {shop.owner?.isEmailVerified ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                        <CheckCircle2 size={11} /> Email Verified
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200/80 text-amber-900 border border-amber-300">
+                                        <AlertTriangle size={11} /> Unverified Merchant Email
+                                    </span>
+                                )}
                                 <span className="text-slate-400 text-xs">•</span>
                                 <span className="text-slate-500 text-xs">
                                     Submitted {new Date(shop.createdAt).toLocaleDateString()}
@@ -567,7 +602,20 @@ export const AdminShopDetailPage = () => {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0 pt-2 sm:pt-0">
+                    <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0 pt-2 sm:pt-0 flex-wrap">
+                        {!shop.owner?.isEmailVerified && (
+                            <button
+                                type="button"
+                                disabled={isSendingReminder}
+                                onClick={handleSendVerificationReminder}
+                                className="flex-1 sm:flex-initial h-9 px-3 rounded-lg border border-amber-300 bg-white hover:bg-amber-50 active:scale-95 text-amber-800 font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer transition-all disabled:opacity-50"
+                                title="Send attractive verification prompt to help merchant build buyer trust"
+                            >
+                                {isSendingReminder ? <Loader2 size={14} className="animate-spin" /> : <MailCheck size={14} className="text-amber-600" />}
+                                <span>Send Verification Email</span>
+                            </button>
+                        )}
+
                         <button
                             type="button"
                             onClick={() => setShowApproveModal(true)}
@@ -813,14 +861,40 @@ export const AdminShopDetailPage = () => {
                                     <div className="size-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs shrink-0">
                                         {shop.owner.name.slice(0, 2).toUpperCase()}
                                     </div>
-                                    <div className="min-w-0">
+                                    <div className="min-w-0 flex-1">
                                         <p className="font-semibold text-slate-900 text-xs truncate">{shop.owner.name}</p>
-                                        <p className="text-slate-500 text-[11px] truncate">{shop.owner.email}</p>
+                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                            <p className="text-slate-500 text-[11px] truncate">{shop.owner.email}</p>
+                                            {shop.owner.isEmailVerified ? (
+                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 text-[9px] font-semibold rounded bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                                                    <CheckCircle2 size={9} /> Verified
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 text-[9px] font-semibold rounded bg-amber-50 text-amber-800 border border-amber-200 shrink-0">
+                                                    <AlertTriangle size={9} /> Unverified
+                                                </span>
+                                            )}
+                                        </div>
                                         {shop.profile?.phone && (
                                             <p className="text-slate-400 text-[11px] truncate mt-0.5">{shop.profile.phone}</p>
                                         )}
                                     </div>
                                 </div>
+
+                                {!shop.owner.isEmailVerified && (
+                                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                                        <span className="text-[11px] text-amber-800 font-medium">Email trust pending</span>
+                                        <button
+                                            type="button"
+                                            disabled={isSendingReminder}
+                                            onClick={handleSendVerificationReminder}
+                                            className="text-[11px] font-semibold text-amber-700 hover:text-amber-800 flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                        >
+                                            <MailCheck size={12} />
+                                            Send Verification Email
+                                        </button>
+                                    </div>
+                                )}
 
                                 <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
                                     <span>Identity Document:</span>

@@ -21,6 +21,8 @@ import {
     suspendShopService,
     closeShopService,
     reopenShopService,
+    sendShopVerificationReminderService,
+    bulkSendShopVerificationReminderService,
     updateShopVerificationService,
     addShopLegalDocumentService,
     updateShopLegalDocumentStatusService,
@@ -209,6 +211,22 @@ export const reopenShopController = asyncHandler(async (req: Request, res: Respo
     const clientIp = extractClientIp(req);
     const data = await reopenShopService(id, adminUser.id, adminUser.name || "Super Admin", reason, targetStatus, clientIp);
     res.status(200).json({ success: true, message: "Shop reopened successfully", data });
+});
+
+export const sendShopVerificationReminderController = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    const adminUser = req.user as any;
+    const clientIp = extractClientIp(req);
+    const result = await sendShopVerificationReminderService(id, adminUser.id, adminUser.name || "Super Admin", clientIp);
+    res.status(200).json(result);
+});
+
+export const bulkSendShopVerificationReminderController = asyncHandler(async (req: Request, res: Response) => {
+    const { shopIds } = req.body as { shopIds: string[] };
+    const adminUser = req.user as any;
+    const clientIp = extractClientIp(req);
+    const results = await bulkSendShopVerificationReminderService(shopIds, adminUser.id, adminUser.name || "Super Admin", clientIp);
+    res.status(200).json({ success: true, message: "Verification reminder emails processed", results });
 });
 
 export const updateShopVerificationController = asyncHandler(async (req: Request, res: Response) => {

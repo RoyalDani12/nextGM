@@ -132,7 +132,7 @@ export type AdminShop = {
     adminNotes?: string | null;
     createdAt: string;
     updatedAt?: string;
-    owner: { id: string; name: string; email: string };
+    owner: { id: string; name: string; email: string; isEmailVerified?: boolean };
     profile: {
         logo: string | null;
         name: string;
@@ -154,6 +154,7 @@ export type AdminShopDetail = AdminShop & {
         email: string;
         role: string;
         status: string;
+        isEmailVerified?: boolean;
         createdAt: string;
         profile: any;
     };
@@ -330,6 +331,16 @@ export const adminApi = {
 
     reopenShop: async (id: string, reason: string, targetStatus?: "ACTIVE" | "PENDING") => {
         const res = await api.post(`${base}/shops/${id}/reopen`, { reason, targetStatus });
+        return res.data;
+    },
+
+    sendVerificationReminder: async (shopId: string): Promise<{ success: boolean; alreadyVerified: boolean; message: string }> => {
+        const res = await api.post(`${base}/shops/${shopId}/send-verification-reminder`);
+        return res.data;
+    },
+
+    bulkSendVerificationReminder: async (shopIds: string[]): Promise<{ success: boolean; results: any[]; message: string }> => {
+        const res = await api.post(`${base}/shops/bulk-send-verification-reminder`, { shopIds });
         return res.data;
     },
 

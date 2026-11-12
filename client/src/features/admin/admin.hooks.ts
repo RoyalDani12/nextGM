@@ -139,6 +139,26 @@ export const useReopenShop = () => {
     });
 };
 
+export const useSendVerificationReminder = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (shopId: string) => adminApi.sendVerificationReminder(shopId),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ["admin", "shops"] });
+        },
+    });
+};
+
+export const useBulkSendVerificationReminder = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (shopIds: string[]) => adminApi.bulkSendVerificationReminder(shopIds),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ["admin", "shops"] });
+        },
+    });
+};
+
 export const useUpdateShopVerification = () => {
     const qc = useQueryClient();
     return useMutation({

@@ -27,6 +27,7 @@ import {
     Ban,
     Layers,
     ExternalLink,
+    MailCheck,
 } from "lucide-react";
 import {
     useAdminShops,
@@ -34,6 +35,8 @@ import {
     useRejectShop,
     useSuspendShop,
     useReopenShop,
+    useSendVerificationReminder,
+    useBulkSendVerificationReminder,
     useAddShopRiskFlag,
 } from "@/features/admin/admin.hooks";
 import { toast } from "@/components/ui/toast";
@@ -210,6 +213,70 @@ export const AdminShopsPage = () => {
     const suspendMutation = useSuspendShop();
     const reopenMutation = useReopenShop();
     const addRiskFlagMutation = useAddShopRiskFlag();
+    const sendVerificationReminderMutation = useSendVerificationReminder();
+    const bulkSendVerificationReminderMutation = useBulkSendVerificationReminder();
+
+    const [selectedShopIds, setSelectedShopIds] = useState<string[]>([]);
+    const [isSendingReminder, setIsSendingReminder] = useState(false);
+
+    const handleSendSingleVerification = async (shopId: string, _shopName: string, email: string) => {
+        try {
+            setIsSendingReminder(true);
+            const res = await sendVerificationReminderMutation.mutateAsync(shopId);
+            toast.add({
+                title: "Verification Email Sent",
+                description: res.message || `Verification link sent to ${email}`,
+                type: "success",
+            });
+            refetch();
+        } catch (err: any) {
+            toast.add({
+                title: "Failed to Send Verification",
+                description: err?.response?.data?.message || err?.message || "Failed to send email",
+                type: "error",
+            });
+        } finally {
+            setIsSendingReminder(false);
+        }
+    };
+
+    const handleBulkSendVerification = async () => {
+        if (selectedShopIds.length === 0) return;
+        try {
+            setIsSendingReminder(true);
+            const res = await bulkSendVerificationReminderMutation.mutateAsync(selectedShopIds);
+            toast.add({
+                title: "Bulk Verification Sent",
+                description: res.message || `Dispatched verification reminders to selected stores`,
+                type: "success",
+            });
+            setSelectedShopIds([]);
+            refetch();
+        } catch (err: any) {
+            toast.add({
+                title: "Bulk Send Failed",
+                description: err?.response?.data?.message || err?.message || "Failed to send emails",
+                type: "error",
+            });
+        } finally {
+            setIsSendingReminder(false);
+        }
+    };
+
+    const handleToggleSelectAll = () => {
+        if (!data?.shops) return;
+        if (selectedShopIds.length === data.shops.length) {
+            setSelectedShopIds([]);
+        } else {
+            setSelectedShopIds(data.shops.map((s) => s.id));
+        }
+    };
+
+    const handleToggleSelectShop = (shopId: string) => {
+        setSelectedShopIds((prev) =>
+            prev.includes(shopId) ? prev.filter((id) => id !== shopId) : [...prev, shopId]
+        );
+    };
 
     useEffect(() => {
         const handleScrollOrResize = () => {
@@ -850,6 +917,39 @@ export const AdminShopsPage = () => {
                 </div>
             </div>
 
+            {/* Bulk Selection Action Bar */}
+            {selectedShopIds.length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs animate-in fade-in shadow-2xs">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-amber-950">
+                            {selectedShopIds.length} {selectedShopIds.length === 1 ? "store" : "stores"} selected
+                        </span>
+                        <span className="text-slate-400 hidden sm:inline">•</span>
+                        <span className="text-amber-800 text-[11px]">
+                            Dispatches attractive NextGM merchant verification emails to selected store owners.
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <button
+                            type="button"
+                            disabled={isSendingReminder}
+                            onClick={handleBulkSendVerification}
+                            className="flex-1 sm:flex-initial px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded-md font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50 transition-all"
+                        >
+                            {isSendingReminder ? <Loader2 size={13} className="animate-spin" /> : <MailCheck size={13} />}
+                            Send Verification Emails ({selectedShopIds.length})
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setSelectedShopIds([])}
+                            className="px-2.5 py-1.5 border border-amber-300 bg-white hover:bg-amber-100/50 text-amber-900 rounded-md font-medium text-xs cursor-pointer transition-colors"
+                        >
+                            Clear
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Merchant Data Table */}
             <div className="bg-white rounded-lg border border-slate-200 shadow-xs overflow-hidden">
                 {isLoading ? (
@@ -878,8 +978,17 @@ export const AdminShopsPage = () => {
                         <table className="w-full text-left border-collapse">
                             <thead className="bg-slate-50/70 border-b border-slate-200 text-[11px] text-slate-500 font-medium">
                                 <tr>
+                                    <th className="w-9 px-3 py-2.5 text-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={Boolean(data.shops.length > 0 && selectedShopIds.length === data.shops.length)}
+                                            onChange={handleToggleSelectAll}
+                                            className="rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
+                                            title="Select all"
+                                        />
+                                    </th>
                                     <th className="px-4 py-2.5 font-medium">Store & Merchant</th>
-                                    <th className="px-4 py-2.5 font-medium">Owner & KYC</th>
+                                    <th className="px-4 py-2.5 font-medium">Owner & Verification</th>
                                     <th className="px-3 py-2.5 font-medium text-center">Status</th>
                                     <th className="px-3 py-2.5 font-medium text-center">Verification</th>
                                     <th className="px-3 py-2.5 font-medium text-center">Health</th>
@@ -893,9 +1002,20 @@ export const AdminShopsPage = () => {
                                 {data.shops.map((shop) => {
                                     const openFlags = shop.riskFlags || [];
                                     const docsCount = shop.legalInfo?._count?.documents ?? 0;
+                                    const isSelected = selectedShopIds.includes(shop.id);
 
                                     return (
-                                        <tr key={shop.id} className="hover:bg-slate-50/70 transition-colors group">
+                                        <tr key={shop.id} className={`hover:bg-slate-50/70 transition-colors group ${isSelected ? "bg-amber-50/40" : ""}`}>
+                                            {/* Selection Checkbox */}
+                                            <td className="w-9 px-3 py-3 text-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelected}
+                                                    onChange={() => handleToggleSelectShop(shop.id)}
+                                                    className="rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
+                                                />
+                                            </td>
+
                                             {/* Store Identity */}
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-3">
@@ -948,11 +1068,22 @@ export const AdminShopsPage = () => {
                                                 </div>
                                             </td>
 
-                                            {/* Owner & KYC */}
+                                            {/* Owner & Verification */}
                                             <td className="px-4 py-3 whitespace-nowrap">
                                                 <div>
                                                     <p className="font-medium text-slate-900">{shop.owner.name}</p>
-                                                    <p className="text-[11px] text-slate-400 mt-0.5">{shop.owner.email}</p>
+                                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                                        <p className="text-[11px] text-slate-400">{shop.owner.email}</p>
+                                                        {shop.owner.isEmailVerified ? (
+                                                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 text-[9px] font-semibold rounded bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                                                                <CheckCircle2 size={9} /> Verified
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 text-[9px] font-semibold rounded bg-amber-50 text-amber-800 border border-amber-200 shrink-0">
+                                                                <AlertTriangle size={9} /> Unverified
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <div className="mt-1 flex items-center gap-1">
                                                     <span className="text-[10px] text-slate-400 font-medium">KYC:</span>
@@ -1206,6 +1337,20 @@ export const AdminShopsPage = () => {
                                 >
                                     <RotateCcw size={14} className="text-indigo-600" />
                                     <span>Reopen Store</span>
+                                </button>
+                            )}
+
+                            {!dropdownState.shop.owner.isEmailVerified && (
+                                <button
+                                    onClick={() => {
+                                        const s = dropdownState.shop;
+                                        setDropdownState(null);
+                                        handleSendSingleVerification(s.id, s.profile?.name || s.slug, s.owner.email);
+                                    }}
+                                    className="w-full px-3 py-1.5 text-amber-800 hover:bg-amber-50 flex items-center gap-2 font-medium transition-colors cursor-pointer"
+                                >
+                                    <MailCheck size={14} className="text-amber-600" />
+                                    <span>Send Verification Email</span>
                                 </button>
                             )}
                         </div>
