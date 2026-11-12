@@ -1,8 +1,8 @@
 import { sendEmail } from "../../services/email.transporter.js";
 import { env } from "../../config/env.js";
 
-const BRAND_NAME = "Nexions Customer Care";
-const SUPPORT_EMAIL = "support@nexions.io";
+const BRAND_NAME = "NextGM Support";
+const SUPPORT_EMAIL = env.EMAIL_FROM || env.SMTP_USER || "support@nextgm.com";
 
 /**
  * Dispatches an email safely without throwing or breaking API requests if SMTP is slow/offline.
