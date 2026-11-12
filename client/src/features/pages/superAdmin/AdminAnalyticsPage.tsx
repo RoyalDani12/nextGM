@@ -1,10 +1,12 @@
 import { useState, useMemo } from "react";
-import { Download, RefreshCw, Loader2, AlertCircle } from "lucide-react";
+import { Download, RefreshCw, Loader2, AlertCircle, TrendingUp, Users, Store, ShoppingBag } from "lucide-react";
 import {
   AreaChart,
   Area,
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -13,8 +15,9 @@ import {
   PieChart,
   Pie,
   Cell,
+  Legend,
 } from "recharts";
-import { usePlatformAnalytics, useAdminStats } from "@/features/admin/admin.hooks";
+import { usePlatformAnalytics, useAdminStats, useAdminOrderAnalytics } from "@/features/admin/admin.hooks";
 
 const STATUS_COLORS: Record<string, string> = {
   DELIVERED: "#10b981",
@@ -24,6 +27,7 @@ const STATUS_COLORS: Record<string, string> = {
   PENDING: "#f59e0b",
   CANCELLED: "#ef4444",
   REFUNDED: "#64748b",
+  REFUND_PENDING: "#fbbf24",
   EXPIRED: "#94a3b8",
 };
 
@@ -35,10 +39,10 @@ const fmt = (val: number) =>
     maximumFractionDigits: 2,
   }).format(val || 0);
 
-const fmtCompact = (val: number) => {
-  if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
-  if (val >= 1_000) return `$${(val / 1_000).toFixed(0)}k`;
-  return `$${Math.round(val)}`;
+const formatCompactNumber = (val: number) => {
+  if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(1)}M`;
+  if (val >= 1_000) return `${(val / 1_000).toFixed(1)}k`;
+  return Math.round(val).toLocaleString();
 };
 
 const formatMonthLabel = (value: string, showYear = false) => {
@@ -60,10 +64,11 @@ const getAnalyticsMonths = (count = 24) =>
   });
 
 const TIMEFRAMES = [
-  { id: "ALL", label: "All time", monthsCount: 24, labelDesc: "All recorded history" },
-  { id: "12M", label: "12 months", monthsCount: 12, labelDesc: "Past 12 months" },
-  { id: "6M", label: "6 months", monthsCount: 6, labelDesc: "Past 6 months" },
-  { id: "30D", label: "30 days", monthsCount: 2, labelDesc: "Past 30 days" },
+  { id: "ALL", label: "All time", range: "all", monthsCount: 24, labelDesc: "All recorded history" },
+  { id: "12M", label: "12 months", range: "12m", monthsCount: 12, labelDesc: "Past 12 months" },
+  { id: "90D", label: "90 days", range: "90d", monthsCount: 3, labelDesc: "Past 90 days" },
+  { id: "30D", label: "30 days", range: "30d", monthsCount: 1, labelDesc: "Past 30 days" },
+  { id: "7D", label: "7 days", range: "7d", monthsCount: 1, labelDesc: "Past 7 days" },
 ] as const;
 
 type TimeframeOption = (typeof TIMEFRAMES)[number]["id"];
@@ -77,8 +82,50 @@ const tooltipStyle = {
   padding: "6px 10px",
 };
 
+function buildTimeline(
+  points: { date: string; label: string; orders: number; revenue: number }[] | undefined,
+  range: string
+) {
+  const pointMap = new Map((points || []).map((p) => [p.date, p]));
+  const bucketCount = range === "7d" ? 7 : range === "30d" ? 30 : range === "90d" ? 90 : 12;
+  const monthly = range === "12m" || range === "all";
+  const dates = Array.from({ length: bucketCount }, (_, index) => {
+    const date = new Date();
+    if (monthly) {
+      date.setDate(1);
+      date.setMonth(date.getMonth() - (bucketCount - index - 1));
+    } else {
+      date.setDate(date.getDate() - (bucketCount - index - 1));
+    }
+    return date;
+  });
+
+  return dates.map((date) => {
+    const key = monthly
+      ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
+      : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    const existing = pointMap.get(key);
+    return (
+      existing || {
+        date: key,
+        label: monthly
+          ? date.toLocaleString("en-US", { month: "short", year: "2-digit" })
+          : date.toLocaleString("en-US", { month: "short", day: "numeric" }),
+        orders: 0,
+        revenue: 0,
+      }
+    );
+  });
+}
+
 export function AdminAnalyticsPage() {
-  const [selectedTimeframe, setSelectedTimeframe] = useState<TimeframeOption>("ALL");
+  const [selectedTimeframe, setSelectedTimeframe] = useState<TimeframeOption>("30D");
+  const [chartMode, setChartMode] = useState<"both" | "orders" | "revenue">("both");
+
+  const activeTf = useMemo(
+    () => TIMEFRAMES.find((t) => t.id === selectedTimeframe) || TIMEFRAMES[3],
+    [selectedTimeframe]
+  );
 
   const {
     data: analytics,
@@ -96,49 +143,47 @@ export function AdminAnalyticsPage() {
     refetch: refetchStats,
   } = useAdminStats();
 
+  const {
+    data: orderAnalytics,
+    isLoading: orderAnalyticsLoading,
+    isFetching: orderAnalyticsFetching,
+    refetch: refetchOrderAnalytics,
+  } = useAdminOrderAnalytics({
+    range: activeTf.range,
+  });
+
   const isInitialLoading =
-    (analyticsLoading || statsLoading) && !analytics && !stats;
-  const isFetching = analyticsFetching || statsFetching;
+    (analyticsLoading || statsLoading || orderAnalyticsLoading) &&
+    !analytics &&
+    !stats &&
+    !orderAnalytics;
+  const isFetching = analyticsFetching || statsFetching || orderAnalyticsFetching;
   const hasError = (analyticsError || statsError) && !analytics && !stats;
 
   const handleRefresh = () => {
     refetchAnalytics();
     refetchStats();
+    refetchOrderAnalytics();
   };
 
-  const activeTf = useMemo(
-    () => TIMEFRAMES.find((t) => t.id === selectedTimeframe) || TIMEFRAMES[0],
-    [selectedTimeframe]
-  );
-
-  const months = useMemo(
-    () => getAnalyticsMonths(24),
-    []
-  );
+  const months = useMemo(() => getAnalyticsMonths(24), []);
 
   const monthlyOrders = useMemo(
-    () =>
-      new Map(
-        (analytics?.ordersByMonth || []).map((item) => [item.month, item])
-      ),
+    () => new Map((analytics?.ordersByMonth || []).map((item) => [item.month, item])),
     [analytics?.ordersByMonth]
   );
 
   const monthlyUsers = useMemo(
-    () =>
-      new Map(
-        (analytics?.userGrowth || []).map((item) => [item.month, item])
-      ),
+    () => new Map((analytics?.userGrowth || []).map((item) => [item.month, item])),
     [analytics?.userGrowth]
   );
 
   const monthlyShops = useMemo(
-    () =>
-      new Map((stats?.monthlyShops || []).map((item) => [item.month, item])),
+    () => new Map((stats?.monthlyShops || []).map((item) => [item.month, item])),
     [stats?.monthlyShops]
   );
 
-  // Full 24-month continuous timeseries
+  // Full 24-month continuous monthly timeseries for user & shop growth
   const allMonthlyData = useMemo(() => {
     return months.map((month) => {
       const orderItem = monthlyOrders.get(month);
@@ -156,8 +201,8 @@ export function AdminAnalyticsPage() {
     });
   }, [months, monthlyOrders, monthlyUsers, monthlyShops]);
 
-  // Data sliced based on selected timeframe
-  const filteredData = useMemo(() => {
+  // Sliced monthly series for user & shop growth
+  const filteredMonthlyData = useMemo(() => {
     const sliced = allMonthlyData.slice(-activeTf.monthsCount);
     const showYearInLabel = activeTf.monthsCount > 12;
     return sliced.map((item) => ({
@@ -166,10 +211,22 @@ export function AdminAnalyticsPage() {
     }));
   }, [allMonthlyData, activeTf]);
 
+  // Continuous Orders & Revenue Trajectory timeline points matching Orders page model
+  const trajectoryData = useMemo(() => {
+    if (orderAnalytics?.ordersOverTime && orderAnalytics.ordersOverTime.length > 0) {
+      return buildTimeline(orderAnalytics.ordersOverTime, activeTf.range);
+    }
+    // Fallback to monthly data if order analytics is still resolving
+    return filteredMonthlyData.map((d) => ({
+      date: d.month,
+      label: d.displayLabel,
+      orders: d.orders,
+      revenue: d.revenue,
+    }));
+  }, [orderAnalytics?.ordersOverTime, activeTf.range, filteredMonthlyData]);
+
   const statuses = useMemo(() => {
-    return [...(analytics?.ordersByStatus || [])].sort(
-      (a, b) => b.count - a.count
-    );
+    return [...(analytics?.ordersByStatus || [])].sort((a, b) => b.count - a.count);
   }, [analytics?.ordersByStatus]);
 
   const totalOrdersInStatus = useMemo(
@@ -188,18 +245,16 @@ export function AdminAnalyticsPage() {
   }, [analytics?.topShops]);
 
   const gmv = analytics?.gmv || stats?.grossVolume || 0;
-  const totalOrders = stats?.totalOrders || 0;
+  const totalOrders = stats?.totalOrders || totalOrdersInStatus || 0;
   const totalShops = stats?.totalShops || 0;
   const totalUsers = stats?.totalUsers || 0;
 
   const handleExportCSV = () => {
-    const headers = ["Month", "Revenue (USD)", "Orders", "New Users", "New Shops"];
-    const rows = filteredData.map((d) => [
-      `"${d.month}"`,
-      `"${d.revenue.toFixed(2)}"`,
+    const headers = ["Period / Date", "Orders", "Revenue (USD)"];
+    const rows = trajectoryData.map((d) => [
+      `"${d.label || d.date}"`,
       `"${d.orders}"`,
-      `"${d.users}"`,
-      `"${d.shops}"`,
+      `"${d.revenue.toFixed(2)}"`,
     ]);
 
     const csvContent =
@@ -319,145 +374,166 @@ export function AdminAnalyticsPage() {
         </div>
       </div>
 
-      {/* Charts Grid: Side by Side (100% Full Width whether Sidebar is Open or Closed) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
-        {/* Graph 1: Revenue */}
-        <div className="bg-white border border-slate-200 rounded-lg p-4 w-full">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium text-slate-800">Revenue</h2>
-            <span className="text-xs text-slate-400">{activeTf.labelDesc}</span>
+      {/* ─── Flagship Graph: Orders & Revenue Trajectory (Modeled on Orders Page Graph) ─── */}
+      <div className="rounded-lg border border-slate-200 p-4 bg-white shadow-2xs w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+          <div>
+            <h3 className="font-semibold text-slate-900 text-xs flex items-center gap-1.5">
+              <TrendingUp className="size-3.5 text-slate-600" />
+              Orders & Revenue Trajectory
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Transaction count and gross merchandise settlement ({activeTf.labelDesc})
+            </p>
           </div>
 
-          <div className="h-60 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={filteredData}
-                margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.12} />
-                    <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#f1f5f9"
-                  vertical={false}
+          {/* Chart Mode Selector (Both | Orders | Revenue) */}
+          <div className="inline-flex items-center bg-slate-100 p-0.5 rounded-md text-xs font-medium text-slate-600">
+            <button
+              onClick={() => setChartMode("both")}
+              className={`px-2.5 py-0.5 rounded text-xs transition-colors cursor-pointer ${
+                chartMode === "both"
+                  ? "bg-white text-slate-900 shadow-2xs font-semibold"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Both
+            </button>
+            <button
+              onClick={() => setChartMode("orders")}
+              className={`px-2.5 py-0.5 rounded text-xs transition-colors cursor-pointer ${
+                chartMode === "orders"
+                  ? "bg-white text-slate-900 shadow-2xs font-semibold"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Orders
+            </button>
+            <button
+              onClick={() => setChartMode("revenue")}
+              className={`px-2.5 py-0.5 rounded text-xs transition-colors cursor-pointer ${
+                chartMode === "revenue"
+                  ? "bg-white text-slate-900 shadow-2xs font-semibold"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Revenue
+            </button>
+          </div>
+        </div>
+
+        <div className="h-72 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={trajectoryData}
+              margin={{ top: 12, right: 12, left: -12, bottom: 4 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+              <XAxis
+                dataKey="label"
+                tickLine={false}
+                axisLine={false}
+                tick={{ fontSize: 11, fill: "#94a3b8" }}
+              />
+              <YAxis
+                yAxisId="orders"
+                tickLine={false}
+                axisLine={false}
+                tick={{ fontSize: 11, fill: "#94a3b8" }}
+                tickFormatter={formatCompactNumber}
+                hide={chartMode === "revenue"}
+              />
+              <YAxis
+                yAxisId="revenue"
+                orientation="right"
+                tickLine={false}
+                axisLine={false}
+                tick={{ fontSize: 11, fill: "#94a3b8" }}
+                tickFormatter={(v) => `$${formatCompactNumber(v)}`}
+                hide={chartMode === "orders"}
+              />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: 8,
+                  border: "1px solid #e2e8f0",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                  fontSize: 12,
+                }}
+                formatter={(value: any, name: any) => {
+                  if (name === "Revenue" || name === "revenue") {
+                    return [fmt(Number(value)), "Revenue"];
+                  }
+                  return [Number(value).toLocaleString(), "Orders"];
+                }}
+                labelStyle={{ fontWeight: 600, color: "#0f172a", marginBottom: 2 }}
+              />
+              <Legend
+                verticalAlign="bottom"
+                height={24}
+                iconType="circle"
+                wrapperStyle={{ fontSize: 11, paddingTop: 8, color: "#64748b" }}
+              />
+              {(chartMode === "both" || chartMode === "orders") && (
+                <Line
+                  yAxisId="orders"
+                  type="monotone"
+                  dataKey="orders"
+                  name="Orders"
+                  stroke="#f97316"
+                  strokeWidth={2}
+                  dot={{ r: 3, fill: "#fff", stroke: "#f97316", strokeWidth: 1.5 }}
+                  activeDot={{ r: 5, fill: "#f97316", stroke: "#fff", strokeWidth: 2 }}
                 />
-                <XAxis
-                  dataKey="displayLabel"
-                  tick={{ fontSize: 11, fill: "#94a3b8" }}
-                  tickLine={false}
-                  axisLine={{ stroke: "#e2e8f0" }}
-                />
-                <YAxis
-                  tickFormatter={fmtCompact}
-                  tick={{ fontSize: 11, fill: "#94a3b8" }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  formatter={(val: any) => [fmt(Number(val)), "Revenue"]}
-                  labelFormatter={(_label, payload) => {
-                    const row = payload?.[0]?.payload;
-                    return row ? `${row.month} (${row.displayLabel})` : "";
-                  }}
-                  cursor={{
-                    stroke: "#cbd5e1",
-                    strokeWidth: 1,
-                    strokeDasharray: "4 4",
-                  }}
-                />
-                <Area
+              )}
+              {(chartMode === "both" || chartMode === "revenue") && (
+                <Line
+                  yAxisId="revenue"
                   type="monotone"
                   dataKey="revenue"
-                  stroke="#f97316"
-                  strokeWidth={1.5}
-                  fill="url(#revGrad)"
+                  name="Revenue"
+                  stroke="#0ea5e9"
+                  strokeWidth={2}
+                  dot={{ r: 3, fill: "#fff", stroke: "#0ea5e9", strokeWidth: 1.5 }}
+                  activeDot={{ r: 5, fill: "#0ea5e9", stroke: "#fff", strokeWidth: 2 }}
                 />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+              )}
+            </LineChart>
+          </ResponsiveContainer>
         </div>
+      </div>
 
-        {/* Graph 2: Orders */}
+      {/* Charts Grid: Side by Side (2 columns) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
+        {/* Graph: User Growth */}
         <div className="bg-white border border-slate-200 rounded-lg p-4 w-full">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium text-slate-800">Orders</h2>
-            <span className="text-xs text-slate-400">{activeTf.labelDesc}</span>
-          </div>
-
-          <div className="h-60 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={filteredData}
-                margin={{ top: 4, right: 8, left: -24, bottom: 0 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#f1f5f9"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="displayLabel"
-                  tick={{ fontSize: 11, fill: "#94a3b8" }}
-                  tickLine={false}
-                  axisLine={{ stroke: "#e2e8f0" }}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: "#94a3b8" }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  formatter={(val: any) => [
-                    Number(val).toLocaleString(),
-                    "Orders",
-                  ]}
-                  labelFormatter={(_label, payload) => {
-                    const row = payload?.[0]?.payload;
-                    return row ? `${row.month} (${row.displayLabel})` : "";
-                  }}
-                  cursor={{ fill: "#f8fafc" }}
-                />
-                <Bar
-                  dataKey="orders"
-                  fill="#8b5cf6"
-                  radius={[4, 4, 0, 0]}
-                  barSize={16}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Graph 3: User Growth */}
-        <div className="bg-white border border-slate-200 rounded-lg p-4 w-full">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium text-slate-800">User growth</h2>
-            <span className="text-xs text-slate-400">New registrations ({activeTf.labelDesc})</span>
+            <div>
+              <h2 className="text-sm font-medium text-slate-800 flex items-center gap-1.5">
+                <Users className="size-3.5 text-blue-600" />
+                User growth
+              </h2>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                New buyer & merchant registrations ({activeTf.labelDesc})
+              </p>
+            </div>
+            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+              {totalUsers} Total
+            </span>
           </div>
 
           <div className="h-60 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
-                data={filteredData}
-                margin={{ top: 4, right: 8, left: -24, bottom: 0 }}
+                data={filteredMonthlyData}
+                margin={{ top: 8, right: 8, left: -24, bottom: 0 }}
               >
                 <defs>
                   <linearGradient id="userGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.12} />
+                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.15} />
                     <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#f1f5f9"
-                  vertical={false}
-                />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis
                   dataKey="displayLabel"
                   tick={{ fontSize: 11, fill: "#94a3b8" }}
@@ -468,6 +544,7 @@ export function AdminAnalyticsPage() {
                   tick={{ fontSize: 11, fill: "#94a3b8" }}
                   tickLine={false}
                   axisLine={false}
+                  allowDecimals={false}
                 />
                 <Tooltip
                   contentStyle={tooltipStyle}
@@ -489,18 +566,91 @@ export function AdminAnalyticsPage() {
                   type="monotone"
                   dataKey="users"
                   stroke="#2563eb"
-                  strokeWidth={1.5}
+                  strokeWidth={2}
                   fill="url(#userGrad)"
+                  dot={{ r: 3, fill: "#fff", stroke: "#2563eb", strokeWidth: 1.5 }}
+                  activeDot={{ r: 5, fill: "#2563eb", stroke: "#fff", strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Graph 4: Order Status Breakdown */}
+        {/* Graph: Top Shops by Revenue */}
+        <div className="bg-white border border-slate-200 rounded-lg p-4 w-full">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="text-sm font-medium text-slate-800 flex items-center gap-1.5">
+                <Store className="size-3.5 text-emerald-600" />
+                Top shops by revenue
+              </h2>
+              <p className="text-[11px] text-slate-400 mt-0.5">Leading merchants by gross volume</p>
+            </div>
+            <span className="text-xs text-slate-400">Leading sellers</span>
+          </div>
+
+          <div className="h-60 w-full">
+            {topShops.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-xs text-slate-400">
+                No shop revenue recorded yet
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={topShops}
+                  layout="vertical"
+                  margin={{ top: 0, right: 16, left: 4, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#f1f5f9"
+                    horizontal={false}
+                  />
+                  <XAxis
+                    type="number"
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fontSize: 10, fill: "#94a3b8" }}
+                    tickFormatter={(v) => `$${v}`}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={115}
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 11, fill: "#64748b" }}
+                  />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(val: any, _name: any, item: any) => [
+                      `${fmt(Number(val))} (${item.payload.orderCount} orders)`,
+                      "Revenue",
+                    ]}
+                    cursor={{ fill: "#f8fafc" }}
+                  />
+                  <Bar
+                    dataKey="revenue"
+                    fill="#10b981"
+                    radius={[0, 4, 4, 0]}
+                    barSize={16}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        {/* Graph: Order Status Breakdown */}
         <div className="bg-white border border-slate-200 rounded-lg p-4 w-full flex flex-col justify-between">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium text-slate-800">Order status</h2>
+            <div>
+              <h2 className="text-sm font-medium text-slate-800 flex items-center gap-1.5">
+                <ShoppingBag className="size-3.5 text-orange-600" />
+                Order status
+              </h2>
+              <p className="text-[11px] text-slate-400 mt-0.5">Distribution across fulfillment stages</p>
+            </div>
             <span className="text-xs text-slate-400">
               {totalOrdersInStatus.toLocaleString()} total orders
             </span>
@@ -568,82 +718,34 @@ export function AdminAnalyticsPage() {
           </div>
         </div>
 
-        {/* Graph 5: Top Shops by Revenue */}
+        {/* Graph: Shop Growth */}
         <div className="bg-white border border-slate-200 rounded-lg p-4 w-full">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium text-slate-800">
-              Top shops by revenue
-            </h2>
-            <span className="text-xs text-slate-400">Leading sellers</span>
-          </div>
-
-          <div className="h-60 w-full">
-            {topShops.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-xs text-slate-400">
-                No shop revenue recorded yet
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={topShops}
-                  layout="vertical"
-                  margin={{ top: 0, right: 16, left: 4, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="#f1f5f9"
-                    horizontal={false}
-                  />
-                  <XAxis type="number" hide />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    width={115}
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 11, fill: "#64748b" }}
-                  />
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    formatter={(val: any) => [fmt(Number(val)), "Revenue"]}
-                    cursor={{ fill: "#f8fafc" }}
-                  />
-                  <Bar
-                    dataKey="revenue"
-                    fill="#10b981"
-                    radius={[0, 4, 4, 0]}
-                    barSize={16}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
-
-        {/* Graph 6: Shop Growth */}
-        <div className="bg-white border border-slate-200 rounded-lg p-4 w-full">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium text-slate-800">Shop growth</h2>
-            <span className="text-xs text-slate-400">New merchant registrations</span>
+            <div>
+              <h2 className="text-sm font-medium text-slate-800 flex items-center gap-1.5">
+                <Store className="size-3.5 text-violet-600" />
+                Shop growth
+              </h2>
+              <p className="text-[11px] text-slate-400 mt-0.5">New merchant onboardings</p>
+            </div>
+            <span className="text-xs font-semibold text-violet-600 bg-violet-50 px-2 py-0.5 rounded">
+              {totalShops} Shops
+            </span>
           </div>
 
           <div className="h-60 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
-                data={filteredData}
-                margin={{ top: 4, right: 8, left: -24, bottom: 0 }}
+                data={filteredMonthlyData}
+                margin={{ top: 8, right: 8, left: -24, bottom: 0 }}
               >
                 <defs>
                   <linearGradient id="shopGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.12} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#f1f5f9"
-                  vertical={false}
-                />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis
                   dataKey="displayLabel"
                   tick={{ fontSize: 11, fill: "#94a3b8" }}
@@ -654,6 +756,7 @@ export function AdminAnalyticsPage() {
                   tick={{ fontSize: 11, fill: "#94a3b8" }}
                   tickLine={false}
                   axisLine={false}
+                  allowDecimals={false}
                 />
                 <Tooltip
                   contentStyle={tooltipStyle}
@@ -674,9 +777,11 @@ export function AdminAnalyticsPage() {
                 <Area
                   type="monotone"
                   dataKey="shops"
-                  stroke="#10b981"
-                  strokeWidth={1.5}
+                  stroke="#8b5cf6"
+                  strokeWidth={2}
                   fill="url(#shopGrad)"
+                  dot={{ r: 3, fill: "#fff", stroke: "#8b5cf6", strokeWidth: 1.5 }}
+                  activeDot={{ r: 5, fill: "#8b5cf6", stroke: "#fff", strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -686,5 +791,3 @@ export function AdminAnalyticsPage() {
     </div>
   );
 }
-
-export default AdminAnalyticsPage;
