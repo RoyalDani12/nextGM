@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "@/store/auth.store";
 import {
   getNotificationsRequest,
   getUnreadCountRequest,
@@ -14,24 +15,32 @@ import type {
 } from "./notification.types";
 
 export const useNotifications = (params: GetNotificationsParams = {}, enabled = true) => {
+  const user = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.accessToken);
+  const isAuthReady = Boolean(user && token);
+
   return useQuery({
-    queryKey: ["notifications", params],
+    queryKey: ["notifications", params, user?.id],
     queryFn: () => getNotificationsRequest(params),
-    enabled,
-    refetchInterval: 15_000,
+    enabled: enabled && isAuthReady,
+    refetchInterval: isAuthReady ? 15_000 : false,
     refetchOnWindowFocus: true,
-    staleTime: 10_000,
+    staleTime: 5_000,
   });
 };
 
 export const useUnreadNotificationCount = (shopId?: string, enabled = true) => {
+  const user = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.accessToken);
+  const isAuthReady = Boolean(user && token);
+
   return useQuery({
-    queryKey: ["notifications-unread", shopId],
+    queryKey: ["notifications-unread", shopId, user?.id],
     queryFn: () => getUnreadCountRequest(shopId),
-    enabled,
-    refetchInterval: 15_000,
+    enabled: enabled && isAuthReady,
+    refetchInterval: isAuthReady ? 15_000 : false,
     refetchOnWindowFocus: true,
-    staleTime: 10_000,
+    staleTime: 5_000,
   });
 };
 

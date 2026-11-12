@@ -6,7 +6,7 @@ import { AppError } from "../../middleware/appError.js";
 import { deleteUserSession } from "../../infrastructure/cache/session.cache.js";
 import { prisma } from "../../config/db.js";
 import { env } from "../../config/env.js";
-import { emailQueue } from "../../infrastructure/queue/queue.client.js";
+import { logger } from "../../config/logger.js";
 import { renderShopApprovedEmail, renderShopRejectedEmail, renderMerchantEmailVerificationPrompt } from "../../services/email.templates.js";
 import { deleteOldVerificationTokens, saveNewResendVerificationToken } from "../auth/auth.repository.js";
 import {
@@ -566,24 +566,17 @@ export const approveShopService = async (
             try {
                 const clientUrl = env.CLIENT_URL || "http://localhost:3000";
                 const dashboardUrl = `${clientUrl}/dashboard/shop/${shop.id}`;
+                const subject = `Your shop "${shopName}" is approved! 🎉 Set up your products, connect Stripe & launch`;
                 const html = renderShopApprovedEmail({
                     ownerName: owner.name || "Merchant",
                     shopName,
                     dashboardUrl,
                 });
 
-                try {
-                    await emailQueue.add("send-shop-approved-email", {
-                        to: owner.email,
-                        subject: `Your shop "${shopName}" is approved!`,
-                        html,
-                    });
-                } catch {
-                    // Fallback to direct delivery
-                    await sendEmail(owner.email, `Your shop "${shopName}" is approved!`, html);
-                }
+                await sendEmail(owner.email, subject, html);
+                logger.info({ email: owner.email, shopName, shopId: shop.id }, "Shop approval email sent directly to merchant.");
             } catch (emailErr: any) {
-                console.error("Failed to send shop approval email:", emailErr?.message);
+                logger.error({ emailErr: emailErr?.message, email: owner.email, shopName }, "Failed to send shop approval email");
             }
         }
     }
@@ -635,6 +628,7 @@ export const rejectShopService = async (
             try {
                 const clientUrl = env.CLIENT_URL || "http://localhost:3000";
                 const supportUrl = `${clientUrl}/support`;
+                const subject = `Update regarding your shop application for "${shopName}"`;
                 const html = renderShopRejectedEmail({
                     ownerName: owner.name || "Merchant",
                     shopName,
@@ -643,17 +637,10 @@ export const rejectShopService = async (
                     supportUrl,
                 });
 
-                try {
-                    await emailQueue.add("send-shop-rejected-email", {
-                        to: owner.email,
-                        subject: `Shop application update for "${shopName}"`,
-                        html,
-                    });
-                } catch {
-                    await sendEmail(owner.email, `Shop application update for "${shopName}"`, html);
-                }
+                await sendEmail(owner.email, subject, html);
+                logger.info({ email: owner.email, shopName, shopId: shop.id }, "Shop rejection email sent directly to merchant.");
             } catch (emailErr: any) {
-                console.error("Failed to send shop rejection email:", emailErr?.message);
+                logger.error({ emailErr: emailErr?.message, email: owner.email, shopName }, "Failed to send shop rejection email");
             }
         }
     }
@@ -775,14 +762,10 @@ export const sendShopVerificationReminderService = async (
     const subject = `🛡️ Verify your email to build buyer trust on NextGM (${shopName})`;
 
     try {
-        await emailQueue.add("send-merchant-verification-reminder", {
-            to: owner.email,
-            subject,
-            html: emailHtml,
-        });
-    } catch {
-        // Fallback to direct delivery
         await sendEmail(owner.email, subject, emailHtml);
+        logger.info({ email: owner.email, shopName, shopId }, "Merchant verification reminder sent directly.");
+    } catch (emailErr: any) {
+        logger.error({ emailErr: emailErr?.message, email: owner.email, shopName }, "Failed to send merchant verification reminder");
     }
 
     // Record an admin note on the shop for accountability
