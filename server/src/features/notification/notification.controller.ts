@@ -13,6 +13,7 @@ import {
 export const getNotificationsController = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user!.id;
+    const userRole = req.user?.role;
     const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
     const unreadOnly = req.query.unreadOnly === "true";
@@ -23,7 +24,7 @@ export const getNotificationsController = asyncHandler(
       limit: isNaN(limit) ? 20 : limit,
       unreadOnly,
       shopId,
-    });
+    }, userRole);
 
     res.status(200).json({
       success: true,
@@ -35,9 +36,10 @@ export const getNotificationsController = asyncHandler(
 export const getUnreadCountController = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user!.id;
+    const userRole = req.user?.role;
     const shopId = req.query.shopId as string | undefined;
 
-    const data = await getUnreadCountService(userId, shopId);
+    const data = await getUnreadCountService(userId, shopId, userRole);
 
     res.status(200).json({
       success: true,
@@ -49,9 +51,10 @@ export const getUnreadCountController = asyncHandler(
 export const markAsReadController = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user!.id;
+    const userRole = req.user?.role;
     const { id } = req.params as { id: string };
 
-    const result = await markAsReadService(id, userId);
+    const result = await markAsReadService(id, userId, userRole);
 
     res.status(200).json({
       success: true,
@@ -63,9 +66,10 @@ export const markAsReadController = asyncHandler(
 export const markAllAsReadController = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user!.id;
+    const userRole = req.user?.role;
     const shopId = (req.body?.shopId || req.query.shopId) as string | undefined;
 
-    const result = await markAllAsReadService(userId, shopId);
+    const result = await markAllAsReadService(userId, shopId, userRole);
 
     res.status(200).json({
       success: true,

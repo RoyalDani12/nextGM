@@ -1,5 +1,6 @@
 import { ArrowLeft, Bell, KeyRound, MonitorSmartphone, ShieldCheck, UserRound } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useAuthStore } from "@/store/auth.store";
 import ProfileSection from "./ProfileSection";
 import ChangePasswordSection from "./ChangePasswordSection";
 import SessionsSection from "./SessionsSection";
@@ -43,6 +44,7 @@ const TABS: TabItem[] = [
 
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get("tab") as SettingsTab | null;
   const activeTab: SettingsTab = tabParam && ["profile", "security", "notifications", "sessions"].includes(tabParam)
@@ -50,7 +52,19 @@ export default function SettingsPage() {
     : "profile";
 
   const handleTabChange = (tab: SettingsTab) => {
-    setSearchParams({ tab });
+    setSearchParams({ tab }, { replace: true });
+  };
+
+  const handleBack = () => {
+    if (user?.role === "SUPER_ADMIN") {
+      navigate("/superadmin");
+      return;
+    }
+    if (user?.role === "SHOP_OWNER") {
+      navigate("/dashboard");
+      return;
+    }
+    navigate("/");
   };
 
   const currentTabMeta = TABS.find((t) => t.key === activeTab) || TABS[0];
@@ -60,11 +74,18 @@ export default function SettingsPage() {
       <div className="mx-auto max-w-4xl">
         {/* Back Link */}
         <button
-          onClick={() => navigate(-1)}
+          type="button"
+          onClick={handleBack}
           className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors mb-4 cursor-pointer"
         >
           <ArrowLeft className="size-3.5" />
-          <span>Back</span>
+          <span>
+            {user?.role === "SUPER_ADMIN"
+              ? "Back to Super Admin"
+              : user?.role === "SHOP_OWNER"
+              ? "Back to Dashboard"
+              : "Back to Marketplace"}
+          </span>
         </button>
 
         {/* Page Header */}
