@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Bell,
@@ -13,6 +13,7 @@ import {
   Loader2,
   Inbox,
   RotateCcw,
+  RotateCw,
   Store,
 } from "lucide-react";
 
@@ -115,10 +116,15 @@ export function NotificationDropdown({
   const [filterUnread, setFilterUnread] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
-  const { data: countData } = useUnreadNotificationCount(shopId);
+  const { data: countData, refetch: refetchCount } = useUnreadNotificationCount(shopId);
   const unreadCount = countData?.unreadCount ?? 0;
 
-  const { data: notificationsData, isLoading } = useNotifications(
+  const {
+    data: notificationsData,
+    isLoading,
+    isRefetching,
+    refetch: refetchNotifications,
+  } = useNotifications(
     {
       shopId,
       unreadOnly: filterUnread,
@@ -126,6 +132,13 @@ export function NotificationDropdown({
     },
     true,
   );
+
+  useEffect(() => {
+    if (isOpen) {
+      refetchCount();
+      refetchNotifications();
+    }
+  }, [isOpen, refetchCount, refetchNotifications]);
 
   const markAsRead = useMarkNotificationAsRead();
   const markAllAsRead = useMarkAllNotificationsAsRead();
@@ -274,26 +287,39 @@ export function NotificationDropdown({
         </div>
 
         {/* Filter Pills */}
-        <div className="flex items-center gap-1 px-3 py-2 bg-slate-50/70 border-b border-slate-100">
+        <div className="flex items-center justify-between px-3 py-2 bg-slate-50/70 border-b border-slate-100">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setFilterUnread(false)}
+              className={`px-2.5 py-1 rounded text-xs font-medium transition-all cursor-pointer ${
+                !filterUnread
+                  ? "bg-white text-slate-900 shadow-2xs border border-slate-200/80"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setFilterUnread(true)}
+              className={`px-2.5 py-1 rounded text-xs font-medium transition-all cursor-pointer ${
+                filterUnread
+                  ? "bg-white text-slate-900 shadow-2xs border border-slate-200/80"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              Unread ({unreadCount})
+            </button>
+          </div>
           <button
-            onClick={() => setFilterUnread(false)}
-            className={`px-2.5 py-1 rounded text-xs font-medium transition-all cursor-pointer ${
-              !filterUnread
-                ? "bg-white text-slate-900 shadow-2xs border border-slate-200/80"
-                : "text-slate-500 hover:text-slate-800"
-            }`}
+            onClick={() => {
+              refetchCount();
+              refetchNotifications();
+            }}
+            disabled={isLoading || isRefetching}
+            title="Refresh notifications"
+            className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer disabled:opacity-40"
           >
-            All
-          </button>
-          <button
-            onClick={() => setFilterUnread(true)}
-            className={`px-2.5 py-1 rounded text-xs font-medium transition-all cursor-pointer ${
-              filterUnread
-                ? "bg-white text-slate-900 shadow-2xs border border-slate-200/80"
-                : "text-slate-500 hover:text-slate-800"
-            }`}
-          >
-            Unread ({unreadCount})
+            <RotateCw className={`size-3 ${isRefetching ? "animate-spin text-orange-500" : ""}`} />
           </button>
         </div>
 
@@ -312,11 +338,24 @@ export function NotificationDropdown({
               <p className="text-xs font-medium text-slate-800">
                 {filterUnread ? "No unread notifications" : "No notifications yet"}
               </p>
-              <p className="text-[11px] text-slate-400 max-w-[220px]">
+              <p className="text-[11px] text-slate-400 max-w-[240px]">
                 {filterUnread
                   ? "All notifications have been marked as read."
-                  : "Order updates, customer reviews, and refunds will appear here."}
+                  : isAdminView
+                    ? "Store applications, reviews, and administrative alerts will appear here."
+                    : "Order updates, customer reviews, and refunds will appear here."}
               </p>
+              <button
+                onClick={() => {
+                  refetchCount();
+                  refetchNotifications();
+                }}
+                disabled={isRefetching}
+                className="mt-1 inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-orange-600 bg-orange-50 hover:bg-orange-100/80 border border-orange-200/60 rounded-md transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <RotateCw className={`size-3 ${isRefetching ? "animate-spin" : ""}`} />
+                <span>Check for updates</span>
+              </button>
             </div>
           ) : (
             notifications.map((item) => (
@@ -355,7 +394,7 @@ export function NotificationDropdown({
                     )}
                     {item.type === "SHOP_CREATED" && (
                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
-                        Review Required
+                        {isAdminView ? "Review Required" : "Store Approved"}
                       </span>
                     )}
                   </div>
