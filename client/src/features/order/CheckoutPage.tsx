@@ -415,7 +415,7 @@ export function CheckoutPage() {
   }, []);
 
   const cartData = cartResponse?.data;
-  const groupedBy = cartData?.groupedBy ?? [];
+  const groupedBy = useMemo(() => cartData?.groupedBy ?? [], [cartData?.groupedBy]);
   const totalItems = cartData?.totalItems ?? 0;
   const unavailableItems = groupedBy.flatMap((group: any) =>
     group.items.filter((item: any) => !item.isAvailable)

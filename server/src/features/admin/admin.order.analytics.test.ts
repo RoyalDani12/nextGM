@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getOrderAnalyticsAdmin } from "./admin.repository.js";
+import { getOrderAnalyticsAdmin, getPlatformAnalytics } from "./admin.repository.js";
 import { prisma } from "../../config/db.js";
 
 vi.mock("../../config/db.js", () => ({
@@ -8,6 +8,7 @@ vi.mock("../../config/db.js", () => ({
             groupBy: vi.fn(),
             count: vi.fn(),
             findMany: vi.fn(),
+            aggregate: vi.fn(),
         },
         returnRequest: {
             count: vi.fn(),
@@ -15,6 +16,7 @@ vi.mock("../../config/db.js", () => ({
         shop: {
             findMany: vi.fn(),
         },
+        $queryRaw: vi.fn(),
     },
 }));
 
@@ -121,5 +123,60 @@ describe("getOrderAnalyticsAdmin", () => {
 
         // 13. Order fulfillment rate (45 / 102 = 44.1%)
         expect(result.orderFulfillmentRate).toBe(44.1);
+    });
+
+    it("fetches and compiles platform analytics with GMV, statuses, top shops, and timeseries without date_trunc errors", async () => {
+        (prisma.order.aggregate as any).mockResolvedValueOnce({
+            _sum: { totalAmount: 12500 },
+        });
+
+        (prisma.order.groupBy as any)
+            // ordersByStatus
+            .mockResolvedValueOnce([
+                { status: "DELIVERED", _count: { _all: 35 } },
+                { status: "PROCESSING", _count: { _all: 10 } },
+            ])
+            // topShops
+            .mockResolvedValueOnce([
+                { shopId: "shop_alpha", _sum: { totalAmount: 8500 }, _count: { _all: 25 } },
+                { shopId: "shop_beta", _sum: { totalAmount: 4000 }, _count: { _all: 20 } },
+            ]);
+
+        // userGrowth $queryRaw
+        (prisma.$queryRaw as any)
+            .mockResolvedValueOnce([
+                { month: "2026-10", count: BigInt(5) },
+                { month: "2026-11", count: BigInt(12) },
+            ])
+            // ordersByMonth $queryRaw
+            .mockResolvedValueOnce([
+                { month: "2026-10", count: BigInt(15), revenue: 4500 },
+                { month: "2026-11", count: BigInt(30), revenue: 8000 },
+            ]);
+
+        (prisma.shop.findMany as any).mockResolvedValueOnce([
+            { id: "shop_alpha", slug: "alpha-store", profile: { name: "Alpha Store" } },
+            { id: "shop_beta", slug: "beta-store", profile: { name: "Beta Store" } },
+        ]);
+
+        const analytics = await getPlatformAnalytics();
+
+        expect(analytics.gmv).toBe(12500);
+        expect(analytics.ordersByStatus).toEqual([
+            { status: "DELIVERED", count: 35 },
+            { status: "PROCESSING", count: 10 },
+        ]);
+        expect(analytics.topShops).toEqual([
+            { shopId: "shop_alpha", shopName: "Alpha Store", revenue: 8500, orderCount: 25 },
+            { shopId: "shop_beta", shopName: "Beta Store", revenue: 4000, orderCount: 20 },
+        ]);
+        expect(analytics.userGrowth).toEqual([
+            { month: "2026-10", count: 5 },
+            { month: "2026-11", count: 12 },
+        ]);
+        expect(analytics.ordersByMonth).toEqual([
+            { month: "2026-10", count: 15, revenue: 4500 },
+            { month: "2026-11", count: 30, revenue: 8000 },
+        ]);
     });
 });

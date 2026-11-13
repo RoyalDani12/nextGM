@@ -1541,6 +1541,7 @@ export const getPlatformAnalytics = async () => {
         prisma.order.groupBy({ by: ["status"], _count: { _all: true } }),
         prisma.order.groupBy({
             by: ["shopId"],
+            where: { deletedAt: null },
             _sum: { totalAmount: true },
             _count: { _all: true },
             orderBy: { _sum: { totalAmount: "desc" } },
@@ -1549,8 +1550,8 @@ export const getPlatformAnalytics = async () => {
         prisma.$queryRaw<{ month: string; count: bigint }[]>`
             WITH months AS (
                 SELECT generate_series(
-                    date_trunc('month', ${historicalStartDate}),
-                    date_trunc('month', CURRENT_DATE),
+                    date_trunc('month', ${historicalStartDate}::timestamptz),
+                    date_trunc('month', CURRENT_DATE::timestamptz),
                     interval '1 month'
                 ) AS month_start
             )
@@ -1566,8 +1567,8 @@ export const getPlatformAnalytics = async () => {
         prisma.$queryRaw<{ month: string; count: bigint; revenue: number }[]>`
             WITH months AS (
                 SELECT generate_series(
-                    date_trunc('month', ${historicalStartDate}),
-                    date_trunc('month', CURRENT_DATE),
+                    date_trunc('month', ${historicalStartDate}::timestamptz),
+                    date_trunc('month', CURRENT_DATE::timestamptz),
                     interval '1 month'
                 ) AS month_start
             )
