@@ -1,0 +1,353 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target deployment environment"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - staging
+      deploy_api:
+        description: "Deploy backend API and worker"
+        required: true
+        type: boolean
+        default: true
+      deploy_client:
+        description: "Deploy client frontend"
+        required: true
+        type: boolean
+        default: true
+      skip_tests:
+        description: "Skip test verification (emergency hotfix only)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Pre-deployment verification
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.skip_tests != 'true' }}
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: nextgm_test
+          POSTGRES_USER: nextgm
+          POSTGRES_PASSWORD: nextgm_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nextgm -d nextgm_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            client/package-lock.json
+            server/package-lock.json
+
+      - name: Install & verify Client
+        working-directory: client
+        run: |
+          npm ci
+          npm run lint
+          npm run build
+        env:
+          VITE_API_URL: http://localhost:5000/api/v1
+          VITE_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder
+
+      - name: Install & verify Server
+        working-directory: server
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://nextgm:nextgm_test_password@localhost:5432/nextgm_test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: cd-verify-jwt-secret-key-32chars
+          JWT_REFRESH_SECRET: cd-verify-jwt-refresh-secret-32chars
+          SMTP_HOST: localhost
+          SMTP_PORT: "2525"
+          SMTP_USER: cd
+          SMTP_PASS: cd
+          CLIENT_URL: http://localhost:3000
+          ALLOWED_ORIGINS: http://localhost:3000
+          DEVICE_LIMIT: "5"
+          CLOUDINARY_CLOUD_NAME: cd
+          CLOUDINARY_API_KEY: cd
+          CLOUDINARY_API_SECRET: cd
+          ORDER_RESERVATION_TTL_MINUTES: "30"
+          STRIPE_SECRET_KEY: sk_test_cd_placeholder
+          STRIPE_WEBHOOK_SECRET: whsec_cd_placeholder
+          PLATFORM_COMMISSION_RATE: "0.1"
+          GOOGLE_CLIENT_ID: cd
+          GOOGLE_CLIENT_SECRET: cd
+          GOOGLE_REDIRECT_URI: http://localhost:3000/auth/callback
+        run: |
+          npm ci
+          npx prisma generate
+          npx prisma migrate deploy
+          npm run build
+          npm test -- --run
+
+      - name: Validate Docker Compose
+        run: docker compose config --quiet
+
+  build-and-push-images:
+    name: Build & publish container images
+    runs-on: ubuntu-latest
+    needs: [verify]
+    if: |
+      always() &&
+      (needs.verify.result == 'success' || github.event.inputs.skip_tests == 'true')
+    outputs:
+      server_image: ${{ steps.image_names.outputs.server }}
+      client_image: ${{ steps.image_names.outputs.client }}
+      image_tag: ${{ steps.image_names.outputs.tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image names and tags
+        id: image_names
+        run: |
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          SERVER_IMAGE="ghcr.io/${REPO_LOWER}/server"
+          CLIENT_IMAGE="ghcr.io/${REPO_LOWER}/client"
+
+          echo "server=${SERVER_IMAGE}" >> $GITHUB_OUTPUT
+          echo "client=${CLIENT_IMAGE}" >> $GITHUB_OUTPUT
+          echo "tag=${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+          echo "SERVER_IMAGE=${SERVER_IMAGE}" >> $GITHUB_ENV
+          echo "CLIENT_IMAGE=${CLIENT_IMAGE}" >> $GITHUB_ENV
+          echo "TAG_SHA=${SHORT_SHA}" >> $GITHUB_ENV
+
+      - name: Build and push Server Docker image
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.deploy_api != 'false' }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          file: ./server/Dockerfile
+          push: true
+          tags: |
+            ${{ env.SERVER_IMAGE }}:latest
+            ${{ env.SERVER_IMAGE }}:${{ env.TAG_SHA }}
+            ${{ env.SERVER_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Client Docker image
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.deploy_client != 'false' }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ./client
+          file: ./client/Dockerfile
+          build-args: |
+            VITE_API_URL=${{ secrets.PROD_VITE_API_URL || 'https://nextgm-1.onrender.com/api/v1' }}
+            VITE_STRIPE_PUBLISHABLE_KEY=${{ secrets.PROD_VITE_STRIPE_PUBLISHABLE_KEY || '' }}
+          push: true
+          tags: |
+            ${{ env.CLIENT_IMAGE }}:latest
+            ${{ env.CLIENT_IMAGE }}:${{ env.TAG_SHA }}
+            ${{ env.CLIENT_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Trigger production deployment
+    runs-on: ubuntu-latest
+    needs: [build-and-push-images]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy API service to Render
+        id: deploy_api
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.deploy_api != 'false' }}
+        env:
+          RENDER_API_DEPLOY_HOOK: ${{ secrets.RENDER_API_DEPLOY_HOOK || secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -n "$RENDER_API_DEPLOY_HOOK" ]; then
+            echo "🚀 Triggering Render API deployment..."
+            RESPONSE=$(curl -sS -w "\nHTTP_STATUS:%{http_code}" -X POST "$RENDER_API_DEPLOY_HOOK")
+            HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS" | cut -d: -f2)
+            BODY=$(echo "$RESPONSE" | grep -v "HTTP_STATUS")
+            
+            if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+              echo "✅ Render API deployment triggered successfully (HTTP $HTTP_STATUS)."
+              echo "Response: $BODY"
+              echo "api_status=triggered" >> $GITHUB_ENV
+            else
+              echo "::error::Render API deploy hook returned HTTP $HTTP_STATUS: $BODY"
+              exit 1
+            fi
+          else
+            echo "⚠️ RENDER_API_DEPLOY_HOOK secret is not configured."
+            echo "api_status=skipped" >> $GITHUB_ENV
+          fi
+
+      - name: Deploy Worker service to Render
+        id: deploy_worker
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.deploy_api != 'false' }}
+        env:
+          RENDER_WORKER_DEPLOY_HOOK: ${{ secrets.RENDER_WORKER_DEPLOY_HOOK }}
+        run: |
+          if [ -n "$RENDER_WORKER_DEPLOY_HOOK" ]; then
+            echo "🚀 Triggering Render Worker deployment..."
+            RESPONSE=$(curl -sS -w "\nHTTP_STATUS:%{http_code}" -X POST "$RENDER_WORKER_DEPLOY_HOOK")
+            HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS" | cut -d: -f2)
+            BODY=$(echo "$RESPONSE" | grep -v "HTTP_STATUS")
+            
+            if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+              echo "✅ Render Worker deployment triggered successfully (HTTP $HTTP_STATUS)."
+              echo "Response: $BODY"
+              echo "worker_status=triggered" >> $GITHUB_ENV
+            else
+              echo "::error::Render Worker deploy hook returned HTTP $HTTP_STATUS: $BODY"
+              exit 1
+            fi
+          else
+            echo "ℹ️ RENDER_WORKER_DEPLOY_HOOK secret is not configured (optional if co-deployed or blueprint-managed)."
+            echo "worker_status=skipped" >> $GITHUB_ENV
+          fi
+
+      - name: Deploy Client frontend to Render
+        id: deploy_client
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.deploy_client != 'false' }}
+        env:
+          RENDER_CLIENT_DEPLOY_HOOK: ${{ secrets.RENDER_CLIENT_DEPLOY_HOOK }}
+        run: |
+          if [ -n "$RENDER_CLIENT_DEPLOY_HOOK" ]; then
+            echo "🚀 Triggering Render Client deployment..."
+            RESPONSE=$(curl -sS -w "\nHTTP_STATUS:%{http_code}" -X POST "$RENDER_CLIENT_DEPLOY_HOOK")
+            HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS" | cut -d: -f2)
+            BODY=$(echo "$RESPONSE" | grep -v "HTTP_STATUS")
+            
+            if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+              echo "✅ Render Client deployment triggered successfully (HTTP $HTTP_STATUS)."
+              echo "Response: $BODY"
+              echo "client_status=triggered" >> $GITHUB_ENV
+            else
+              echo "::error::Render Client deploy hook returned HTTP $HTTP_STATUS: $BODY"
+              exit 1
+            fi
+          else
+            echo "ℹ️ RENDER_CLIENT_DEPLOY_HOOK secret is not configured (optional if blueprint-managed static site)."
+            echo "client_status=skipped" >> $GITHUB_ENV
+          fi
+
+  health-check:
+    name: Verify deployment health
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: always() && needs.deploy.result == 'success'
+    steps:
+      - name: Check API health endpoint
+        env:
+          HEALTHCHECK_URL: ${{ secrets.HEALTHCHECK_URL || secrets.PRODUCTION_API_URL }}
+        run: |
+          if [ -z "$HEALTHCHECK_URL" ]; then
+            echo "ℹ️ No HEALTHCHECK_URL or PRODUCTION_API_URL configured. Skipping live health polling."
+            echo "💡 Tip: Add HEALTHCHECK_URL (e.g. https://nextgm-1.onrender.com/health) to repository secrets to enable automated health verification."
+            exit 0
+          fi
+
+          # Ensure /health endpoint suffix
+          URL="$HEALTHCHECK_URL"
+          if [[ "$URL" != */health ]]; then
+            URL="${URL%/}/health"
+          fi
+
+          echo "🔍 Polling health check at: $URL"
+          MAX_ATTEMPTS=24
+          SLEEP_SECONDS=10
+          ATTEMPT=1
+
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$URL" || echo "000")
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: HTTP $STATUS"
+            if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 300 ]; then
+              echo "✅ Deployment is healthy! Service responded with HTTP $STATUS."
+              exit 0
+            fi
+            sleep $SLEEP_SECONDS
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+
+          echo "::warning::Health check timed out after $((MAX_ATTEMPTS * SLEEP_SECONDS))s. Service may still be starting or restarting."
+
+  summary:
+    name: Deployment summary
+    runs-on: ubuntu-latest
+    needs: [verify, build-and-push-images, deploy]
+    if: always()
+    steps:
+      - name: Generate summary report
+        run: |
+          cat << 'EOF' >> $GITHUB_STEP_SUMMARY
+          # 🚀 Continuous Deployment Summary
+
+          | Attribute | Value |
+          |---|---|
+          | **Repository** | `${{ github.repository }}` |
+          | **Commit** | [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) |
+          | **Ref / Branch** | `${{ github.ref_name }}` |
+          | **Actor** | `@${{ github.actor }}` |
+          | **Environment** | `${{ github.event.inputs.environment || 'production' }}` |
+          | **Pre-deploy Tests** | `${{ needs.verify.result }}` |
+          | **Container Images** | `${{ needs.build-and-push-images.result }}` |
+          | **Deploy Trigger** | `${{ needs.deploy.result }}` |
+
+          ### 📦 Published Container Images (GHCR)
+          - **Server:** `ghcr.io/${{ github.repository }}/server:${{ github.sha }}`
+          - **Client:** `ghcr.io/${{ github.repository }}/client:${{ github.sha }}`
+
+          ---
+          *NextGM Automated CD Pipeline powered by GitHub Actions & Render.*
+          EOF

@@ -794,6 +794,15 @@ isolation.
 
 ## Production deployment
 
+### Continuous Deployment (CD) Pipeline
+
+NextGM includes an automated Continuous Deployment pipeline configured in [`.github/workflows/cd.yml`](.github/workflows/cd.yml) with Render Blueprint infrastructure-as-code support in [`render.yaml`](render.yaml).
+
+- **Automated Deploy on Merge:** Every push to `main` executes pre-flight tests, builds production Docker images, pushes them to GitHub Container Registry (GHCR), and triggers Render deploy hooks.
+- **Manual Dispatch:** Supports triggering deployments on-demand with fine-grained control via GitHub Actions UI (`workflow_dispatch`).
+- **Render Infrastructure as Code:** Deploy the full platform (Express API, BullMQ worker, React static client, PostgreSQL, and Redis) with one click using [`render.yaml`](render.yaml).
+- **Runbook & Configuration:** See [docs/cd-deployment.md](docs/cd-deployment.md) for full instructions on configuring GitHub secrets, deploy hooks, and rollback procedures.
+
 ### Recommended topology
 
 ```text
