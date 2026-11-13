@@ -72,7 +72,7 @@ export function MobileFilterSheet({
                 Sort By
               </label>
               <select
-                value={`${filters.sort}:${filters.order}`}
+                value={`${filters.sort || "createdAt"}:${filters.order || "desc"}`}
                 onChange={(e) => {
                   const [sort, order] = e.target.value.split(":");
                   onChange({

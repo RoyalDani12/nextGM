@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import {
   BadgeCheck,
   Check,
@@ -45,6 +45,11 @@ export function MarketplaceFilterSidebar({
   // Local price inputs for smooth typing before submitting
   const [minPriceInput, setMinPriceInput] = useState(filters.minPrice || "");
   const [maxPriceInput, setMaxPriceInput] = useState(filters.maxPrice || "");
+
+  useEffect(() => {
+    setMinPriceInput(filters.minPrice || "");
+    setMaxPriceInput(filters.maxPrice || "");
+  }, [filters.minPrice, filters.maxPrice]);
 
   const handlePriceSubmit = (e?: FormEvent) => {
     if (e) e.preventDefault();

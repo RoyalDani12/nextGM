@@ -23,8 +23,8 @@ export default function Hero() {
   const [filters, setFilters] = useState<CatalogFilters>({
     ...emptyCatalogFilters,
     categorySlug: params.get("categorySlug") || undefined,
-    sort: (params.get("sort") as CatalogFilters["sort"]) || undefined,
-    order: (params.get("order") as CatalogFilters["order"]) || undefined,
+    sort: (params.get("sort") as CatalogFilters["sort"]) || emptyCatalogFilters.sort,
+    order: (params.get("order") as CatalogFilters["order"]) || emptyCatalogFilters.order,
     verifiedShopsOnly: params.get("verifiedShopsOnly") === "true" ? true : undefined,
     inStockOnly: params.get("inStockOnly") === "true" ? true : undefined,
     type: (params.get("type") as CatalogFilters["type"]) || undefined,
@@ -52,27 +52,26 @@ export default function Hero() {
   useEffect(() => {
     const slug = params.get("categorySlug") || undefined;
     const query = params.get("search") || "";
-    const sort = (params.get("sort") as CatalogFilters["sort"]) || undefined;
-    const order = (params.get("order") as CatalogFilters["order"]) || undefined;
-    const verifiedShopsOnly = params.get("verifiedShopsOnly") === "true";
-    const inStockOnly = params.get("inStockOnly") === "true";
+    const sort = (params.get("sort") as CatalogFilters["sort"]) || emptyCatalogFilters.sort;
+    const order = (params.get("order") as CatalogFilters["order"]) || emptyCatalogFilters.order;
+    const verifiedShopsOnly = params.get("verifiedShopsOnly") === "true" ? true : undefined;
+    const inStockOnly = params.get("inStockOnly") === "true" ? true : undefined;
     const type = (params.get("type") as CatalogFilters["type"]) || undefined;
     const minRating = params.get("minRating") ? Number(params.get("minRating")) : undefined;
     const minPrice = params.get("minPrice") || undefined;
     const maxPrice = params.get("maxPrice") || undefined;
 
-    setFilters((current) => ({
-      ...current,
+    setFilters({
       categorySlug: slug,
-      sort: sort || current.sort,
-      order: order || current.order,
-      verifiedShopsOnly: params.has("verifiedShopsOnly") ? verifiedShopsOnly : current.verifiedShopsOnly,
-      inStockOnly: params.has("inStockOnly") ? inStockOnly : current.inStockOnly,
-      type: type || current.type,
-      minRating: minRating ?? current.minRating,
-      minPrice: minPrice ?? current.minPrice,
-      maxPrice: maxPrice ?? current.maxPrice,
-    }));
+      sort,
+      order,
+      verifiedShopsOnly,
+      inStockOnly,
+      type,
+      minRating,
+      minPrice,
+      maxPrice,
+    });
     setSearchInput(query);
     setSearch(query);
   }, [params]);
