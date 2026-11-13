@@ -1,0 +1,162 @@
+# Render Blueprint Specification for NextGM
+# Documentation: https://render.com/docs/blueprint-spec
+
+services:
+  # -------------------------------------------------------------
+  # 1. NextGM Backend API Web Service
+  # -------------------------------------------------------------
+  - type: web
+    name: nextgm-api
+    runtime: docker
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    plan: starter
+    region: oregon
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nextgm-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: nextgm-redis
+          property: connectionString
+      - key: CLIENT_URL
+        value: https://nextgm-1.onrender.com
+      - key: ALLOWED_ORIGINS
+        value: https://nextgm-1.onrender.com
+      - key: DEVICE_LIMIT
+        value: "5"
+      - key: ORDER_RESERVATION_TTL_MINUTES
+        value: "30"
+      - key: PLATFORM_COMMISSION_RATE
+        value: "0.1"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        value: https://nextgm-1.onrender.com/auth/callback
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+
+  # -------------------------------------------------------------
+  # 2. NextGM Asynchronous Worker (BullMQ Emails & Notifications)
+  # -------------------------------------------------------------
+  - type: worker
+    name: nextgm-worker
+    runtime: docker
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    dockerCommand: node dist/worker.js
+    plan: starter
+    region: oregon
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nextgm-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: nextgm-redis
+          property: connectionString
+      - key: CLIENT_URL
+        value: https://nextgm-1.onrender.com
+      - key: ALLOWED_ORIGINS
+        value: https://nextgm-1.onrender.com
+      - key: DEVICE_LIMIT
+        value: "5"
+      - key: ORDER_RESERVATION_TTL_MINUTES
+        value: "30"
+      - key: PLATFORM_COMMISSION_RATE
+        value: "0.1"
+      - key: JWT_SECRET
+        fromService:
+          type: web
+          name: nextgm-api
+          envVarKey: JWT_SECRET
+      - key: JWT_REFRESH_SECRET
+        fromService:
+          type: web
+          name: nextgm-api
+          envVarKey: JWT_REFRESH_SECRET
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+
+  # -------------------------------------------------------------
+  # 3. NextGM Frontend Static Client (Vite Single Page App)
+  # -------------------------------------------------------------
+  - type: web
+    name: nextgm-client
+    runtime: static
+    rootDir: client
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    autoDeploy: true
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: https://nextgm-api.onrender.com/api/v1
+      - key: VITE_STRIPE_PUBLISHABLE_KEY
+        sync: false
+
+  # -------------------------------------------------------------
+  # 4. Managed Redis Service (BullMQ Queues & Caching)
+  # -------------------------------------------------------------
+  - type: redis
+    name: nextgm-redis
+    plan: starter
+    region: oregon
+    ipAllowList: []
+
+# ---------------------------------------------------------------
+# 5. Managed PostgreSQL Database
+# ---------------------------------------------------------------
+databases:
+  - name: nextgm-postgres
+    databaseName: nextgm
+    user: nextgm
+    plan: starter
+    region: oregon
