@@ -223,7 +223,7 @@ export function AdminAnalyticsPage() {
       orders: d.orders,
       revenue: d.revenue,
     }));
-  }, [orderAnalytics?.ordersOverTime, activeTf.range, filteredMonthlyData]);
+  }, [orderAnalytics, activeTf.range, filteredMonthlyData]);
 
   const statuses = useMemo(() => {
     return [...(analytics?.ordersByStatus || [])].sort((a, b) => b.count - a.count);
