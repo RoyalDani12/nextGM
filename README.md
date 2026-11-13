@@ -21,6 +21,13 @@
   <img src="https://img.shields.io/badge/Vitest-6E9F18?style=flat-square&logo=vitest&logoColor=white" alt="Vitest" />
 </p>
 
+<p align="center">
+  <a href="https://github.com/RoyalDani12/nextGM/actions/workflows/cd.yml"><img src="https://github.com/RoyalDani12/nextGM/actions/workflows/cd.yml/badge.svg" alt="CD Status" /></a>
+  <a href="https://github.com/RoyalDani12/nextGM/actions/workflows/ci.yml"><img src="https://github.com/RoyalDani12/nextGM/actions/workflows/ci.yml/badge.svg" alt="CI Status" /></a>
+  <a href="https://nextgm-1.onrender.com/"><img src="https://img.shields.io/badge/Render-Production_Live-46E3B7?style=flat-square&logo=render&logoColor=white" alt="Render Production" /></a>
+  <a href="https://github.com/RoyalDani12/nextGM/deployments/production"><img src="https://img.shields.io/github/deployments/RoyalDani12/nextGM/production?label=deployment&logo=github&style=flat-square" alt="GitHub Deployment Status" /></a>
+</p>
+
 NextGM is a full-stack, multi-tenant commerce platform for international
 marketplaces. It connects customers, independent sellers, and platform
 operators through one secure commerce system:
