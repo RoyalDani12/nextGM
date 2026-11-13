@@ -4,7 +4,6 @@ import { isAxiosError } from "axios";
 import {
   ArrowLeft,
   ChevronRight,
-  Copy,
   Package,
   RefreshCw,
   Search,
@@ -156,7 +155,7 @@ export default function CustomerOrder() {
         setOrderToCancel(null);
         toast.add({
           title: "Order cancelled",
-          description: `Order #${orderToCancel.id.slice(-8).toUpperCase()} has been cancelled.`,
+          description: "Your order has been cancelled successfully.",
           type: "success",
         });
       },
@@ -172,16 +171,6 @@ export default function CustomerOrder() {
           type: "error",
         });
       },
-    });
-  };
-
-  const copyOrderId = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(id);
-    toast.add({
-      title: "Order reference copied",
-      description: `#${id.slice(-8).toUpperCase()}`,
-      type: "info",
     });
   };
 
@@ -368,7 +357,7 @@ export default function CustomerOrder() {
             <Search className="absolute left-3 top-2.5 size-3.5 text-slate-400" />
             <input
               type="text"
-              placeholder="Search reference, store, item..."
+              placeholder="Search store, item..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-8 pr-7 text-xs text-slate-900 shadow-2xs outline-none transition placeholder:text-slate-400 focus:border-orange-600 focus:ring-1 focus:ring-orange-600"
@@ -492,19 +481,7 @@ export default function CustomerOrder() {
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-bold text-slate-900">
-                            #{order.id.slice(-8).toUpperCase()}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={(e) => copyOrderId(e, order.id)}
-                            title="Copy reference ID"
-                            className="rounded p-0.5 text-slate-400 transition hover:bg-slate-200 hover:text-slate-700"
-                          >
-                            <Copy className="size-3" />
-                          </button>
-                          <span className="text-slate-300">·</span>
-                          <span className="truncate text-xs font-semibold text-slate-700">
+                          <span className="truncate text-sm font-bold text-slate-900">
                             {storeName}
                           </span>
                         </div>
@@ -611,7 +588,7 @@ export default function CustomerOrder() {
           <DialogHeader>
             <DialogTitle>Cancel order</DialogTitle>
             <DialogDescription>
-              Are you sure you want to cancel order #{orderToCancel?.id.slice(-8).toUpperCase()}? If authorized or captured, your payment will be refunded.
+              Are you sure you want to cancel this order? If authorized or captured, your payment will be refunded.
             </DialogDescription>
           </DialogHeader>
 
