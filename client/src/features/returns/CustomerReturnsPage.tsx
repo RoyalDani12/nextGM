@@ -36,8 +36,8 @@ export default function CustomerReturnsPage() {
                 <div className="flex items-start gap-3">
                   <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-orange-600"><RotateCcw className="size-5" /></div>
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Return #{returnRequest.id.slice(-8).toUpperCase()}</p>
-                    <h2 className="mt-1 text-base font-extrabold text-slate-900">Order #{returnRequest.orderId.slice(-8).toUpperCase()}</h2>
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Return Request</p>
+                    <h2 className="mt-1 text-base font-extrabold text-slate-900">Return Claim</h2>
                     <p className="mt-1 text-xs text-slate-500">{returnRequest.items.length} item{returnRequest.items.length === 1 ? "" : "s"} · {returnRequest.resolution === "REFUND" ? "Refund" : "Replacement"}</p>
                   </div>
                 </div>

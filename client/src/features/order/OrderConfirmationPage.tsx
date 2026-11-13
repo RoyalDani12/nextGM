@@ -38,13 +38,6 @@ export function OrderConfirmationPage() {
           Thank you for your purchase. Your payment has been confirmed and all shops have been notified.
         </p>
 
-        {checkoutId && (
-          <div className="my-6 rounded-xl bg-gray-50 p-3 text-left">
-            <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400">Checkout Reference</span>
-            <span className="font-mono text-xs text-gray-600 break-all">{checkoutId}</span>
-          </div>
-        )}
-
         {/* Action Buttons */}
         <div className="mt-8 space-y-3">
           <button

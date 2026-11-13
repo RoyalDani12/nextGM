@@ -109,7 +109,6 @@ export function OrderInvoiceModal({
                             <div className="mt-2 text-xs text-slate-500 space-y-0.5">
                                 <p>Date: <span className="font-semibold text-slate-800">{orderDate}</span></p>
                                 <p>Payment: <span className="font-semibold text-emerald-600">Card via Stripe (Paid)</span></p>
-                                <p>Order Ref: <span className="font-mono text-slate-600">#{order.id.slice(-8).toUpperCase()}</span></p>
                             </div>
                         </div>
                     </div>

@@ -7,7 +7,6 @@ import { useCancelCustomerOrder } from "./customerOrder.hook";
 import {
   ArrowLeft,
   Check,
-  Copy,
   CreditCard,
   ExternalLink,
   Package,
@@ -120,7 +119,6 @@ export default function CustomerOrderDetailPage() {
   });
 
   const order = response?.data;
-  const [copied, setCopied] = useState(false);
   const canCancel = order?.status === "PENDING" || order?.status === "CONFIRMED";
   const orderReturns = customerReturns.filter((returnRequest) => returnRequest.orderId === orderId);
   const activeReturn = orderReturns.find((returnRequest) => returnRequest.status !== "CANCELLED");
@@ -142,7 +140,7 @@ export default function CustomerOrderDetailPage() {
         setIsCancelDialogOpen(false);
         toast.add({
           title: "Order cancelled",
-          description: `Order #${orderId.slice(-8).toUpperCase()} has been cancelled.`,
+          description: "Your order has been cancelled successfully.",
           type: "success",
         });
       },
@@ -159,18 +157,6 @@ export default function CustomerOrderDetailPage() {
         });
       },
     });
-  };
-
-  const copyId = () => {
-    if (!orderId) return;
-    navigator.clipboard.writeText(orderId);
-    setCopied(true);
-    toast.add({
-      title: "Order reference copied",
-      description: `#${orderId.slice(-8).toUpperCase()}`,
-      type: "info",
-    });
-    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleCancelReturn = (returnId: string) => {
@@ -254,8 +240,8 @@ export default function CustomerOrderDetailPage() {
               <ArrowLeft className="size-3.5" />
               <span>Back to Orders</span>
             </button>
-            <div className="text-xs font-semibold text-slate-400">
-              Order #{order.id.slice(-8).toUpperCase()}
+            <div className="text-xs font-semibold text-slate-500">
+              {order.shop?.name || "Order Details"}
             </div>
           </div>
         </div>
@@ -266,18 +252,9 @@ export default function CustomerOrderDetailPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-slate-200 pb-6">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl font-mono">
-                #{order.id.slice(-8).toUpperCase()}
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                Order Details
               </h1>
-              <button
-                type="button"
-                onClick={copyId}
-                title="Copy reference ID"
-                className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs font-mono text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
-              >
-                <Copy className="size-3" />
-                <span>{copied ? "Copied" : "Copy"}</span>
-              </button>
               <span
                 className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold border ${statusBadge.badgeClass}`}
               >
@@ -676,7 +653,7 @@ export default function CustomerOrderDetailPage() {
             {activeReturn && (
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-2xs">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  Return claim #{activeReturn.id.slice(-6).toUpperCase()}
+                  Return Claim
                 </p>
                 <p className="mt-1 text-xs font-bold text-slate-900">
                   Status: {activeReturn.status.replaceAll("_", " ")}
@@ -725,7 +702,7 @@ export default function CustomerOrderDetailPage() {
           <DialogHeader>
             <DialogTitle>Cancel order</DialogTitle>
             <DialogDescription>
-              Are you sure you want to cancel order #{order.id.slice(-8).toUpperCase()}? If authorized or captured, your payment will be refunded.
+              Are you sure you want to cancel this order? If authorized or captured, your payment will be refunded.
             </DialogDescription>
           </DialogHeader>
 
