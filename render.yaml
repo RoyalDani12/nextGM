@@ -7,13 +7,13 @@ services:
   # -------------------------------------------------------------
   - type: web
     name: nextgm-api
-    runtime: docker
-    dockerfilePath: ./server/Dockerfile
-    dockerContext: ./server
+    runtime: image
+    image:
+      url: ghcr.io/royaldani12/nextgm/server:latest
     plan: starter
     region: oregon
     healthCheckPath: /health
-    autoDeploy: true
+    autoDeploy: false # GitHub Actions deploy hook triggers after GHCR push
     envVars:
       - key: NODE_ENV
         value: production
@@ -68,13 +68,13 @@ services:
   # -------------------------------------------------------------
   - type: worker
     name: nextgm-worker
-    runtime: docker
-    dockerfilePath: ./server/Dockerfile
-    dockerContext: ./server
+    runtime: image
+    image:
+      url: ghcr.io/royaldani12/nextgm/server:latest
     dockerCommand: node dist/worker.js
     plan: starter
     region: oregon
-    autoDeploy: true
+    autoDeploy: false # GitHub Actions deploy hook triggers after GHCR push
     envVars:
       - key: NODE_ENV
         value: production
